@@ -1,0 +1,303 @@
+{% extends "base/base.html" %}
+
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Transações - {{ unit.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Transações Financeiras</h2>
+            <p class="text-muted m-0">{{ unit.name }}</p>
+        </div>
+        <div class="col-auto d-flex gap-2">
+            <a href="{% url 'dashboard_financeiro' %}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-chart-line me-2"></i>Dashboard
+            </a>
+            {% if user|has_perm:'users.add_unit_transactions' %}
+            <a href="{% url 'add_transaction' %}" class="btn btn-primary" style="background-color: {{ enterprise.primary_color }}; border: none;">
+                <i class="fa-solid fa-plus me-2"></i>Nova Transação
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="container-style mb-4">
+        <h6 class="mb-3">Filtros</h6>
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="tipo" class="form-label">Tipo:</label>
+                    <select name="tipo" id="tipo" class="form-select">
+                        <option value="">Todos</option>
+                        {% for value, label in transaction_types %}
+                        <option value="{{ value }}" {% if filtros.tipo == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="categoria" class="form-label">Categoria:</label>
+                    <select name="categoria" id="categoria" class="form-select">
+                        <option value="">Todas</option>
+                        {% for value, label in transaction_categories %}
+                        <option value="{{ value }}" {% if filtros.categoria == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="data_inicio" class="form-label">Data Início:</label>
+                    <input type="date" name="data_inicio" id="data_inicio" class="form-control" value="{{ filtros.data_inicio }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="data_fim" class="form-label">Data Fim:</label>
+                    <input type="date" name="data_fim" id="data_fim" class="form-control" value="{{ filtros.data_fim }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2" style="background-color: {{ enterprise.primary_color }}; border: none;">
+                        <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+                    </button>
+                    <a href="{% url 'unit_transactions_list' %}" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                </div>
+            </form>
+    </div>
+
+    <!-- Lista de Transações -->
+    <div class="container-style">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Lista de Transações</h6>
+            <span class="badge bg-secondary">{{ transactions.paginator.count }} transações</span>
+        </div>
+            {% if transactions %}
+            <div class="table-container">
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th class="px-3">Data</th>
+                            <th class="px-3">Tipo</th>
+                            <th class="px-3">Descrição</th>
+                            <th class="px-3">Categoria</th>
+                            <th class="px-3 text-end">Valor</th>
+                            <th class="px-3">Criado por</th>
+                            <th class="px-3 text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr {% if not transaction.is_active %}class="table-secondary text-muted"{% endif %}>
+                            <td class="px-3">{{ transaction.date|date:"d/m/Y" }}</td>
+                            <td class="px-3">
+                                {% if transaction.transaction_type == 'ENTRADA' %}
+                                    <span class="badge bg-success">
+                                        <i class="fa-solid fa-arrow-up me-1"></i>Entrada
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="fa-solid fa-arrow-down me-1"></i>Saída
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-3">
+                                {{ transaction.description }}
+                                {% if transaction.notes %}
+                                    <br><small class="text-muted">{{ transaction.notes|truncatewords:10 }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="px-3">{{ transaction.get_category_display }}</td>
+                            <td class="px-3 text-end {% if transaction.transaction_type == 'ENTRADA' %}text-success{% else %}text-danger{% endif %}">
+                                <strong>
+                                    {% if transaction.transaction_type == 'ENTRADA' %}+{% else %}-{% endif %}R$ {{ transaction.amount|floatformat:2 }}
+                                </strong>
+                            </td>
+                            <td class="px-3">
+                                <small class="text-muted">{{ transaction.created_by.name }}</small>
+                            </td>
+                            <td class="px-3 text-center">
+                                {% if user|has_perm:'users.change_unit_transactions' %}
+                                <a href="{% url 'edit_transaction' transaction.id %}" 
+                                   class="btn btn-sm btn-outline-primary me-1" 
+                                   title="Editar transação">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                {% endif %}
+                                {% if user|has_perm:'users.delete_unit_transactions' %}
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-danger" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#deleteModal{{ transaction.id }}"
+                                        title="Excluir transação">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginação -->
+            {% if transactions.has_other_pages %}
+            <div class="table-pagination mt-3">
+                <nav aria-label="Navegação das transações">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if transactions.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ transactions.previous_page_number }}{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}{% if request.GET.categoria %}&categoria={{ request.GET.categoria }}{% endif %}{% if request.GET.data_inicio %}&data_inicio={{ request.GET.data_inicio }}{% endif %}{% if request.GET.data_fim %}&data_fim={{ request.GET.data_fim }}{% endif %}">
+                                <i class="fa-solid fa-chevron-left"></i> Anterior
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for i in transactions.paginator.page_range %}
+                        {% if transactions.number == i %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ i }}</span>
+                        </li>
+                        {% elif i > transactions.number|add:'-3' and i < transactions.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ i }}{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}{% if request.GET.categoria %}&categoria={{ request.GET.categoria }}{% endif %}{% if request.GET.data_inicio %}&data_inicio={{ request.GET.data_inicio }}{% endif %}{% if request.GET.data_fim %}&data_fim={{ request.GET.data_fim }}{% endif %}">{{ i }}</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if transactions.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ transactions.next_page_number }}{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}{% if request.GET.categoria %}&categoria={{ request.GET.categoria }}{% endif %}{% if request.GET.data_inicio %}&data_inicio={{ request.GET.data_inicio }}{% endif %}{% if request.GET.data_fim %}&data_fim={{ request.GET.data_fim }}{% endif %}">
+                                Próxima <i class="fa-solid fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fa-solid fa-receipt fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Nenhuma transação encontrada</h5>
+                <p class="text-muted">Não há transações para exibir com os filtros aplicados.</p>
+                {% if user|has_perm:'users.add_unit_transactions' %}
+                <a href="{% url 'add_transaction' %}" class="btn btn-primary" style="background-color: {{ enterprise.primary_color }}; border: none;">
+                    <i class="fa-solid fa-plus me-2"></i>Adicionar Primeira Transação
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+    </div>
+</div>
+
+<!-- Modais de Confirmação de Exclusão -->
+{% if user|has_perm:'users.delete_unit_transactions' %}
+{% for transaction in transactions %}
+<div class="modal fade" id="deleteModal{{ transaction.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ transaction.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel{{ transaction.id }}">
+                    <i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza de que deseja excluir a transação?</p>
+                <div class="alert alert-warning">
+                    <strong>{{ transaction.description }}</strong><br>
+                    <small>
+                        {{ transaction.get_transaction_type_display }} - R$ {{ transaction.amount|floatformat:2 }}<br>
+                        Data: {{ transaction.date|date:"d/m/Y" }}
+                    </small>
+                </div>
+                <p class="text-muted">Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'delete_transaction' transaction.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fa-solid fa-trash me-1"></i>Excluir Transação
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<style>
+.container-style {
+    background-color: #ffffff;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+.text-color-primary {
+    color: #16365f;
+}
+
+/* Estilos da tabela moderna */
+.table-container {
+    overflow-x: auto;
+    border-radius: 10px;
+}
+
+.table-modern {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.table-modern th {
+    padding: 12px 15px;
+    font-weight: 600;
+    color: #495057;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+    font-size: 0.9rem;
+    border-top: none;
+}
+
+.table-modern td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #f1f3f4;
+    vertical-align: middle;
+    font-size: 0.9rem;
+}
+
+.table-modern tr:hover {
+    background-color: #f1f3f4;
+    transition: background-color 0.2s ease;
+}
+
+.table-modern tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.badge {
+    font-size: 0.85em;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+}
+
+/* Paginação */
+.table-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 15px 0;
+}
+</style>
+{% endblock %} 

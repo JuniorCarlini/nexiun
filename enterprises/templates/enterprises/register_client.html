@@ -1,0 +1,443 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}Cadastrar Cliente{% endblock %}
+
+{% block content %}
+
+<!-- Incluir Trix Editor -->
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/trix/1.3.1/trix.css">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/trix/1.3.1/trix.js"></script>
+
+<style>
+    .file-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 15px;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .file-item:hover {
+        background-color: #f8f9fa;
+        border-color: #adb5bd;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .file-actions {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+    }
+
+    .file-actions button {
+        padding: 0;
+    }
+
+    .file-name {
+        font-weight: 500;
+        color: #495057;
+        flex: 1;
+    }
+
+    .file-size {
+        font-size: 0.875rem;
+    }
+
+    /* Estilo para tema escuro */
+    [data-theme="dark"] .file-item {
+        background-color: #404040;
+        border-color: #525252;
+        color: #e4e4e7;
+    }
+
+    [data-theme="dark"] .file-item:hover {
+        background-color: #4a4a4a;
+        border-color: #6c757d;
+    }
+
+    [data-theme="dark"] .file-name {
+        color: #e4e4e7;
+    }
+
+    .alert-docs {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .drag-drop-zone {
+        background-color: #f5f5f5;
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .drag-drop-zone.dragover {
+        background-color: #e0e0e0;
+        border-color: #909090;
+    }
+
+    .drag-drop-zone:hover {
+        background-color: #ebebeb;
+    }
+
+    .file-list {
+        margin-top: 15px;
+    }
+    
+    .current-documents {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 0%;
+        color: #16365f;
+    }
+
+    /* Desabilitar botões de anexo do Trix Editor */
+    trix-toolbar [data-trix-button-group="file-tools"] {
+        display: none !important;
+    }
+    
+    /* Esconder ícone de clipe de papel para anexos */
+    trix-toolbar .trix-button--icon-attach {
+        display: none !important;
+    }
+</style>
+
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Cadastrar Cliente</h2>
+        </div>
+    </div>
+</div>
+
+<div class="container-style">
+    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+        {% csrf_token %}
+        
+        <!-- Informações Básicas -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="name" class="form-label fw-bold">Nome:</label>
+                <input type="text" name="name" id="name" class="form-control" required>
+                <div class="invalid-feedback">
+                    Por favor, informe o nome do cliente.
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="email" class="form-label fw-bold">Email:</label>
+                <input type="email" name="email" id="email" class="form-control" required>
+                <div class="invalid-feedback">
+                    Por favor, informe um email válido.
+                </div>
+            </div>
+        </div>
+
+        <!-- Contato e Localização -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="phone" class="form-label fw-bold">Telefone:</label>
+                <input type="tel" name="phone" id="phone" class="form-control">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="unit" class="form-label fw-bold">Unidade:</label>
+                <input type="text" name="unit" id="unit" class="form-control" 
+                    value="{{ user_unit.name }}" readonly disabled>
+            </div>
+        </div>
+
+        <!-- Endereço -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="address" class="form-label fw-bold">Endereço:</label>
+                <input type="text" name="address" id="address" class="form-control">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="city" class="form-label fw-bold">Cidade:</label>
+                <input type="text" name="city" id="city" class="form-control">
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="status" class="form-label fw-bold">Situação:</label>
+                <select name="status" id="status" class="form-control">
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if value == 'INATIVO' %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 mb-3" id="retorno_ate_field" style="display: none;">
+                <label for="retorno_ate" class="form-label fw-bold">
+                    Retorno até <span class="text-danger">*</span>:
+                </label>
+                <input type="date" name="retorno_ate" id="retorno_ate" class="form-control" value="">
+                <small class="form-text text-muted">Obrigatório quando em negociação (até 5 dias a partir de hoje)</small>
+            </div>
+        </div>
+
+        <!-- Data de aniversario e Retorno até -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="date_of_birth" class="form-label fw-bold">Data de aniversario:</label>
+                <input type="date" name="date_of_birth" id="date_of_birth" class="form-control" value="{{ client.date_of_birth|date:'Y-m-d'|default_if_none:'' }}" {% if is_completed %}readonly{% endif %}>
+            </div>
+        </div>
+
+        <!-- Observações -->
+        <div class="row">
+            <div class="col-12">
+                <label for="observacoes" class="form-label fw-bold">Observações:</label>
+                <input id="observacoes" type="hidden" name="observations">
+                <trix-editor input="observacoes"></trix-editor>
+            </div>
+        </div>
+
+        <!-- Adicionar Novos Documentos -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <label for="new_documents" class="form-label fw-bold">Adicionar Novos Documentos:</label>
+                <div id="dragDropZone" class="drag-drop-zone">
+                    <i class="fas fa-cloud-upload-alt mb-2" style="font-size: 36px;"></i>
+                    <div class="fw-bold">Arraste e solte arquivos aqui ou clique para selecionar</div>
+                    <p class="alert-docs text-danger">PNG, JPG, PDF - 5MB tamanho máximo suportado</p>
+                    <input type="file" id="fileInput" multiple name="documents[]" 
+                           accept=".pdf,.jpg,.jpeg,.png" style="display: none">
+                </div>
+                <div id="fileList" class="file-list mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Botões de ação -->
+        <div class="row mt-4">
+            <div class="col-12 text-end">
+                <a href="{% url 'list_clients' %}" class="btn btn-secondary">
+                    <i class="fa-solid fa-arrow-left"></i> Voltar
+                </a>
+                <button type="submit" class="btn btn-primary rounded" 
+                        style="background-color: {{ enterprise.primary_color }}; border: none;">
+                        <i class="fa-solid fa-check"></i> Cadastrar Cliente
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Tem certeza que deseja excluir o documento "<span id="documentName"></span>"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" id="deleteForm" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="delete_document" value="true">
+                    <input type="hidden" name="document_id" id="documentId">
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Variáveis globais para upload de arquivos
+    let selectedFiles = [];
+    let dragDropZone, fileInput, fileList;
+
+    // Inicializar elementos do upload
+    dragDropZone = document.getElementById('dragDropZone');
+    fileInput = document.getElementById('fileInput');
+    fileList = document.getElementById('fileList');
+
+    // Funções globais para manipulação de arquivos
+    window.removeFile = function(index) {
+        selectedFiles.splice(index, 1);
+        updateFileDisplay();
+        updateFileInput();
+    };
+
+    function updateFileDisplay() {
+        if (!fileList) return;
+        fileList.innerHTML = '';
+
+        selectedFiles.forEach((file, index) => {
+            const listItem = document.createElement('div');
+            listItem.className = 'file-item mt-2';
+            listItem.innerHTML = `
+                <i class="fas ${file.type === 'application/pdf' ? 'fa-file-pdf text-danger' : 'fa-file-image text-primary'} me-2"></i>
+                <span class="file-name">${file.name}</span>
+                <div class="file-actions">
+                    <span class="file-size text-muted me-2">(${(file.size / 1024).toFixed(2)} KB)</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFile(${index})" title="Remover arquivo" style="padding-left: 5px; padding-right: 5px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            fileList.appendChild(listItem);
+        });
+
+        // Mostrar contador de arquivos
+        if (selectedFiles.length > 0) {
+            const counterDiv = document.createElement('div');
+            counterDiv.className = 'mt-2 text-muted small';
+            counterDiv.innerHTML = `<i class="fas fa-info-circle me-1"></i>${selectedFiles.length} arquivo(s) selecionado(s)`;
+            fileList.appendChild(counterDiv);
+        }
+    }
+
+    function updateFileInput() {
+        if (!fileInput) return;
+        // Criar um novo DataTransfer para atualizar o input
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => {
+            dataTransfer.items.add(file);
+        });
+        fileInput.files = dataTransfer.files;
+    }
+
+    function addFilesToList(newFiles) {
+        // Adicionar novos arquivos ao array existente
+        Array.from(newFiles).forEach(file => {
+            // Verificar se o arquivo já existe (por nome e tamanho)
+            const fileExists = selectedFiles.some(existingFile => 
+                existingFile.name === file.name && existingFile.size === file.size
+            );
+            
+            if (!fileExists) {
+                selectedFiles.push(file);
+            }
+        });
+        
+        updateFileDisplay();
+        updateFileInput();
+    }
+
+    function handleFileSelect(event) {
+        const files = event.target?.files || event.dataTransfer?.files;
+        if (files && files.length > 0) {
+            addFilesToList(files);
+        }
+    }
+
+    // Modal de exclusão
+    function showDeleteModal(documentId, documentName) {
+        document.getElementById('documentId').value = documentId;
+        document.getElementById('documentName').textContent = documentName;
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    }
+
+    // Event Listeners para drag and drop
+    if (dragDropZone && fileInput) {
+        dragDropZone.addEventListener('click', () => {
+            // Limpar o input antes de abrir para permitir selecionar os mesmos arquivos novamente
+            fileInput.value = '';
+            fileInput.click();
+        });
+        fileInput.addEventListener('change', handleFileSelect);
+
+        dragDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dragDropZone.classList.add('dragover');
+        });
+
+        dragDropZone.addEventListener('dragleave', () => {
+            dragDropZone.classList.remove('dragover');
+        });
+
+        dragDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragDropZone.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelect(e);
+        });
+    }
+
+    // Controle do campo "Retorno até"
+    function setDateLimits() {
+        const today = new Date();
+        const maxDate = new Date();
+        maxDate.setDate(today.getDate() + 5);
+        
+        const retornoAteInput = document.getElementById('retorno_ate');
+        retornoAteInput.min = today.toISOString().split('T')[0];
+        retornoAteInput.max = maxDate.toISOString().split('T')[0];
+    }
+    
+    function toggleRetornoAteField() {
+        const statusSelect = document.getElementById('status');
+        const retornoAteField = document.getElementById('retorno_ate_field');
+        const retornoAteInput = document.getElementById('retorno_ate');
+        
+        if (statusSelect.value === 'EM_NEGOCIACAO') {
+            retornoAteField.style.display = 'block';
+            retornoAteInput.required = true;
+            setDateLimits();
+        } else {
+            retornoAteField.style.display = 'none';
+            retornoAteInput.required = false;
+            retornoAteInput.value = '';
+        }
+    }
+
+    // Validação de data em tempo real
+    function validateRetornoDate() {
+        const retornoAteInput = document.getElementById('retorno_ate');
+        const selectedDate = new Date(retornoAteInput.value);
+        const today = new Date();
+        const maxDate = new Date();
+        maxDate.setDate(today.getDate() + 5);
+        
+        if (selectedDate < today) {
+            retornoAteInput.setCustomValidity('A data não pode ser anterior à data atual.');
+        } else if (selectedDate > maxDate) {
+            retornoAteInput.setCustomValidity('A data não pode ser superior a 5 dias a partir de hoje.');
+        } else {
+            retornoAteInput.setCustomValidity('');
+        }
+    }
+
+    // Event listeners
+    document.getElementById('status').addEventListener('change', toggleRetornoAteField);
+    document.getElementById('retorno_ate').addEventListener('change', validateRetornoDate);
+    
+    // Verificar estado inicial
+    toggleRetornoAteField();
+
+    // Desabilitar funcionalidade de anexos do Trix Editor
+    document.addEventListener('trix-file-accept', function(event) {
+        event.preventDefault();
+        return false;
+    });
+
+    // Prevenir arrastar e soltar arquivos no editor de observações
+    document.addEventListener('trix-attachment-add', function(event) {
+        event.attachment.remove();
+        event.preventDefault();
+        
+        // Mostrar aviso ao usuário
+        alert('Não é possível adicionar arquivos nas observações. Use a seção "Adicionar Novos Documentos" abaixo.');
+    });
+</script>
+
+{% endblock %}

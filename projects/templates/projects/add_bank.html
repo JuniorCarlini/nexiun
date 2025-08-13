@@ -1,0 +1,84 @@
+{% extends "base/base.html" %}
+
+{% load static %}
+
+{% block title %}Cadastrar Banco{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Cadastrar Banco</h2>
+        </div>
+    </div>
+
+    <!-- Formulário de Cadastro -->
+    <div class="container-style">
+        <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label for="name" class="form-label fw-bold d-flex align-items-center">Nome do Banco:</label>
+                    <input type="text" 
+                           name="name" 
+                           id="name" 
+                           class="form-control" 
+                           required>
+                    <div class="invalid-feedback">
+                        Por favor, informe o nome do banco.
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label for="description" class="form-label fw-bold d-flex align-items-center">
+                        <i class="bi bi-question-circle-fill me-1 small"
+                           style="font-size: 12px;"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="top"
+                           title="Descrição ou informações adicionais sobre o banco"
+                           data-bs-custom-class="custom-tooltip">
+                        </i>Descrição:</label>
+                    <textarea name="description" 
+                              id="description" 
+                              class="form-control" 
+                              rows="3"></textarea>
+                </div>
+            </div>
+
+            <!-- Botões de ação -->
+            <div class="row mt-4">
+                <div class="col-12 text-end">
+                    <a href="{% url 'banks_list' %}" class="btn btn-secondary">
+                        <i class="fa-solid fa-arrow-left"></i> Voltar
+                    </a>
+                    <button type="submit" class="btn btn-primary rounded" style="background-color: {{ enterprise.primary_color }}; border: none;" >
+                        <i class="fa-solid fa-check"></i> Salvar Banco
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validação do formulário
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})
+</script>
+{% endblock %}
+
+{% endblock %}

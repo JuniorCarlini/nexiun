@@ -1,0 +1,238 @@
+{% extends "base/base.html" %}
+
+{% load static %}
+{% load permission_tags %}
+{% load custom_filters %}
+
+{% block title %}Listar Clientes{% endblock %}
+
+{% block content %}
+
+<style>
+    .btn-primary {
+        background-color: {{ enterprise.primary_color }};
+        border-color: {{ enterprise.primary_color }};
+    }
+    
+    .btn-primary:hover {
+        background-color: {{ enterprise.primary_color }};
+        border-color: {{ enterprise.primary_color }};
+    }
+</style>
+
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Listar Clientes</h2>
+        </div>
+        {% if user|has_perm:'users.add_clients' %}
+        <div class="col-12 col-md-auto mt-3 mt-md-0">
+            <a href="{% url 'register_client' %}" class="btn button-style btn-primary w-100 w-md-auto" style="background-color: {{ enterprise.primary_color }}; border: none;">
+                <i class="fa-solid fa-square-plus"></i> Cadastrar Cliente
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Filtros -->
+    <div class="container-style mb-3">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Buscar por nome:</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="search" 
+                       name="search" 
+                       value="{{ current_search }}" 
+                       placeholder="Digite o nome do cliente...">
+            </div>
+            <div class="col-md-4">
+                <label for="status" class="form-label">Filtrar por situação:</label>
+                <select class="form-control" id="status" name="status">
+                    <option value="">Todas as situações</option>
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn button-style btn-primary me-2">
+                    <i class="fas fa-search"></i> Filtrar
+                </button>
+                <a href="{% url 'list_clients' %}" class="btn button-style btn-secondary">
+                    <i class="fas fa-times"></i> Limpar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabela -->
+    <div class="container-style">
+        <div class="table-container">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th class="col-type">Status</th>
+                        <th class="col-category">Situação</th>
+                        <th class="col-description">Nome</th>
+                        <th class="col-category">Email</th>
+                        <th class="col-date">Unidades</th>
+                        <th class="col-date">Registrado por</th>
+                        <th class="col-amount">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in clients %}
+                    <tr>
+                        <td>
+                            <div class="d-inline-block rounded-circle" 
+                                 data-bs-toggle="tooltip" 
+                                 data-bs-placement="top"
+                                 title="{% if client.status == 'EM_NEGOCIACAO' and client.retorno_ate %}
+                                        {% now 'Y-m-d' as today %}
+                                        {% if client.retorno_ate|date:'Y-m-d' < today %}Em atraso para retorno
+                                        {% elif client.retorno_ate|timeuntil|slice:':1' == '1' %}Retorno hoje ou amanhã
+                                        {% else %}Retorno em {{ client.retorno_ate|timeuntil }}{% endif %}
+                                        {% elif client.status == 'EM_NEGOCIACAO' %}Em negociação - sem prazo definido
+                                        {% elif not client.is_active %}Cliente inativo
+                                        {% else %}{{ client.get_status_display }}{% endif %}"
+                                 style="width: 15px; height: 15px; background-color: 
+                                    {% if not client.is_active %}#6c757d
+                                    {% elif client.status == 'EM_NEGOCIACAO' and client.retorno_ate %}
+                                        {% now 'Y-m-d' as today %}
+                                        {% if client.retorno_ate|date:'Y-m-d' < today %}#dc3545
+                                        {% elif client.retorno_ate|timeuntil|slice:':1' == '1' %}#ffc107
+                                        {% else %}#28a745{% endif %}
+                                    {% elif client.status == 'EM_NEGOCIACAO' %}#6c757d
+                                    {% elif client.status == 'INTERESSADO' %}#17a2b8
+                                    {% elif client.status == 'ATIVO' %}#28a745
+                                    {% else %}#6c757d{% endif %};
+                                    border: 1px solid rgba(0,0,0,0.1);">
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge {{ client.get_status_badge_class }}">
+                                <i class="{{ client.get_status_icon }} me-1"></i>
+                                {{ client.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="transaction-text">
+                                <i class="fas fa-user-tie me-1" style="color: {{ enterprise.primary_color }};"></i>
+                                {{ client.name }}
+                                {% if not client.is_active %}
+                                    <small class="text-muted d-block">(Inativo)</small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge-category">
+                                <i class="fas fa-envelope me-1"></i>
+                                {{ client.email|truncatechars:25 }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if client.units.exists %}
+                            <span class="badge-date">
+                                <i class="fas fa-building me-1"></i>
+                                {{ client.get_units_display|truncatechars:20 }}
+                            </span>
+                            {% else %}
+                            <span class="badge-saida">
+                                <i class="fas fa-minus-circle me-1"></i>
+                                Sem unidade
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if client.created_by %}
+                            <span class="badge-entrada">
+                                <i class="fas fa-user me-1"></i>
+                                {{ client.created_by.name|truncatechars:15 }}
+                            </span>
+                            {% else %}
+                            <span class="badge-saida">
+                                <i class="fas fa-question-circle me-1"></i>
+                                Não informado
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1 justify-content-center flex-wrap">
+                                <!-- WhatsApp -->
+                                {% if client.phone and client.is_active %}
+                                <a href="https://wa.me/{{ client.phone|whatsapp_phone }}" 
+                                   class="btn btn-success btn-sm" 
+                                   title="Enviar mensagem WhatsApp"
+                                   target="_blank">
+                                    <i class="bi bi-whatsapp"></i>
+                                </a>
+                                {% endif %}
+                                
+                                <!-- Ver Detalhes -->
+                                {% if user|has_perm:'users.view_clients' %}
+                                <a href="{% url 'view_client' client.id %}" 
+                                   class="btn button-style btn-primary btn-sm" 
+                                   style="background-color: {{ enterprise.primary_color }}; border: none;"
+                                   title="Ver detalhes do cliente">
+                                    <i class="fa-solid fa-eye me-1"></i>Ver
+                                </a>
+                                {% endif %}
+                            </div>
+                            
+                            {% if not user|has_perm:'users.view_clients' %}
+                            <span class="text-muted">
+                                <i class="fa-solid fa-eye-slash"></i>
+                                Sem permissões
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center" style="padding: 60px 0;">
+                            <div><i class="bi bi-exclamation-circle text-muted fs-1"></i></div>
+                            <p class="mt-1">Nenhum Cliente Cadastrado!</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+            <!-- Paginação Moderna -->
+            {% if clients.has_other_pages %}
+            <div class="table-pagination mt-3">
+                <button type="button" class="btn btn-sm pagination-btn" {% if not clients.has_previous %}disabled{% endif %} data-page="{% if clients.has_previous %}{{ clients.previous_page_number }}{% else %}1{% endif %}">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="pagination-info mx-2">
+                    Página {{ clients.number }} de {{ clients.paginator.num_pages }}
+                </div>
+                <div class="pagination-track">
+                    <div class="pagination-thumb" data-current="{{ clients.number }}" data-total="{{ clients.paginator.num_pages }}"></div>
+                </div>
+                <button type="button" class="btn btn-sm pagination-btn" {% if not clients.has_next %}disabled{% endif %} data-page="{% if clients.has_next %}{{ clients.next_page_number }}{% else %}1{% endif %}">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar tooltips do Bootstrap
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,533 @@
+{% extends "base/base.html" %}
+
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Configuração{% endblock %}
+
+{% block content %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+
+<style>
+    .profile-image-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .profile-image {
+        transition: all 0.3s ease;
+    }
+
+    .profile-image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .profile-image-container:hover .profile-image-overlay {
+        opacity: 1;
+    }
+
+    .profile-image-container:hover .profile-image {
+        filter: blur(1px);
+    }
+
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+
+    .color-picker-title {
+        color: #495057;
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 20px;
+        text-align: center;
+        letter-spacing: 0.5px;
+    }
+
+    .color-inputs {
+        display: flex;
+        justify-content: space-around;
+        gap: 30px;
+        flex-wrap: wrap;
+    }
+
+    .color-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        flex: 1;
+        min-width: 120px;
+    }
+
+    .color-group label {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #6c757d;
+        margin-bottom: 12px;
+        text-align: center;
+        letter-spacing: 0.3px;
+    }
+
+    .color-input-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+
+    input[type="color"] {
+        width: 60px;
+        height: 60px;
+        border: 4px solid #fff;
+        border-radius: 50%;
+        padding: 0;
+        appearance: none;
+        cursor: pointer;
+        background: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    input[type="color"]:hover {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        border-color: #f8f9fa;
+    }
+
+    input[type="color"]:focus {
+        outline: none;
+        transform: translateY(-3px) scale(1.1);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25),
+                    0 0 0 4px rgba({{ enterprise.primary_color|slice:"1:" }}, 0.3);
+        border-color: {{ enterprise.primary_color }};
+    }
+
+    input[type="color"]:active {
+        transform: translateY(-1px) scale(1.02);
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper {
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+    }
+
+    input[type="color"]::-webkit-color-swatch {
+        border: none;
+        border-radius: 50%;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    input[type="color"]::-moz-color-swatch {
+        border: none;
+        border-radius: 50%;
+    }
+
+    .hex-input {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+    }
+
+    .hex-input:focus {
+        border-color: {{ enterprise.primary_color }};
+        box-shadow: 0 0 0 0.2rem rgba({{ enterprise.primary_color|slice:"1:" }}, 0.25);
+        outline: none;
+    }
+
+    .hex-input.is-valid {
+        border-color: #28a745;
+        background-color: #f8fff8;
+    }
+
+    .hex-input.is-invalid {
+        border-color: #dc3545;
+        background-color: #fff8f8;
+    }
+
+    .hex-input::placeholder {
+        color: #6c757d;
+        opacity: 0.7;
+    }
+
+    .text-utils {
+        font-size: 0.8rem;
+        color: #9e9e9e;
+    }
+
+    .text-utils-title {
+        font-size: 0.8rem;
+        color: #ff0707;
+    }
+
+    .separator {
+        width: 100%;
+        height: 1px;
+        background-color: #e1e1e1;
+        margin: 10px 0;
+    }
+
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 0%;
+        color: #16365f;
+    }
+
+    .button {
+        margin-top: 7px;
+        width: 100%;
+        height: 42px;
+    }
+
+    .custom-btn {
+        background-color: {{ enterprise.primary_color }};
+        color: #ffffff;
+        border: none;
+        transition: background-color 0.3s;
+    }
+
+    .custom-btn:focus,
+    .custom-btn:hover,
+    .custom-btn:active {
+        background-color: {{ enterprise.primary_color }} !important;
+        box-shadow: none !important;
+    }
+</style>
+
+<div class="container">
+    <h2 class="text-color-primary ms-4 mb-3">Configurações</h2>
+    <div class="container-style">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- Dados do Usuário -->
+            <h6 class="text-color-secondary">Dados do Usuário</h6>
+
+            <!-- Upload da Imagem do Usuário -->
+            <div class="text-center d-flex align-items-center justify-content-center mb-4">
+                <div class="position-relative d-inline-block profile-image-container">
+                    <label for="user_image" class="cursor-pointer m-0 p-0">
+                    {% if user.profile_image %}
+                            <img src="{{ user.profile_image.url }}" alt="Imagem de Perfil" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 150px; height: 150px; object-fit: cover;">
+                    {% else %}
+                            <img src="{% static 'images/user_default_icon.svg' %}" alt="Imagem de Perfil Padrão" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 150px; height: 150px; object-fit: cover;">
+                    {% endif %}
+                        <div class="profile-image-overlay rounded-circle">
+                            <i class="fas fa-camera text-white" style="font-size: 30px;"></i>
+                        </div>
+                </label>
+                    <input type="file" id="user_image" name="profile_image" class="d-none" accept="image/*">
+            </div>
+            </div>
+
+            <!-- Inputs do Usuário -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="name" class="form-label">Nome:</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="phone" class="form-label">Telefone:</label>
+                    <input type="text" class="form-control" id="phone" name="phone" value="{{ user.phone }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="email" class="form-label">Email:</label>
+                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" disabled
+                        readonly>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="cpf" class="form-label">CPF:</label>
+                    <input type="text" class="form-control" id="cpf" name="cpf" value="{{ user.cpf }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="theme_preference" class="form-label">
+                        <i class="fas fa-palette me-2"></i>Tema de Aparência:
+                    </label>
+                    <select class="form-select" id="theme_preference" name="theme_preference">
+                        <option value="light" {% if user.theme_preference == 'light' %}selected{% endif %}>
+                            <i class="fas fa-sun"></i> Tema Claro
+                        </option>
+                        <option value="dark" {% if user.theme_preference == 'dark' %}selected{% endif %}>
+                            <i class="fas fa-moon"></i> Tema Escuro
+                        </option>
+                        <option value="auto" {% if user.theme_preference == 'auto' %}selected{% endif %}>
+                            <i class="fas fa-adjust"></i> Automático
+                        </option>
+                    </select>
+                    <div class="form-text">
+                        <small class="text-muted">O tema será aplicado em toda a interface do sistema</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="separator"></div>
+
+            {% if user|has_perm:'users.manage_enterprise_settings' and enterprise %}
+            <!-- Dados da Empresa -->
+            <h6 class="mt-4 text-color-secondary">Dados da Empresa</h6>
+
+            <!-- Upload da Logo e Favicon -->
+            <div class="row mb-4">
+                <!-- Logo da Empresa -->
+                <div class="col-md-6">
+                    <h6 class="text-center mb-3 text-color-secondary">
+                        <i class="fas fa-image me-2"></i>Logo da Empresa
+                    </h6>
+                    <div class="text-center d-flex align-items-center justify-content-center">
+                        <div class="position-relative d-inline-block profile-image-container">
+                            <label for="enterprise_logo" class="cursor-pointer m-0 p-0">
+                            {% if enterprise.logo %}
+                                    <img src="{{ enterprise.logo.url }}" alt="Logo da Empresa" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 120px; height: 120px; object-fit: cover;">
+                            {% else %}
+                                    <img src="{% static 'images/enterprise_default_icon.svg' %}" alt="Logo Padrão da Empresa" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 120px; height: 120px; object-fit: cover;">
+                            {% endif %}
+                                <div class="profile-image-overlay rounded-circle">
+                                    <i class="fas fa-image text-white" style="font-size: 25px;"></i>
+                                </div>
+                            </label>
+                            <input type="file" id="enterprise_logo" name="logo" class="d-none" accept="image/*">
+                        </div>
+                    </div>
+                    <small class="text-muted d-block text-center mt-2">Logo principal da empresa</small>
+                </div>
+                
+                <!-- Favicon da Empresa -->
+                <div class="col-md-6">
+                    <h6 class="text-center mb-3 text-color-secondary">
+                        <i class="fas fa-star me-2"></i>Favicon
+                    </h6>
+                    <div class="text-center d-flex align-items-center justify-content-center">
+                        <div class="position-relative d-inline-block profile-image-container">
+                            <label for="enterprise_favicon" class="cursor-pointer m-0 p-0">
+                            {% if enterprise.favicon %}
+                                    <img src="{{ enterprise.favicon.url }}" alt="Favicon da Empresa" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 120px; height: 120px; object-fit: cover;">
+                            {% else %}
+                                    <img src="{% static 'icons/favicon.svg' %}" alt="Favicon Padrão" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 120px; height: 120px; object-fit: cover;">
+                            {% endif %}
+                                <div class="profile-image-overlay rounded-circle">
+                                    <i class="fas fa-star text-white" style="font-size: 25px;"></i>
+                                </div>
+                            </label>
+                            <input type="file" id="enterprise_favicon" name="favicon" class="d-none" accept="image/*,.ico">
+                        </div>
+                    </div>
+                    <small class="text-muted d-block text-center mt-2">Ícone que aparece na aba do navegador</small>
+                </div>
+            </div>
+
+            <!-- Inputs da Empresa -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="enterprise_name" class="form-label">Nome da Empresa:</label>
+                    <input type="text" class="form-control" id="enterprise_name" name="enterprise_name"
+                        value="{{ enterprise.name }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="enterprise_cnpj_or_cpf" class="form-label">CNPJ/CPF:</label>
+                    <input type="text" class="form-control" id="enterprise_cnpj_or_cpf" name="enterprise_cnpj_or_cpf"
+                        value="{{ enterprise.cnpj_or_cpf }}" required>
+                </div>
+            </div>
+
+            <!-- Seleção de Cores -->
+            <div class="color-picker-container">
+                <h6 class="color-picker-title">
+                    <i class="fas fa-palette me-2"></i>Personalização de Cores
+                </h6>
+                <div class="color-inputs">
+                <div class="color-group">
+                        <label for="primary_color">Cor Primária</label>
+                        <div class="color-input-wrapper">
+                    <input type="color" id="primary_color" name="primary_color" value="{{ enterprise.primary_color }}">
+                        </div>
+                        <input type="text" id="primary_color_hex" class="form-control form-control-sm mt-2 text-center hex-input" placeholder="#41FFAD" maxlength="7" style="font-size: 0.8rem; height: 30px;">
+                </div>
+                <div class="color-group">
+                        <label for="secondary_color">Cor Secundária</label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="secondary_color" name="secondary_color" value="{{ enterprise.secondary_color }}">
+                        </div>
+                        <input type="text" id="secondary_color_hex" class="form-control form-control-sm mt-2 text-center hex-input" placeholder="#41FFAD" maxlength="7" style="font-size: 0.8rem; height: 30px;">
+                </div>
+                <div class="color-group">
+                        <label for="text_icons_color">Ícones/Textos</label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="text_icons_color" name="text_icons_color" value="{{ enterprise.text_icons_color }}">
+                        </div>
+                        <input type="text" id="text_icons_color_hex" class="form-control form-control-sm mt-2 text-center hex-input" placeholder="#41FFAD" maxlength="7" style="font-size: 0.8rem; height: 30px;">
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <!-- Botões de ação -->
+            <div class="row mt-4">
+                <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-primary w-100 rounded" style="background-color: {{ enterprise.primary_color }}; border: none;">
+                        <i class="fa-solid fa-floppy-disk"></i> Salvar Alterações
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        // CPF mask
+        $('#cpf').mask('000.000.000-00', {
+            reverse: true,
+            clearIfNotMatch: true
+        });
+    
+        // Phone mask with dynamic behavior
+        var SPMaskBehavior = function(val) {
+            return val.replace(/\D/g, '').length === 11 ? '(00) 00000-0000' : '(00) 0000-00009';
+        },
+        spOptions = {
+            onKeyPress: function(val, e, field, options) {
+                field.mask(SPMaskBehavior.apply({}, arguments), options);
+            }
+        };
+    
+        $('#phone').mask(SPMaskBehavior, spOptions);
+        
+        // CNPJ/CPF mask for enterprise
+        $('#enterprise_cnpj_or_cpf').mask('00.000.000/0000-00');
+    
+        // Preview de imagem universal
+        function previewUserImage(event) {
+            if (event.target.files && event.target.files[0]) {
+                const reader = new FileReader();
+                const container = $(event.target).closest('.profile-image-container');
+                
+                reader.onload = function(e) {
+                    container.find('img').attr('src', e.target.result);
+                }
+                
+                reader.readAsDataURL(event.target.files[0]);
+            }
+        }
+
+        function previewEnterpriseImage(event) {
+            if (event.target.files && event.target.files[0]) {
+            const reader = new FileReader();
+                const container = $(event.target).closest('.profile-image-container');
+                
+                reader.onload = function(e) {
+                    container.find('img').attr('src', e.target.result);
+                }
+                
+            reader.readAsDataURL(event.target.files[0]);
+        }
+        }
+
+        // Preview universal para todos os inputs de arquivo
+        $(document).on('change', 'input[type="file"]', function(e) {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                const container = $(this).closest('.profile-image-container');
+                
+                if (container.length > 0) {
+                    reader.onload = function(e) {
+                        container.find('img').attr('src', e.target.result);
+                    }
+                    
+                    reader.readAsDataURL(this.files[0]);
+                }
+            }
+        });
+
+        // Função para normalizar código hex (adiciona # se necessário)
+        function normalizeHex(hex) {
+            hex = hex.trim();
+            if (hex.charAt(0) !== '#') {
+                hex = '#' + hex;
+            }
+            return hex.toUpperCase();
+        }
+
+        // Função para validar código hex
+        function isValidHex(hex) {
+            return /^#[0-9A-F]{6}$/i.test(hex);
+        }
+
+        // Sincronizar color picker com campo hex
+        $('input[type="color"]').on('input change', function() {
+            const colorValue = $(this).val();
+            const hexInputId = $(this).attr('id') + '_hex';
+            $('#' + hexInputId).val(colorValue.toUpperCase());
+            
+            // Adicionar uma pequena animação visual
+            $(this).addClass('color-changing');
+            setTimeout(() => {
+                $(this).removeClass('color-changing');
+            }, 300);
+        });
+
+        // Sincronizar campo hex com color picker
+        $('.hex-input').on('input', function() {
+            let hexValue = $(this).val();
+            
+            // Normalizar o valor (adicionar # se necessário)
+            if (hexValue && hexValue.length >= 6) {
+                hexValue = normalizeHex(hexValue);
+                
+                if (isValidHex(hexValue)) {
+                    const colorInputId = $(this).attr('id').replace('_hex', '');
+                    $('#' + colorInputId).val(hexValue);
+                    $(this).removeClass('is-invalid').addClass('is-valid');
+                } else {
+                    $(this).removeClass('is-valid').addClass('is-invalid');
+                }
+            } else {
+                $(this).removeClass('is-valid is-invalid');
+            }
+        });
+
+        // Inicializar campos hex com valores atuais
+        $('input[type="color"]').each(function() {
+            const colorValue = $(this).val();
+            const hexInputId = $(this).attr('id') + '_hex';
+            $('#' + hexInputId).val(colorValue.toUpperCase());
+        });
+        
+        // Aplicar efeito visual para mudança de cor
+        const style = document.createElement('style');
+        style.textContent = `
+            .color-changing {
+                animation: colorPulse 0.3s ease-in-out;
+            }
+            
+            @keyframes colorPulse {
+                0% { transform: translateY(-3px) scale(1.1); }
+                50% { transform: translateY(-5px) scale(1.15); box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3); }
+                100% { transform: translateY(-3px) scale(1.1); }
+            }
+        `;
+        document.head.appendChild(style);
+    
+        // Bootstrap toasts initialization (keep existing)
+        var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+        var toastList = toastElList.map(function(toastEl) {
+            return new bootstrap.Toast(toastEl, { delay: 3000 });
+        });
+        toastList.forEach(toast => toast.show());
+    });
+</script>
+{% endblock %}

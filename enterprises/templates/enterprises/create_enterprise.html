@@ -1,0 +1,368 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Empresa | Nexiun</title>
+    <link rel="shortcut icon" href="{% static 'icons/favicon.svg' %}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        body {
+            background-color: #d8550a;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        input.form-control:focus {
+            border-color: #F36E20;
+            box-shadow: 0 0 0 0.2rem rgba(247, 162, 24, 0.25);
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 2;
+        }
+
+        .logo {
+            width: 200px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .text-description {
+            margin-left: 1px;
+            margin-top: -15px;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            margin-top: 10px;
+            width: 100%;
+            height: 42px;
+        }
+
+        .custom-btn {
+            background-color: #F36E20;
+            color: #ffffff;
+            border: none;
+            transition: background-color 0.3s;
+        }
+
+        .custom-btn:focus,
+        .custom-btn:hover,
+        .custom-btn:active {
+            background-color: #F36E20 !important;
+            box-shadow: none !important;
+        }
+
+        .additional-content {
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            padding-top: 40px;
+            background-color: #F7F7F7;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-top: -25px;
+        }
+
+        .text-create-account {
+            color: #F36E20;
+        }
+
+        .message-error {
+            color: #dc3545;
+            font-size: 0.8rem;
+        }
+
+        ::selection {
+            background-color: #e1e1e1; 
+        }
+
+        .image-upload {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin: 0 auto 15px;
+            position: relative;
+            border: none;
+            filter: blur(0.2px);
+            transition: filter 0.3s ease;
+        }
+
+        .image-upload input[type="file"] {
+            display: none; /* Esconde o input padrão */
+        }
+
+        .image-upload img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block; 
+            margin: auto; 
+        }
+
+        .upload-label {
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            color: #F36E20;
+        }
+
+        .edit-icon {
+            position: absolute;
+            top: 30px;
+            right: 25px;
+            width: 24px;
+            height: 24px; 
+            color: #e8e8e8;
+            filter: drop-shadow(0px 4px 4px rgb(0, 0, 0));
+        }
+
+        input[type="color"] {
+            width: 42px; /* Largura do input de cor */
+            height: 42px; /* Altura do input de cor */
+            border: 2px solid transparent;
+            border-radius: 21px;
+            padding: 0;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        input[type="color"]:focus {
+            box-shadow: 0 0 0 0.2rem rgba(247, 162, 24, 0.25);
+        }
+
+        input[type="color"]::-webkit-color-swatch {
+            border-radius: 21px;
+        }
+
+        input[type="color"]::-moz-color-swatch {
+            border-radius: 21px;
+        }
+
+        .color-inputs {
+            display: flex;
+            justify-content: space-around;
+        }
+        .text-utils {
+            font-size: 0.8rem;
+            margin: 0%;
+            color: #9e9e9e;
+        }
+        .text-utils-title {
+            font-size: 0.8rem;
+            margin: 0%;
+            color: #464646;
+        }
+        .separator {
+            width: 100%;
+            height: 1px;
+            background-color: #e1e1e1;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <img src="{% static 'icons/logo.svg' %}" alt="Logo" class="logo">
+        <h2 class="fw-bold">Criar Empresa</h2>
+        <p class="text-description">Preencha os dados da sua empresa!</p>
+
+        <form action="{% url 'create_enterprise' %}" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-2">
+                <label for="name" class="form-label fw-bold">Nome:</label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ name }}" required>
+            </div>
+            <div class="mb-2">
+                <label for="cnpj_or_cpf" class="form-label fw-bold">CNPJ ou CPF:</label>
+                <input type="text" class="form-control" id="cnpj_or_cpf" name="cnpj_or_cpf" value="{{ cnpj_or_cpf }}" required>
+            </div>
+            <div class="mb-2">
+                <label for="subdomain" class="form-label fw-bold">Subdomínio:</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="subdomain" name="subdomain" 
+                           placeholder="saldus" value="{{ subdomain }}" pattern="[a-z0-9\-]+" 
+                           title="Apenas letras minúsculas, números e hífens">
+                    <span class="input-group-text">.nexiun.com.br</span>
+                </div>
+                <small class="form-text text-muted">
+                    Se deixar em branco, será gerado automaticamente baseado no nome da empresa.
+                    <br>Apenas letras minúsculas, números e hífens (3-63 caracteres).
+                </small>
+            </div>
+            <div class="mb-2">
+                <label class="form-label fw-bold">Empresa:</label>
+                <div class="color-inputs">
+                    <p class="text-utils-title mb-2">Logo</p>
+
+                </div>
+                <div class="image-upload">
+                    <input type="file" id="logo" name="logo" accept="image/*" onchange="showImage(event)">
+                    <label class="upload-label" for="logo" title="Clique para editar a imagem">
+                        <img src="{% static 'images/enterprise_default_icon.svg' %}" alt="Imagem Padrão">
+                        <span class="bi bi-pencil-fill edit-icon"></span>
+                    </label>
+                    <img id="logoPreview" src="#" alt="Preview da Logo" style="display: none;">
+                </div>
+            </div>
+            <div class="separator"></div>
+            <div class="mb-4">
+                <p class="text-utils-title text-center">Cores</p>
+                <div class="color-inputs">
+                    <p class="text-utils">Primaria</p>
+                    <p class="text-utils">Secundaria</p>
+                    <p class="text-utils">Terciaria</p>
+                </div>
+                <div class="color-inputs">
+                    <input type="color" class="form-control" id="primary_color" name="primary_color" value="{{ primary_color }}">
+                    <input type="color" class="form-control" id="secondary_color" name="secondary_color" value="{{ secondary_color }}">
+                    <input type="color" class="form-control" id="text_icons_color" name="text_icons_color" value="{{ text_icons_color }}">
+                </div>
+            </div>
+            {% if messages %}
+                <div class="text-center message-error">
+                    {% for message in messages %}
+                        {{ message }}<br>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <button type="submit" class="btn btn-primary button btn-block fw-bold custom-btn">Criar Empresa</button>
+        </form>
+    </div>
+
+    <div class="additional-content">
+        <p class="text-center">Esta com duvida? <a href="#" class="fw-bold text-create-account">isso pode ajudar</a></p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function showImage(event) {
+            const logoPreview = document.getElementById('logoPreview');
+            const defaultImage = document.querySelector('.image-upload img'); // Seleciona a imagem padrão
+            const file = event.target.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    logoPreview.src = e.target.result;
+                    logoPreview.style.display = 'block'; // Mostra a imagem selecionada
+                    defaultImage.style.display = 'none'; // Esconde a imagem padrão
+                }
+                reader.readAsDataURL(file);
+            } else {
+                logoPreview.style.display = 'none'; // Esconde a imagem selecionada
+                defaultImage.style.display = 'block'; // Mostra a imagem padrão
+            }
+        }
+
+        // Função para gerar subdomínio automaticamente baseado no nome
+        function generateSubdomain(name) {
+            return name.toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+                .replace(/[^a-z0-9\s-]/g, '') // Remove caracteres especiais
+                .replace(/\s+/g, '-') // Substitui espaços por hífens
+                .replace(/-+/g, '-') // Remove hífens duplicados
+                .replace(/^-|-$/g, '') // Remove hífens do início e fim
+                .substring(0, 50); // Limita tamanho
+        }
+
+        // Preview do subdomínio em tempo real
+        document.addEventListener('DOMContentLoaded', function() {
+            const nameInput = document.getElementById('name');
+            const subdomainInput = document.getElementById('subdomain');
+            const subdomainSuffix = document.querySelector('.input-group-text');
+            
+            let userTypedSubdomain = false;
+            
+            // Detecta se usuário digitou subdomínio manualmente
+            subdomainInput.addEventListener('input', function() {
+                userTypedSubdomain = this.value.length > 0;
+            });
+            
+            // Gera subdomínio automaticamente baseado no nome
+            nameInput.addEventListener('input', function() {
+                if (!userTypedSubdomain) {
+                    const generated = generateSubdomain(this.value);
+                    if (generated.length >= 3) {
+                        subdomainInput.value = generated;
+                        subdomainInput.placeholder = generated;
+                    }
+                }
+                
+                // Atualiza preview
+                updateSubdomainPreview();
+            });
+            
+            subdomainInput.addEventListener('input', updateSubdomainPreview);
+            
+            function updateSubdomainPreview() {
+                const subdomain = subdomainInput.value || subdomainInput.placeholder;
+                const preview = document.getElementById('subdomain-preview');
+                
+                if (!preview) {
+                    // Cria elemento de preview se não existir
+                    const previewDiv = document.createElement('div');
+                    previewDiv.id = 'subdomain-preview';
+                    previewDiv.style.cssText = `
+                        margin-top: 5px;
+                        padding: 8px 12px;
+                        background: #f8f9fa;
+                        border: 1px solid #dee2e6;
+                        border-radius: 4px;
+                        font-size: 14px;
+                        color: #495057;
+                    `;
+                    subdomainInput.parentNode.parentNode.appendChild(previewDiv);
+                }
+                
+                const previewElement = document.getElementById('subdomain-preview');
+                if (subdomain && subdomain.length >= 3) {
+                    previewElement.innerHTML = `
+                        <strong>🌐 Sua URL será:</strong><br>
+                        <a href="https://${subdomain}.nexiun.com.br" target="_blank" style="color: #F36E20; text-decoration: none;">
+                            https://${subdomain}.nexiun.com.br
+                        </a>
+                    `;
+                    previewElement.style.display = 'block';
+                } else {
+                    previewElement.style.display = 'none';
+                }
+            }
+            
+            // Preview inicial
+            updateSubdomainPreview();
+        });
+    </script>
+</body>
+</html>

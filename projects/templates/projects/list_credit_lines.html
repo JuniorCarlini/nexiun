@@ -1,0 +1,142 @@
+{% extends "base/base.html" %}
+
+{% load static %}
+
+{% load permission_tags %}
+
+{% block title %}Linhas de Crédito{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Linhas de Crédito</h2>
+        </div>
+        {% if user|has_perm:'users.add_credit_lines' %}
+        <div class="col-12 col-md-auto mt-3 mt-md-0">
+            <a href="{% url 'credit_line_add' %}" class="btn button-style btn-primary w-100 w-md-auto" style="background-color: {{ enterprise.primary_color }}; border: none;">
+                <i class="fa-solid fa-square-plus"></i> Cadastrar Linha de Crédito
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Conteúdo das Linhas de Crédito -->
+    <div class="container-style">
+        <div class="table-container">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th class="col-description">Nome</th>
+                        <th class="col-category">Descrição</th>
+                        <th class="col-type">Tipo</th>
+                        <th class="col-date">Status</th>
+                        <th class="col-amount">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for credit_line in credit_lines %}
+                        <tr>
+                            <td>
+                                <div class="transaction-text">
+                                    <i class="fas fa-folder-tree me-1" style="color: {{ enterprise.primary_color }};"></i>
+                                    {{ credit_line.name }}
+                                    {% if not credit_line.is_active %}
+                                        <small class="text-muted d-block">(Inativa)</small>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge-category">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    {{ credit_line.description|truncatechars:25|default:"Sem descrição" }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if credit_line.type_credit == 'CUS' %}
+                                <span class="badge-date">
+                                    <i class="fas fa-star me-1"></i>
+                                    {{ credit_line.get_type_credit_display }}
+                                </span>
+                                {% else %}
+                                <span class="badge-category">
+                                    <i class="fas fa-circle me-1"></i>
+                                    {{ credit_line.get_type_credit_display }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if credit_line.is_active %}
+                                <span class="badge-entrada">
+                                    <i class="fa-solid fa-check-circle me-1"></i>
+                                    Ativa
+                                </span>
+                                {% else %}
+                                <span class="badge-saida">
+                                    <i class="fa-solid fa-pause-circle me-1"></i>
+                                    Inativa
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user|has_perm:'users.change_credit_lines' %}
+                                    <a href="{% url 'credit_line_edit' credit_line.id %}" 
+                                       class="btn button-style btn-primary me-2" 
+                                       style="background-color: {{ enterprise.primary_color }}; border: none;"
+                                       title="Editar linha de crédito">
+                                        <i class="fa-solid fa-pen me-1"></i>Editar
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">
+                                        <i class="fa-solid fa-eye-slash"></i>
+                                        Sem permissões
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center" style="padding: 60px 0;">
+                                <div><i class="bi bi-exclamation-circle text-muted fs-1"></i></div>
+                                <p class="mt-1">Nenhuma Linha de Crédito Cadastrada!</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+            <!-- Paginação Moderna -->
+            {% if credit_lines.has_other_pages %}
+            <div class="table-pagination mt-3">
+                <button type="button" class="btn btn-sm pagination-btn" {% if not credit_lines.has_previous %}disabled{% endif %} data-page="{% if credit_lines.has_previous %}{{ credit_lines.previous_page_number }}{% else %}1{% endif %}">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="pagination-info mx-2">
+                    Página {{ credit_lines.number }} de {{ credit_lines.paginator.num_pages }}
+                </div>
+                <div class="pagination-track">
+                    <div class="pagination-thumb" data-current="{{ credit_lines.number }}" data-total="{{ credit_lines.paginator.num_pages }}"></div>
+                </div>
+                <button type="button" class="btn btn-sm pagination-btn" {% if not credit_lines.has_next %}disabled{% endif %} data-page="{% if credit_lines.has_next %}{{ credit_lines.next_page_number }}{% else %}1{% endif %}">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar tooltips do Bootstrap
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+</script>
+
+{% endblock %}

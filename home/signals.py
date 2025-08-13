@@ -1,0 +1,1 @@
+# Arquivo de signals - métricas removidas para reescrita

@@ -1,0 +1,105 @@
+{% extends "base/base.html" %}
+
+{% load static %}
+
+{% block title %}Listar Usuários{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Listar Usuários</h2>
+        </div>
+        <div class="col-12 col-md-auto mt-3 mt-md-0">
+            <a href="{% url 'create_user' %}" class="btn button-style btn-primary w-100 w-md-auto" style="background-color: {{ enterprise.primary_color }}; border: none;"><i class="fa-solid fa-square-plus"></i> Cadastrar Usuário</a>
+        </div>
+    </div>
+
+    <!-- Conteúdo dos Usuarios -->
+    <div class="container-style">
+        <div class="table-container">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th class="col-description">Nome</th>
+                        <th class="col-category">Email</th>
+                        <th class="col-type">Cargos</th>
+                        <th class="col-date">Unidade</th>
+                        <th class="col-amount">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <div class="transaction-text">
+                                <i class="fas fa-user me-1" style="color: {{ enterprise.primary_color }};"></i>
+                                {{ user.name }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge-category">
+                                <i class="fas fa-envelope me-1"></i>
+                                {{ user.email|truncatechars:25 }}
+                            </span>
+                        </td>
+                        <td>
+                            {% for role in user.roles.all %}
+                                <span class="badge-date me-1">
+                                    <i class="fas fa-user-tag me-1"></i>
+                                    {{ role.name }}
+                                </span>
+                            {% empty %}
+                                <span class="badge-saida">
+                                    <i class="fas fa-minus-circle me-1"></i>
+                                    Sem cargos
+                                </span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <span class="badge-entrada">
+                                <i class="fas fa-building me-1"></i>
+                                {{ user.unit.name }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'edit_user' user.id %}" class="btn button-style btn-primary" style="background-color: {{ enterprise.primary_color }}; border: none;" title="Editar usuário">
+                                <i class="fa-solid fa-pen me-1"></i>Editar
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center" style="padding: 60px 0;">
+                            <div><i class="bi bi-exclamation-circle text-muted fs-1"></i></div>
+                            <p class="mt-1">Nenhum Usuário Cadastrado!</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+            
+            <!-- Paginação Moderna -->
+            {% if users.has_other_pages %}
+            <div class="table-pagination mt-3">
+                <button type="button" class="btn btn-sm pagination-btn" {% if not users.has_previous %}disabled{% endif %} data-page="{% if users.has_previous %}{{ users.previous_page_number }}{% else %}1{% endif %}">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="pagination-info mx-2">
+                    Página {{ users.number }} de {{ users.paginator.num_pages }}
+                </div>
+                <div class="pagination-track">
+                    <div class="pagination-thumb" data-current="{{ users.number }}" data-total="{{ users.paginator.num_pages }}"></div>
+                </div>
+                <button type="button" class="btn btn-sm pagination-btn" {% if not users.has_next %}disabled{% endif %} data-page="{% if users.has_next %}{{ users.next_page_number }}{% else %}1{% endif %}">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

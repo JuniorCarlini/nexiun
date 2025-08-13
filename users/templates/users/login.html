@@ -1,0 +1,177 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar | Nexiun</title>
+    <link rel="shortcut icon" href="{% static 'icons/favicon.svg' %}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background-color: #d8550a;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        input.form-control:focus {
+            border-color: #F36E20;
+            box-shadow: 0 0 0 0.2rem rgba(247, 162, 24, 0.25);
+        }
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 2;
+        }
+        .logo {
+            width: 160px;
+            margin: 20px 0;
+        }
+        .text-description {
+            margin-top: -15px;
+            margin-bottom: 20px;
+        }
+        .button {
+            margin-top: 7px;
+            width: 100%;
+            height: 42px;
+        }
+        .custom-btn {
+            background-color: #F36E20;
+            color: #ffffff;
+            border: none;
+            transition: background-color 0.3s;
+        }
+        .custom-btn:focus,
+        .custom-btn:hover,
+        .custom-btn:active {
+            background-color: #F36E20 !important;
+            box-shadow: none !important;
+        }
+        .additional-content {
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            padding-top: 40px;
+            background-color: #F7F7F7;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-top: -25px;
+        }
+        .text-create-account {
+            color: #F36E20;
+        }
+        .text-decoration-none {
+            text-decoration: none;
+            color: #F36E20;
+        }
+        .text-utils {
+            font-size: 0.8rem;
+        }
+        .form-check-input:checked {
+            background-color: #F36E20;
+            border-color: #F36E20;
+        }
+        .form-check-input:focus {
+            border-color: #F36E20;
+            box-shadow: 0 0 0 0.2rem rgba(247, 162, 24, 0.25);
+        }
+        .password-container {
+            position: relative;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 75%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #848484;
+        }
+        .message-error {
+            color: #dc3545;
+            font-size: 0.8rem;
+        }
+        ::selection {
+            background-color: #e1e1e1; 
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <img src="{% static 'icons/logo.svg' %}" alt="Logo" class="logo">
+        <h2 class="fw-bold">Login</h2>
+        <p class="text-description">Entre para continuar!</p>
+
+        <form action="{% url 'login' %}" method="POST">
+            {% csrf_token %}
+            <div class="mb-2">
+                <label for="email" class="form-label fw-bold">E-mail:</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            <div class="mb-2 password-container">
+                <label for="password" class="form-label fw-bold">Senha:</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+                <span class="toggle-password" onclick="togglePassword()">
+                    <i class="bi bi-eye-fill" id="eye-icon" style="display: none;"></i>
+                    <i class="bi bi-eye-slash-fill" id="eye-slash-icon"></i>
+                </span>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
+                    <label class="form-check-label text-utils" for="remember_me">Permanecer conectado</label>
+                </div>
+                <a href="{% url 'password_reset' %}" class="text-decoration-none text-utils">Esqueceu a senha?</a>
+            </div>
+
+            {% if messages %}
+            {% for message in messages %}
+            <div class="text-center message-error">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            <button type="submit" class="btn btn-primary button btn-block fw-bold custom-btn">Entrar</button>
+        </form>
+    </div>
+
+    <div class="additional-content">
+        <p class="text-center">Não tem uma conta? <a href="{% url 'register' %}" class="fw-bold text-create-account">Registrar</a></p>
+    </div>
+
+    <script>
+        function togglePassword() {
+            const passwordField = document.getElementById('password');
+            const eyeIcon = document.getElementById('eye-icon');
+            const eyeSlashIcon = document.getElementById('eye-slash-icon');
+
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                eyeIcon.style.display = 'block'; // Mostra o ícone de olho
+                eyeSlashIcon.style.display = 'none'; // Esconde o ícone de olho cortado
+            } else {
+                passwordField.type = 'password';
+                eyeIcon.style.display = 'none'; // Esconde o ícone de olho
+                eyeSlashIcon.style.display = 'block'; // Mostra o ícone de olho cortado
+            }
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

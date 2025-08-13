@@ -1,0 +1,129 @@
+{% extends "base/base.html" %}
+
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Listar Unidades{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Listar Unidades</h2>
+        </div>
+        {% if user|has_perm:'users.add_units' %}
+        <div class="col-12 col-md-auto mt-3 mt-md-0">
+            <a href="{% url 'create_unit' %}" class="btn button-style btn-primary w-100 w-md-auto" style="background-color: {{ enterprise.primary_color }}; border: none;">
+                <i class="fa-solid fa-square-plus"></i> Cadastrar Unidades
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Conteúdo das Unidades -->
+    <div class="container-style">
+        <div class="table-container">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th class="col-description">Nome da Unidade</th>
+                        <th class="col-category">Localização</th>
+                        <th class="col-date">Status</th>
+                        <th class="col-amount">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for unit in units %}
+                        <tr>
+                            <td>
+                                <div class="transaction-text">
+                                    <i class="fas fa-building me-1" style="color: {{ enterprise.primary_color }};"></i>
+                                    {{ unit.name }}
+                                    {% if not unit.is_active %}
+                                        <small class="text-muted d-block">(Inativa)</small>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge-category">
+                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                    {{ unit.location }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if unit.is_active %}
+                                <span class="badge-entrada">
+                                    <i class="fa-solid fa-check-circle me-1"></i>
+                                    Ativa
+                                </span>
+                                {% else %}
+                                <span class="badge-saida">
+                                    <i class="fa-solid fa-pause-circle me-1"></i>
+                                    Inativa
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user|has_perm:'users.change_units' %}
+                                    <a href="{% url 'edit_unit' unit.id %}" 
+                                       class="btn button-style btn-primary me-2" 
+                                       style="background-color: {{ enterprise.primary_color }}; border: none;"
+                                       title="Editar unidade">
+                                        <i class="fa-solid fa-pen me-1"></i>Editar
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">
+                                        <i class="fa-solid fa-eye-slash"></i>
+                                        Sem permissões
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center" style="padding: 60px 0;">
+                                <div><i class="bi bi-exclamation-circle text-muted fs-1"></i></div>
+                                <p class="mt-1">Nenhuma Unidade Cadastrada!</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+            <!-- Paginação Moderna -->
+            {% if units.has_other_pages %}
+            <div class="table-pagination mt-3">
+                <button type="button" class="btn btn-sm pagination-btn" {% if not units.has_previous %}disabled{% endif %} data-page="{% if units.has_previous %}{{ units.previous_page_number }}{% else %}1{% endif %}">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="pagination-info mx-2">
+                    Página {{ units.number }} de {{ units.paginator.num_pages }}
+                </div>
+                <div class="pagination-track">
+                    <div class="pagination-thumb" data-current="{{ units.number }}" data-total="{{ units.paginator.num_pages }}"></div>
+                </div>
+                <button type="button" class="btn btn-sm pagination-btn" {% if not units.has_next %}disabled{% endif %} data-page="{% if units.has_next %}{{ units.next_page_number }}{% else %}1{% endif %}">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar tooltips do Bootstrap
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+
+
+</script>
+
+{% endblock %}

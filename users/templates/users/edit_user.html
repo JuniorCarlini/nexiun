@@ -1,0 +1,402 @@
+{% extends "base/base.html" %}
+
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Editar Usuário{% endblock %}
+
+{% block content %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+
+<style>
+    .profile-image-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .profile-image {
+        transition: all 0.3s ease;
+    }
+
+    .profile-image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .profile-image-container:hover .profile-image-overlay {
+        opacity: 1;
+    }
+
+    .profile-image-container:hover .profile-image {
+        filter: blur(1px);
+    }
+
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 0%;
+        color: #16365f;
+    }
+    .button {
+        margin-top: 7px;
+        width: 100%;
+        height: 42px;
+    }
+    .custom-btn {
+        background-color: {{ enterprise.primary_color }};
+        color: #ffffff;
+        border: none;
+        transition: background-color 0.3s;
+    }
+    .custom-btn:focus,
+    .custom-btn:hover,
+    .custom-btn:active {
+        background-color: {{ enterprise.primary_color }} !important;
+        box-shadow: none !important;
+    }
+    .additional-content {
+        text-align: center;
+        width: 100%;
+        max-width: 400px;
+        padding-top: 40px;
+        background-color: #F7F7F7;
+        border-radius: 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin-top: -25px;
+    }
+    .text-create-account {
+        color: #F36E20;
+    }
+    .password-container {
+        position: relative;
+    }
+    .toggle-password {
+        position: absolute;
+        right: 26px;
+        top: 72%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #848484;
+    }
+    .text-utils-title {
+        font-size: 0.8rem;
+        color: {{ enterprise.primary_color }};
+    }
+</style>
+
+<div class="container">
+    <div class="row align-items-center ms-3 me-3 mb-3 mt-1 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Editar <span class="fw-light">{{ edit_user.name }}</span></h2>
+        </div>
+    </div>
+    
+    <div class="container-style">
+        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            <!-- Upload da Imagem do Usuário -->
+            <div class="text-center d-flex align-items-center justify-content-center mb-3">
+                <div class="position-relative d-inline-block profile-image-container">
+                    <label for="logo" class="cursor-pointer m-0 p-0">
+                    {% if edit_user.profile_image %}
+                            <img id="userImagePreview" src="{{ edit_user.profile_image.url }}" alt="Foto do Usuário" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 120px; height: 120px; object-fit: cover;">
+                    {% else %}
+                            <img id="userImagePreview" src="{% static 'images/user_default_icon.svg' %}" alt="Imagem Padrão" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 120px; height: 120px; object-fit: cover;">
+                    {% endif %}
+                        <div class="profile-image-overlay rounded-circle">
+                            <i class="fas fa-camera text-white" style="font-size: 24px;"></i>
+                        </div>
+                </label>
+                    <input type="file" id="logo" name="logo" class="d-none" accept="image/*">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="name" class="form-label fw-bold">Nome:</label>
+                    <input type="text" name="name" id="name" class="form-control" required value="{{ edit_user.name }}">
+                    <div class="invalid-feedback">Por favor, insira o nome.</div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="email" class="form-label fw-bold">Email:</label>
+                    <input type="email" name="email" id="email" class="form-control" required value="{{ edit_user.email }}">
+                    <div class="invalid-feedback">Por favor, insira um email válido.</div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="cpf" class="form-label fw-bold">CPF:</label>
+                    <input type="text" name="cpf" id="cpf" class="form-control" required value="{{ edit_user.cpf }}">
+                    <div class="invalid-feedback">Por favor, insira o CPF.</div>
+                </div>
+            
+                <div class="col-md-6 mb-3">
+                    <label for="phone" class="form-label fw-bold"><i class="bi bi-question-circle-fill me-1 small" data-bs-toggle="tooltip" title="Código de área padrão: +55 (Brasil)">
+                    </i>Telefone:</label>
+                    <input type="text" name="phone" id="phone" class="form-control" required value="{{ edit_user.phone }}">
+                    <div class="invalid-feedback">Por favor, insira o telefone.</div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="unit" class="form-label fw-bold">Unidade:</label>
+                    <select name="unit" id="unit" class="form-select" required>
+                        {% for unit in units %}
+                            <option value="{{ unit.id }}" {% if edit_user.unit.id == unit.id %}selected{% endif %}>{{ unit.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Seção de Cargos e Permissões -->
+            {% if user|has_perm:'users.change_users' %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h5 class="text-color-primary mb-3">
+                        <i class="bi bi-shield-check me-2"></i>Cargos e Permissões
+                    </h5>
+                    
+                    <!-- Cargos Padrão -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Cargos:</label>
+                        <div class="row">
+                            {% for role in available_roles %}
+                            <div class="col-md-6 col-lg-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="roles" value="{{ role.id }}" id="role_{{ role.id }}"
+                                           {% if role.id in user_roles %}checked{% endif %}>
+                                    <label class="form-check-label" for="role_{{ role.id }}">
+                                        <strong>{{ role.name }}</strong>
+                                        {% if role.description %}
+                                        <small class="text-muted d-block">{{ role.description }}</small>
+                                        {% endif %}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Permissões Específicas por Módulo -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Permissões Específicas:</label>
+                        <div class="accordion" id="permissionsAccordion">
+                            {% for module in system_modules %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading{{ module.code }}">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#collapse{{ module.code }}" aria-expanded="false" 
+                                            aria-controls="collapse{{ module.code }}">
+                                        <i class="{{ module.icon }} me-2"></i>
+                                        {{ module.name }}
+                                        <span class="badge bg-secondary ms-2" id="count_{{ module.code }}">0</span>
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ module.code }}" class="accordion-collapse collapse" 
+                                     aria-labelledby="heading{{ module.code }}" data-bs-parent="#permissionsAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            {% for permission in module.permissions %}
+                                            <div class="col-md-6 col-lg-4 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input permission-checkbox" 
+                                                           type="checkbox" 
+                                                           name="custom_permissions" 
+                                                           value="{{ permission.id }}" 
+                                                           id="perm_{{ permission.id }}"
+                                                           data-module="{{ module.code }}"
+                                                           {% if permission.id in user_permissions %}checked{% endif %}>
+                                                    <label class="form-check-label" for="perm_{{ permission.id }}">
+                                                        {{ permission.name }}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        <!-- Botões de seleção rápida -->
+                                        <div class="mt-3 border-top pt-3">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button type="button" class="btn btn-outline-primary" 
+                                                        onclick="selectAllModule('{{ module.code }}', true)">
+                                                    <i class="bi bi-check-all"></i> Marcar Todas
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" 
+                                                        onclick="selectAllModule('{{ module.code }}', false)">
+                                                    <i class="bi bi-x-circle"></i> Desmarcar Todas
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-6 mb-3 password-container">
+                    <label for="password1" class="form-label fw-bold">Nova Senha: (opcional)</label>
+                    <input type="password" class="form-control" id="password1" name="password1">
+                    <span class="toggle-password" onclick="togglePassword('password1', 'eye-icon1', 'eye-slash-icon1')">
+                        <i class="bi bi-eye-fill" id="eye-icon1" style="display: none;"></i>
+                        <i class="bi bi-eye-slash-fill" id="eye-slash-icon1"></i>
+                    </span>
+                </div>
+
+                <div class="col-md-6 mb-3 password-container">
+                    <label for="password2" class="form-label fw-bold">Confirmar Nova Senha:</label>
+                    <input type="password" class="form-control" id="password2" name="password2">
+                    <span class="toggle-password" onclick="togglePassword('password2', 'eye-icon2', 'eye-slash-icon2')">
+                        <i class="bi bi-eye-fill" id="eye-icon2" style="display: none;"></i>
+                        <i class="bi bi-eye-slash-fill" id="eye-slash-icon2"></i>
+                    </span>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{% url 'list_users' %}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary" style="background-color: {{ enterprise.primary_color }}; min-width: 130px; border: none;">
+                    <i class="fa-solid fa-check"></i> Salvar Alterações
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Validação do formulário
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+
+    // Função para alternar a visibilidade da senha
+    function togglePassword(fieldId, eyeIconId, eyeSlashIconId) {
+        const passwordField = document.getElementById(fieldId);
+        const eyeIcon = document.getElementById(eyeIconId);
+        const eyeSlashIcon = document.getElementById(eyeSlashIconId);
+
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            eyeIcon.style.display = 'block';
+            eyeSlashIcon.style.display = 'none';
+        } else {
+            passwordField.type = 'password';
+            eyeIcon.style.display = 'none';
+            eyeSlashIcon.style.display = 'block';
+        }
+    }
+    
+    // Preview universal para todos os inputs de arquivo
+    $(document).on('change', 'input[type="file"]', function(e) {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            const container = $(this).closest('.profile-image-container');
+            
+            if (container.length > 0) {
+            reader.onload = function(e) {
+                    container.find('img').attr('src', e.target.result);
+                }
+                
+                reader.readAsDataURL(this.files[0]);
+            }
+        }
+    });
+
+    // Função para selecionar/deselecionar todas as permissões de um módulo
+    function selectAllModule(moduleCode, select) {
+        const checkboxes = document.querySelectorAll(`input[data-module="${moduleCode}"]`);
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = select;
+        });
+        updateModuleCount(moduleCode);
+    }
+
+    // Função para atualizar contador de permissões selecionadas
+    function updateModuleCount(moduleCode) {
+        const checkboxes = document.querySelectorAll(`input[data-module="${moduleCode}"]`);
+        const checkedCount = document.querySelectorAll(`input[data-module="${moduleCode}"]:checked`).length;
+        const countBadge = document.getElementById(`count_${moduleCode}`);
+        if (countBadge) {
+            countBadge.textContent = checkedCount;
+            countBadge.className = checkedCount > 0 ? 'badge bg-primary ms-2' : 'badge bg-secondary ms-2';
+            }
+    }
+
+    // Função para atualizar permissões quando cargo é selecionado/deselecionado
+    function updateRolePermissions(roleCheckbox) {
+        // Esta função pode ser expandida para automaticamente marcar permissões baseadas no cargo
+        console.log('Cargo alterado:', roleCheckbox.value, roleCheckbox.checked);
+    }
+
+    $(document).ready(function() {
+        // Máscara para CPF
+        $('#cpf').mask('000.000.000-00', {
+            reverse: true,
+            clearIfNotMatch: true
+        });
+
+        // Máscara para telefone
+        var SPMaskBehavior = function (val) {
+            return val.replace(/\D/g, '').length === 11 ? '(00) 00000-0000' : '(00) 0000-00009';
+        },
+        spOptions = {
+            onKeyPress: function(val, e, field, options) {
+                field.mask(SPMaskBehavior.apply({}, arguments), options);
+            }
+        };
+
+        $('#phone').mask(SPMaskBehavior, spOptions);
+
+        // Inicializar contadores de módulos
+        {% for module in system_modules %}
+        updateModuleCount('{{ module.code }}');
+        {% endfor %}
+
+        // Event listeners para checkboxes de permissões
+        document.querySelectorAll('.permission-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateModuleCount(this.dataset.module);
+            });
+        });
+
+        // Event listeners para checkboxes de cargos
+        document.querySelectorAll('input[name="roles"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateRolePermissions(this);
+            });
+        });
+    });
+</script>
+{% endblock %}

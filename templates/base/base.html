@@ -1,0 +1,1067 @@
+{% load static %}
+{% load permission_tags %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if enterprise.favicon %}
+        <link rel="shortcut icon" href="{{ enterprise.favicon.url }}" type="image/x-icon">
+    {% elif enterprise.logo %}
+        <link rel="shortcut icon" href="{{ enterprise.logo.url }}" type="image/x-icon">
+    {% else %}
+        <link rel="shortcut icon" href="{% static 'icons/favicon.svg' %}" type="image/x-icon">
+    {% endif %}
+    <title>{% block title %}Inicio{% endblock %} | {{ enterprise.name}}</title>
+
+    <!-- Importação do Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Preconnect para fontes do Google -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Importação da fonte Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Importação do Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Importação do Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <style>
+        /* Tema Claro (Padrão) */
+        body {
+            background-color: rgb(247, 248, 251);
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Tema Escuro */
+        [data-theme="dark"] {
+            background-color: #1a1a1a !important;
+            color: #e4e4e7 !important;
+        }
+
+        [data-theme="dark"] .navbar-custom {
+            background-color: #2d2d2d !important;
+        }
+
+        [data-theme="dark"] .container-style {
+            background-color: #262626 !important;
+            color: #e4e4e7 !important;
+            border: 1px solid #404040;
+        }
+
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select {
+            background-color: #404040 !important;
+            border-color: #525252 !important;
+            color: #e4e4e7 !important;
+        }
+
+        [data-theme="dark"] .form-control:focus,
+        [data-theme="dark"] .form-select:focus {
+            background-color: #404040 !important;
+            border-color: {{ enterprise.primary_color }} !important;
+            color: #e4e4e7 !important;
+            box-shadow: 0 0 0 0.2rem rgba({{ enterprise.primary_color|slice:"1:" }}, 0.25) !important;
+        }
+
+        [data-theme="dark"] .btn-primary {
+            background-color: {{ enterprise.primary_color }} !important;
+            border-color: {{ enterprise.primary_color }} !important;
+        }
+
+        [data-theme="dark"] .offcanvas {
+            background-color: #262626 !important;
+            color: #e4e4e7 !important;
+        }
+
+        [data-theme="dark"] .nav-link {
+            color: #a1a1aa !important;
+        }
+
+        [data-theme="dark"] .li-style:hover {
+            background-color: #404040 !important;
+        }
+
+        [data-theme="dark"] .li-style.menu-active {
+            background-color: #333333 !important;
+        }
+
+        [data-theme="dark"] .text-color-primary {
+            color: #e4e4e7 !important;
+        }
+
+        [data-theme="dark"] .text-color-secondary {
+            color: #a1a1aa !important;
+        }
+
+        [data-theme="dark"] .menu-color {
+            color: #9ca3af !important;
+        }
+
+        [data-theme="dark"] .separator,
+        [data-theme="dark"] .separator-top {
+            background: #525252 !important;
+        }
+
+        [data-theme="dark"] .color-picker-title {
+            color: #e4e4e7 !important;
+        }
+
+        [data-theme="dark"] .color-group label {
+            color: #a1a1aa !important;
+        }
+
+        [data-theme="dark"] .profile-image-overlay {
+            background-color: rgba(0, 0, 0, 0.7) !important;
+        }
+
+        [data-theme="dark"] .toast {
+            background-color: #404040 !important;
+            color: #e4e4e7 !important;
+            border: 1px solid #525252;
+        }
+
+        [data-theme="dark"] .table {
+            color: #e4e4e7 !important;
+        }
+
+        [data-theme="dark"] .table th {
+            border-color: #525252 !important;
+        }
+
+        [data-theme="dark"] .table td {
+            border-color: #404040 !important;
+        }
+
+        .navbar-custom {
+            background-color: {{ enterprise.primary_color }};
+            padding: 0.2rem 0.5rem;
+        }
+
+        .navbar-container {
+            width: 100%;
+            max-width: 1920px;
+            margin: 0 auto;
+            padding: 0 0.5rem;
+        }
+
+        .menu-toggle-btn {
+            border-radius: 6px !important;
+            transition: all 0.15s ease !important;
+            background-color: transparent !important;
+            border: none !important;
+            padding: 8px !important;
+        }
+
+        .menu-toggle-btn:hover {
+            background-color: rgba(255, 255, 255, 0.08) !important;
+            transform: translateY(-1px);
+        }
+
+        .menu-toggle-btn:active {
+            transform: translateY(0px);
+            background-color: rgba(255, 255, 255, 0.12) !important;
+        }
+
+        .menu-toggle-btn i {
+            display: block;
+            line-height: 1;
+        }
+
+        .badge-style-group-user {
+            color: {{ enterprise.primary_color }};
+            background-color: {{ enterprise.secondary_color }};
+            border-radius: 5px;
+        }
+
+        .text_icons_color {
+            color: {{ enterprise.text_icons_color }};
+        }
+
+        .navbar-brand img {
+            margin: 0;
+            padding-bottom: 8px;
+            padding-top: 8px;
+            height: 40px;
+            width: auto;
+            object-fit: cover;
+        }
+
+        .user-icon {
+            height: 40px;
+            width: 40px;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .menu-color {
+            color: #7F7F7F;
+        }
+
+        .li-style {
+            margin-left: 5%;
+            border-radius: 6px;
+            margin-bottom: 2px;
+            margin-top: 2px;
+        }
+
+        .li-style:hover {
+            background-color: #ededed;
+        }
+
+        .separator {
+            border: 0;
+            height: 1px;
+            background: #7F7F7F;
+            border-radius: 5px;
+            margin-left: 5%;
+        }
+
+        .separator-top {
+            border: 0;
+            height: 1px;
+            background: #7F7F7F;
+            border-radius: 5px;
+            margin-left: 5%;
+            margin-top: 0px;
+        }
+
+        .menu-active {
+            background-color: #f5f5f5;
+            border-left: 4px solid {{ enterprise.secondary_color }};
+        }
+
+        .li-style.menu-active a {
+            color: {{ enterprise.primary_color }} !important;
+        }
+
+        .container-style {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .text-color-primary {
+            color: #16365f;
+        }
+
+        .text-color-secondary {
+            color: #6b859e;
+        }
+
+        .text-color-tertiary {
+            color: rgb(247, 248, 251);
+        }
+
+        .espacing-title {
+            margin-top: 84px;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 50px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #e1e1e1;
+            border-radius: 50px;
+        }
+        
+        .custom-tooltip {
+            --bs-tooltip-bg: {{ enterprise.primary_color }};
+            --bs-tooltip-color: white;
+           }
+
+        /* Estilos da tabela moderna */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+        }
+
+        .table-modern {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            white-space: nowrap;
+        }
+
+        .table-modern th {
+            padding: 12px 15px;
+            font-weight: 600;
+            color: #495057;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .table-modern td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f3f4;
+            vertical-align: middle;
+            font-size: 0.9rem;
+            white-space: nowrap;
+
+        }
+
+        .table-modern tr {
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+
+        .table-modern tr:hover {
+            border-radius: 15px !important;
+            background-color: #f1f3f4;
+            transition: background-color 0.2s ease;
+            white-space: nowrap;
+        }   
+
+        .table-modern tbody tr:last-child td {
+            border-bottom: none;
+            white-space: nowrap;
+        }
+
+        /* Badges e spans da tabela */
+        .badge-date, .badge-category {
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .badge-entrada {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+
+        .badge-saida {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+
+        .badge-status {
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .badge-status.status-pendente {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .badge-status.status-aprovado {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+
+        .badge-status.status-rejeitado {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+
+        .transaction-text {
+            color: #495057;
+            font-weight: 500;
+        }
+
+        .transaction-amount {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        /* Estilos da paginação */
+        .table-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px 0;
+        }
+
+        .pagination-btn {
+            background-color: {{ enterprise.primary_color }};
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            color: white;
+            background-color: #067A94;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .pagination-btn:disabled {
+            background-color: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .pagination-info {
+            color: #495057;
+            font-size: 0.9rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .pagination-track {
+            width: 100px;
+            height: 4px;
+            background-color: #e9ecef;
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pagination-thumb {
+            height: 100%;
+            background-color: {{ enterprise.primary_color }};
+            border-radius: 2px;
+            position: absolute;
+            top: 0;
+            transition: all 0.3s ease;
+        }
+
+        .button-style {
+            background-color: {{ enterprise.primary_color }};
+            border: none;
+        }
+
+        .button-style:hover {
+            background-color: #067A94 !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+            border: none;
+        }
+        
+        /* Responsividade da tabela */
+        @media (max-width: 768px) {
+            .table-modern th,
+            .table-modern td {
+                padding: 8px 10px;
+                font-size: 0.8rem;
+            }
+            
+            .col-description {
+                min-width: 150px;
+            }
+            
+            .col-date {
+                min-width: 100px;
+            }
+            
+            .col-category {
+                min-width: 120px;
+            }
+            
+            .col-type {
+                min-width: 80px;
+            }
+            
+            .col-amount {
+                min-width: 100px;
+            }
+
+            .table-pagination {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            .pagination-track {
+                width: 80px;
+            }
+            
+            .pagination-info {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Tema escuro para tabelas e paginação */
+        [data-theme="dark"] .table-modern {
+            background-color: #262626 !important;
+            color: #e4e4e7 !important;
+        }
+
+        [data-theme="dark"] .table-modern th {
+            color: #e4e4e7 !important;
+            border-color: #525252 !important;
+        }
+
+        [data-theme="dark"] .table-modern td {
+            color: #e4e4e7 !important;
+            border-color: #404040 !important;
+        }
+
+        [data-theme="dark"] .table-modern tr:hover {
+            background-color: #404040 !important;
+        }
+
+        [data-theme="dark"] .badge-date, 
+        [data-theme="dark"] .badge-category {
+            background-color: #404040 !important;
+            color: #e4e4e7 !important;
+        }
+
+        [data-theme="dark"] .transaction-text {
+            color: #e4e4e7 !important;
+        }
+
+        [data-theme="dark"] .pagination-info {
+            color: #e4e4e7 !important;
+        }
+
+        [data-theme="dark"] .pagination-track {
+            background-color: #404040 !important;
+        }
+
+        [data-theme="dark"] .badge-status {
+            border-color: #525252 !important;
+        }
+
+        [data-theme="dark"] .badge-status.status-pendente {
+            background-color: rgba(255, 193, 7, 0.2) !important;
+        }
+
+        [data-theme="dark"] .badge-status.status-aprovado {
+            background-color: rgba(40, 167, 69, 0.2) !important;
+        }
+
+        [data-theme="dark"] .badge-status.status-rejeitado {
+            background-color: rgba(220, 53, 69, 0.2) !important;
+        }
+        
+    </style>
+    {% block extra_styles %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-custom fixed-top">
+        <div class="navbar-container">
+            <div class="row w-100 g-0">
+                <!-- Ícone para abrir o Offcanvas à esquerda -->
+                <div class="col-auto d-flex align-items-center ">
+                    <button type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Toggle navigation" class="btn m-0 menu-toggle-btn">
+                        <i class="fa-solid fa-bars" style="font-size: 2rem; color: white; padding: 0;"></i>
+                    </button>
+                </div>
+
+                <!-- Logo centralizado vertical e horizontalmente -->
+                <div class="col d-flex align-items-center justify-content-center">
+                    <a class="navbar-brand m-0 d-flex align-items-center" href="/">
+                        <img src="{{ enterprise.logo.url }}" alt="Logo" class="d-block" style="height: 50px;">
+                    </a>
+                </div>
+
+                <!-- Perfil do usuário -->
+                <div class="col-auto d-flex align-items-center me-2">
+                    <div class="ms-2 text-end p-0 me-2" style="line-height: 1;">
+                        <p class="text_icons_color m-0 p-0">Olá, <span class="fw-bold">{{ first_name }}!</span></p>
+                        <span class="badge badge-style-group-user m-0 p-1">{{ user.roles.first.name|default:"Usuário" }}</span>
+                    </div>
+                    <img src="{% if user.profile_image %}{{ user.profile_image.url }}{% else %}{% static 'images/user_default_icon.svg' %}{% endif %}" alt="Usuário" class="rounded-circle" style="height: 40px; width: 40px;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Offcanvas -->
+        <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
+            <div class="offcanvas-header mt-2 mb-2 me-2">
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body p-0">
+                <ul class="navbar-nav justify-content-start flex-grow-1 m-0 pe-3">
+                    <div>
+                        <hr class="separator-top">
+                        <li class="li-style {% if request.path == '/' %}menu-active{% endif %}">
+                            <a href="/" class="nav-link fw-bold ms-3">
+                                <i class="fa-solid fa-house"></i> Inicio
+                            </a>
+                        </li>
+                        <hr class="separator">
+                        <p class="fw-bold menu-color ms-4">PROJETOS</p>
+                            <li class="li-style {% if request.path == '/projects/conveyor/' %}menu-active{% endif %}">
+                                <a href="/projects/conveyor/" class="nav-link fw-bold ms-3">
+                                    <i class="fa-solid fa-chart-gantt"></i> Esteira de Projetos
+                                </a>
+                            </li>
+                            <li class="li-style {% if request.path == '/projects/projects-list/' or '/projects/project-details/' in request.path %}menu-active{% endif %}">
+                                <a href="/projects/projects-list/" class="nav-link fw-bold ms-3">
+                                    <i class="fa-solid fa-folder-open"></i> Listar Projetos
+                                </a>
+                            </li>
+                        <li class="li-style {% if request.path == '/projects/create-project/' %}menu-active{% endif %}">
+                            <a href="/projects/create-project/" class="nav-link fw-bold ms-3">
+                                <i class="fa-solid fa-folder-plus"></i> Cadastrar Projeto
+                            </a>
+                        </li>
+                    </div>
+                        <div>
+                            <hr class="separator">
+                            <p class="fw-bold menu-color ms-4">FINANCEIRO</p>
+                            <li class="li-style {% if request.path == '/projects/conveyor-payments/' %}menu-active{% endif %}">
+                                <a href="/projects/conveyor-payments/" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-chart-gantt"></i> Esteira de Pagamentos
+                                </a>
+                            </li>
+                            <li class="li-style {% if request.path == '/projects/conveyor-confirm-payments/' %}menu-active{% endif %}">
+                                <a href="/projects/conveyor-confirm-payments/" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-chart-gantt"></i> Confirmação de Pagamentos
+                                </a>
+                            </li>
+                            <li class="li-style {% if request.path == '/units/dashboard-financeiro/' %}menu-active{% endif %}">
+                                <a href="{% url 'dashboard_financeiro' %}" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-chart-pie"></i> Dashboard Financeiro
+                                </a>
+                            </li>
+                        </div>
+                        <div>
+                            <hr class="separator">
+                            <p class="fw-bold menu-color ms-4">CLIENTES</p>
+                            <li class="li-style {% if request.path == '/enterprises/register_client/' %}menu-active{% endif %}">
+                                <a href="/enterprises/register_client/" class="nav-link fw-bold ms-3">
+                                    <i class="fa-solid fa-user-plus"></i> Cadastrar Cliente
+                                </a>
+                            </li>
+                            <li class="li-style {% if request.path == '/enterprises/list_clients/' or '/enterprises/view-client/' in request.path %}menu-active{% endif %}">
+                                <a href="/enterprises/list_clients/" class="nav-link fw-bold ms-3">
+                                    <i class="fa-solid fa-users"></i> Listar Clientes
+                                </a>
+                            </li>
+                        </div>
+                        <div>
+                            <hr class="separator">
+                            <p class="fw-bold menu-color ms-4">EQUIPE</p>
+                            <li class="li-style {% if request.path == '/users/create-user/' %}menu-active{% endif %}">
+                                <a href="/users/create-user/" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-user-plus"></i> Cadastro de Equipe
+                                </a>
+                            </li>
+                            <li class="li-style {% if '/users/list-users/' in request.path or '/users/edit-user/' in request.path %}menu-active{% endif %}">
+                                <a href="/users/list-users/" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-users"></i> Listar Equipe
+                                </a>
+                            </li>
+                        </div>
+                        <div>
+                            <hr class="separator">
+                            <p class="fw-bold menu-color ms-4">CADASTROS</p>
+                            <li class="li-style {% if request.path == '/units/units-list/' or request.path == '/units/edit-unit/' or '/units/create-unit/' in request.path %}menu-active{% endif %}">
+                                <a href="/units/units-list/" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-building"></i> Unidades
+                                </a>
+                            </li>
+                            <li class="li-style {% if request.path == '/projects/banks-list/' or request.path == '/projects/bank-add/' or '/projects/bank-edit/' in request.path %}menu-active{% endif %}">
+                                <a href="/projects/banks-list/" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-landmark"></i> Bancos
+                                </a>
+                            </li>
+                            <li class="li-style {% if request.path == '/projects/credit-line-list/' or request.path == '/projects/credit-line-add/' or '/projects/credit-line-edit/' in request.path %}menu-active{% endif %}">
+                                <a href="/projects/credit-line-list/" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-folder-tree"></i> Linhas de Crédito
+                                </a>
+                            </li>
+                            <li class="li-style {% if request.path == '/enterprises/list-messages/' or request.path == '/enterprises/new-message/' or '/enterprises/edit-message/' in request.path %}menu-active{% endif %}">
+                                <a href="/enterprises/list-messages/" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-message"></i> Mensagens
+                                </a>
+                            </li>
+                        </div>
+
+                    <div>
+                        <hr class="separator">
+                        <p class="fw-bold menu-color ms-4">PERFIL</p>
+                        <li class="li-style {% if request.path == '/users/config/' %}menu-active{% endif %}">
+                            <a href="/users/config/" class="nav-link menu-color fw-bold ms-3">
+                                <i class="fas fa-cog"></i> Configurações
+                            </a>
+                        </li>
+                        <li class="li-style mb-5">
+                            <a href="{% url 'logout' %}" class="nav-link menu-color fw-bold ms-3">
+                                <i class="fas fa-sign-out-alt"></i> Sair
+                            </a>
+                        </li>
+                    </div>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo da página -->
+    <main class="container espacing-title">
+        {% block content %}
+        <!-- Conteúdo da página será inserido aqui pelos templates filhos -->
+        {% endblock %}
+    </main>
+  
+    <!-- Toast Container -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="toastContainer">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="toast align-items-center 
+                        {% if message.tags == 'success' %}
+                            text-bg-success
+                        {% elif message.tags == 'warning' %}
+                            text-bg-warning
+                        {% elif message.tags == 'error' %}
+                            text-bg-danger
+                        {% endif %} border-0" 
+                        role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true">
+                        <div class="d-flex">
+                            <div class="toast-body d-flex align-items-center">
+                                {% if message.tags == 'success' %}
+                                    <i class="bi bi-check-circle-fill me-2 fs-4"></i>
+                                {% elif message.tags == 'warning' %}
+                                    <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+                                {% elif message.tags == 'error' %}
+                                    <i class="bi bi-x-circle-fill me-2 fs-4"></i>
+                                {% endif %}
+                                {{ message }}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        //toast Container
+        document.addEventListener('DOMContentLoaded', function () {
+            var toastElements = document.querySelectorAll('.toast');
+            toastElements.forEach(function (toastElement) {
+                var toast = new bootstrap.Toast(toastElement);
+                toast.show();
+            });
+        });
+    </script>
+
+    <script>
+        // Inicializar tooltips
+        document.addEventListener("DOMContentLoaded", function() {
+           var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+           var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+               return new bootstrap.Tooltip(tooltipTriggerEl)
+           })
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- jQuery e jQuery Mask Plugin -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    
+    <script>
+        // Sistema de Temas
+        function applyTheme(theme) {
+            const html = document.documentElement;
+            
+            if (theme === 'dark') {
+                html.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else if (theme === 'light') {
+                html.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+            } else if (theme === 'auto') {
+                // Detecta preferência do sistema
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (prefersDark) {
+                    html.setAttribute('data-theme', 'dark');
+                } else {
+                    html.setAttribute('data-theme', 'light');
+                }
+                localStorage.setItem('theme', 'auto');
+            }
+        }
+
+        // Aplicar tema do usuário
+        {% if user.theme_preference %}
+            applyTheme('{{ user.theme_preference }}');
+        {% else %}
+            applyTheme('light');
+        {% endif %}
+
+        // Listener para mudanças no tema do sistema (para modo auto)
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+            {% if user.theme_preference == 'auto' %}
+                applyTheme('auto');
+            {% endif %}
+        });
+
+        $(document).ready(function() {
+            // Máscaras globais para todos os formulários
+            
+            // CPF
+            $('input[name="cpf"], #cpf').mask('000.000.000-00', {
+                reverse: true,
+                clearIfNotMatch: true
+            });
+            
+            // Telefone dinâmico 
+            var phoneMaskBehavior = function (val) {
+                return val.replace(/\D/g, '').length === 11 ? '(00) 00000-0000' : '(00) 0000-00009';
+            };
+            
+            var phoneOptions = {
+                onKeyPress: function(val, e, field, options) {
+                    field.mask(phoneMaskBehavior.apply({}, arguments), options);
+                }
+            };
+            
+            $('input[name="phone"], #phone, input[name="phone_number"], #phone_number').mask(phoneMaskBehavior, phoneOptions);
+            
+            // Função para limpar formatação antes do envio do formulário
+            function cleanPhoneBeforeSubmit() {
+                $('input[name="phone"], #phone, input[name="phone_number"], #phone_number').each(function() {
+                    var cleanValue = $(this).val().replace(/\D/g, '');
+                    $(this).val(cleanValue);
+                });
+            }
+            
+            // Adicionar evento de submit em todos os formulários para limpar formatação
+            $(document).on('submit', 'form', function(e) {
+                // Criar cópia dos valores originais para restaurar após submit (caso o submit falhe)
+                var maskedFields = [];
+                
+                // Telefones
+                $('input[name="phone"], #phone, input[name="phone_number"], #phone_number').each(function() {
+                    maskedFields.push({
+                        element: this,
+                        originalValue: $(this).val(),
+                        cleanValue: $(this).val().replace(/\D/g, ''),
+                        type: 'phone'
+                    });
+                });
+                
+                // CPF
+                $('input[name="cpf"], #cpf').each(function() {
+                    maskedFields.push({
+                        element: this,
+                        originalValue: $(this).val(),
+                        cleanValue: $(this).val().replace(/\D/g, ''),
+                        type: 'cpf'
+                    });
+                });
+                
+                // CNPJ
+                $('input[name="cnpj"], #cnpj, input[name="enterprise_cnpj_or_cpf"], #enterprise_cnpj_or_cpf').each(function() {
+                    maskedFields.push({
+                        element: this,
+                        originalValue: $(this).val(),
+                        cleanValue: $(this).val().replace(/\D/g, ''),
+                        type: 'cnpj'
+                    });
+                });
+                
+                // Limpar valores antes do envio
+                maskedFields.forEach(function(field) {
+                    $(field.element).val(field.cleanValue);
+                });
+                
+                // Se for um submit AJAX ou se houver erro, restaurar valores formatados
+                // Isso será feito após um pequeno delay para permitir o envio
+                setTimeout(function() {
+                    maskedFields.forEach(function(field) {
+                        if (field.cleanValue && field.originalValue !== field.cleanValue) {
+                            // Reaplicar a máscara baseada no tipo
+                            $(field.element).val(field.cleanValue).trigger('input');
+                        }
+                    });
+                }, 100);
+            });
+            
+            // CNPJ
+            $('input[name="cnpj"], #cnpj, input[name="enterprise_cnpj_or_cpf"], #enterprise_cnpj_or_cpf').mask('00.000.000/0000-00');
+            
+            // CEP
+            $('input[name="cep"], #cep').mask('00000-000');
+            
+            // PROTEÇÃO GLOBAL PARA INPUTS TYPE="DATE"
+            // Remover qualquer máscara de todos os inputs type="date" no projeto
+            function protectDateInputs() {
+                $('input[type="date"]').each(function() {
+                    // Remover máscaras existentes
+                    $(this).unmask();
+                    // Remover event listeners que possam interferir
+                    $(this).off('input.mask keydown.mask keypress.mask paste.mask drop.mask');
+                    // Garantir que o type permaneça como date
+                    this.type = 'date';
+                });
+            }
+            
+            // Executar proteção inicialmente
+            protectDateInputs();
+            
+            // Executar proteção sempre que novos elementos forem adicionados
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        protectDateInputs();
+                    }
+                });
+            });
+            
+            // Observar mudanças no DOM
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+            
+            // Data para inputs de TEXTO específicos (não type="date")
+            // Aplicar apenas para campos de texto que precisam de máscara de data
+            $('input[name="data"]:not([type="date"]), #data:not([type="date"]), input.date-text-mask').mask('00/00/0000');
+            
+            // Preview de imagem universal
+            $(document).on('change', 'input[type="file"]', function(e) {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    const container = $(this).closest('.profile-image-container');
+                    
+                    if (container.length > 0) {
+                        reader.onload = function(e) {
+                            container.find('img').attr('src', e.target.result);
+                        }
+                        
+                        reader.readAsDataURL(this.files[0]);
+                    }
+                }
+            });
+
+            // Preview em tempo real do tema nas configurações
+            $('#theme_preference').on('change', function() {
+                const selectedTheme = $(this).val();
+                applyTheme(selectedTheme);
+                
+                // Mostrar feedback visual
+                $(this).addClass('theme-changing');
+                setTimeout(() => {
+                    $(this).removeClass('theme-changing');
+                }, 300);
+            });
+
+            // Paginação universal - adicionar eventos aos botões de navegação
+            function initializePagination() {
+                const paginationButtons = document.querySelectorAll('.pagination-btn');
+                
+                paginationButtons.forEach(button => {
+                    // Remover listeners antigos para evitar duplicação
+                    button.removeEventListener('click', handlePaginationClick);
+                    button.addEventListener('click', handlePaginationClick);
+                });
+                
+                // Calcular progresso da barra de paginação
+                const paginationThumb = document.querySelector('.pagination-thumb');
+                if (paginationThumb) {
+                    const currentPage = parseInt(paginationThumb.getAttribute('data-current'));
+                    const totalPages = parseInt(paginationThumb.getAttribute('data-total'));
+                    
+                    if (totalPages > 0) {
+                        // A largura representa o progresso até a página atual
+                        const widthPercent = (currentPage / totalPages) * 100;
+                        
+                        paginationThumb.style.width = widthPercent + '%';
+                        paginationThumb.style.left = '0%';
+                    }
+                }
+            }
+
+            function handlePaginationClick() {
+                if (!this.disabled) {
+                    const page = this.getAttribute('data-page');
+                    // Adiciona ou atualiza o parâmetro page na URL atual
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('page', page);
+                    window.location.href = url.toString();
+                }
+            }
+
+            // Inicializar paginação na primeira carga
+            initializePagination();
+
+            // Reinicializar paginação quando novos elementos forem adicionados
+            const paginationObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        // Verificar se foram adicionados elementos de paginação
+                        const addedElements = Array.from(mutation.addedNodes).filter(node => node.nodeType === Node.ELEMENT_NODE);
+                        const hasPagination = addedElements.some(element => 
+                            element.querySelector && element.querySelector('.pagination-btn, .pagination-thumb')
+                        );
+                        
+                        if (hasPagination) {
+                            setTimeout(initializePagination, 100);
+                        }
+                    }
+                });
+            });
+
+            // Observar mudanças no DOM para paginação
+            paginationObserver.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+
+        // CSS para animação de mudança de tema
+        const themeStyle = document.createElement('style');
+        themeStyle.textContent = `
+            .theme-changing {
+                transform: scale(1.02);
+                transition: transform 0.3s ease;
+            }
+            
+            * {
+                transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+            }
+        `;
+        document.head.appendChild(themeStyle);
+    </script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

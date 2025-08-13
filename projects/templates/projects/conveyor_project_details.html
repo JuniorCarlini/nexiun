@@ -1,0 +1,391 @@
+{% extends "base/base.html" %}
+
+{% load humanize %}
+
+{% load static %}
+
+{% block title %}Detalhes do Projeto{% endblock %}
+
+{% block content %}
+
+<!-- Incluir Select2 -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+
+<style>
+    .form-control:focus {
+        border-color: {{ enterprise.primary_color }} !important;
+        box-shadow: 0 0 0 0.2rem rgba({{ enterprise.primary_color|slice:"1:" }}, 0.25) !important;
+     }
+
+    .select2-container--bootstrap-5 .select2-results__option--selected {
+        background-color: {{ enterprise.primary_color }} !important;
+        color: white !important;
+    }
+    
+    .select2-container--bootstrap-5 .select2-selection--single:focus {
+        border-color: {{ enterprise.primary_color }} !important;
+        box-shadow: 0 0 0 0.2rem rgba({{ enterprise.primary_color|slice:"1:" }}, 0.25) !important;
+     }
+
+    .progress-bar-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 0%;
+        color: #16365f;
+    }
+
+    .custom-btn {
+        background-color: {{ enterprise.primary_color }};
+        color: #ffffff;
+        border: none;
+        transition: background-color 0.3s;
+    }
+
+    .container-style {
+        background-color: #ffffff;
+        border-radius: 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .drag-drop-zone {
+        border: 2px dashed #ced4da;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .drag-drop-zone.dragover {
+        background-color: #e9ecef;
+    }
+
+    .file-list {
+        margin-top: 15px;
+    }
+
+    .file-item {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+
+    .file-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 10px;
+    }
+
+    .file-actions button {
+        padding: 0;
+    }
+
+    .alert-docs {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .drag-drop-zone {
+        border: 2px dashed #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .drag-drop-zone.dragging {
+        background-color: #f8f9fa;
+        border-color: #0d6efd;
+    }
+
+    .current-documents {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+</style>
+
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Detalhes do Projeto  <span class="fw-light">{{ project }}</span></h2>
+        </div>
+    </div>
+</div>
+
+<div class="container-style">
+    <div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="client" class="form-label fw-bold">Cliente:</label>
+                <input type="text" name="client" id="client" class="form-control" value="{{ project.client.name }}" disabled>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="value" class="form-label fw-bold">Valor do Projeto:</label>
+                <div class="input-group">
+                    <span class="input-group-text">R$</span>
+                    <input type="text" name="value" id="value" class="form-control" 
+                        value="{{ project.value|intcomma|stringformat:'s'|default:'' }}" disabled>
+                </div>
+             </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="bank" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Instituição financeira responsável pelo financiamento, caso o banco não esteja cadastrado fale com seu superior"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Banco:</label>
+                <select name="bank" id="bank" class="form-control select2" disabled>
+                    <option value="">Selecione um Banco</option>
+                    {% for bank in banks %}
+                        <option value="{{ bank.id }}" {% if bank.id == project.bank.id %}selected{% endif %}>
+                            {{ bank.name }}
+                        </option>
+                    {% endfor %}            
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="credit_line" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Modalidade de financiamento específica oferecida pelo banco, caso não esteja cadastrada fale com seu superior"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Linha de Crédito:</label>
+                <select name="credit_line" id="credit_line" class="form-control select2" disabled>
+                    <option value="">Selecione uma linha de crédito</option>
+                    {% for credit_line in credit_lines %}
+                        <option value="{{ credit_line.id }}" {% if credit_line.id == project.credit_line.id %}selected{% endif %}>
+                            {{ credit_line.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="activity" class="form-label fw-bold">Atividade:</label>
+                <select name="activity" id="activity" class="form-control" disabled>
+                    {% for choice in activity_choices %}
+                        <option value="{{ choice.0 }}" {% if choice.0 == project.activity %}selected{% endif %}>{{ choice.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="size" class="form-label fw-bold">Tamanho do Projeto:</label>
+                <select name="size" id="size" class="form-control" disabled>
+                    {% for choice in size_choices %}
+                        <option value="{{ choice.0 }}" {% if choice.0 == project.size %}selected{% endif %}>{{ choice.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="land_size" class="form-label fw-bold">Tamanho da Terra (ha):</label>
+                <input type="number" step="0.01" name="land_size" id="land_size" class="form-control" 
+                    value="{{ project.land_size|default_if_none:''|stringformat:'.2f' }}" 
+                    list="land_size_options" 
+                    disabled>
+                <datalist id="land_size_options">
+                    {% for size_code, size_label in size_choices %}
+                        <option value="{{ size_label }}"></option>
+                    {% endfor %}
+                </datalist>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="unit" class="form-label fw-bold">Unidade:</label>
+                <input type="text" name="unit" id="unit" class="form-control" value="{{ project.unit.name }}"  disabled>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="project_deadline" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Prazo total em anos para quitação do financiamento"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Prazo para Pagamento:</label>
+                <input type="number" name="project_deadline" id="project_deadline" class="form-control" value="{{ project.project_deadline }}" disabled>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="installments" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Número total de parcelas do financiamento"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Parcelas:</label>
+                <input type="number" name="installments" id="installments" class="form-control" value="{{ project.installments }}" disabled>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="fees" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Taxa de juros anual aplicada ao financiamento"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Juros:</label>
+                <input type="number" step="0.01" name="fees" id="fees" class="form-control" value="{{ project.fees|default_if_none:''|stringformat:'.2f' }}" disabled>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="payment_grace" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Período em anos onde o cliente paga apenas os juros do financiamento, sem amortização do principal"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Carência: 
+                </label>
+                <input type="number" name="payment_grace" id="payment_grace" class="form-control" value="{{ project.payment_grace }}" disabled>
+             </div>
+        </div>
+                
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="percentage_astec" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Percentual da assistência técnica sobre o valor do projeto"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Porcentagem ASTEC:</label>
+                <input type="number" step="0.01" name="percentage_astec" id="percentage_astec" class="form-control" value="{{ project.percentage_astec|default_if_none:''|stringformat:'.2f' }}" disabled>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="next_phase_deadline" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Data prevista para conclusão da fase atual"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Prazo Estimado Para Próxima Fase:</label>
+                <input type="date" name="next_phase_deadline" id="next_phase_deadline" class="form-control" value="{{ project.next_phase_deadline|date:'Y-m-d'|default_if_none:'' }}" disabled>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <label for="observacoes" class="form-label fw-bold">Observações:</label>
+                <div>
+                    {% autoescape off %}
+                        {{ project.description }}
+                    {% endautoescape %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção de Documentos -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <label class="form-label fw-bold">Documentos Atuais:</label>
+                <div class="current-documents">
+                    {% for doc in project_documents %}
+                        <div class="file-item d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center ms-3">
+                                <i class="fas {% if doc.file_type == 'application/pdf' %}fa-file-pdf{% else %}fa-file-image{% endif %} me-2" style="color: #16365f; font-size: 45px;"></i>
+                                <div class="file-info ms-1">
+                                    <div class="file-name fw-bold">{{ doc.file_name }}</div>
+                                    <small class="text-muted">• Tamanho: {{ doc.file_size|filesizeformat }}</small><br>
+                                    <small class="text-muted">• Enviado em: {{ doc.uploaded_at|date:"d/m/Y H:i" }}</small>
+                                </div>
+                            </div>
+                            <div class="file-actions d-flex me-3">
+                                <a href="{{ doc.file.url }}" class="btn btn-link text-primary p-0 me-2" target="_blank" title="Baixar">
+                                    <i class="fa-solid fa-eye" style="font-size: 25px; color: {{ enterprise.primary_color }};"                                data-bs-toggle="tooltip" 
+                                    data-bs-placement="top" 
+                                    title="Visualizar arquivo"
+                                    data-bs-custom-class="custom-tooltip"></i>
+                                </a>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">Nenhum documento cadastrado.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="mt-4">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="row align-items-end mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold d-flex align-items-center">
+                            <i class="bi bi-question-circle-fill me-1 small" 
+                                style="font-size: 12px;"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                title="Selecione um gerente ou franqueado responsável da unidade {{ project.unit.name }} para este projeto."
+                                data-bs-custom-class="custom-tooltip">
+                            </i>Selecionar Responsável:
+                        </label>
+                        <select name="manager" id="managerSelect" class="form-control select2" {% if is_completed %}disabled{% endif %} required>
+                            <option value="">Escolha um responsável da unidade</option>
+                            {% for manager in managers %}
+                                <option value="{{ manager.id }}" {% if manager.id == form_data.manager|default:'' %}selected{% endif %}>{{ manager.name }} - {{ manager.cargo }}</option>
+                            {% empty %}
+                                <option value="" disabled>Nenhum responsável disponível nesta unidade</option>
+                            {% endfor %}            
+                        </select>
+                        <div class="invalid-feedback">Por favor, selecione um responsável.</div>
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Apenas gerentes e franqueados da unidade <strong>{{ project.unit.name }}</strong>
+                        </small>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <a href="{% url 'conveyor_projects' %}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Voltar</a>
+                        <button type="submit" class="btn me-2 btn-primary"style="background-color: {{ enterprise.primary_color }} ; border: none;"><i class="fa-solid fa-check"></i> Aceitar Projeto</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        $('.select2').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Escolha um Responsável da Unidade',
+            allowClear: true,
+            width: '100%',
+            language: {
+                noResults: function() {
+                    return "Nenhum responsável encontrado nesta unidade";
+                },
+                searching: function() {
+                    return "Buscando...";
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

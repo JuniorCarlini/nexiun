@@ -1,0 +1,1264 @@
+    {% extends "base/base.html" %}
+
+{% load static %}
+
+{% block title %}Detalhes do Projeto{% endblock %}
+
+{% block extra_scripts %}
+<!-- Carregamento do Select2 JavaScript após jQuery -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<!-- Incluir Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<!-- Incluir Trix Editor -->
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/trix/1.3.1/trix.css">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/trix/1.3.1/trix.js"></script>
+
+<style>
+    .progress-bar-container {
+        overflow-x: auto; /* Permite rolar horizontalmente */
+    }
+
+    .progress-steps {
+        display: flex;
+        justify-content: space-evenly;
+        align-items: center;
+        position: relative;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+        width: 100%;
+        gap: 30px;
+    }
+
+    .step.completed .step-icon {
+        border-color: {{ enterprise.primary_color }};
+        background-color: {{ enterprise.primary_color }};
+    }
+
+    .step.completed .step-icon i {
+        color: #ffffff;
+    }
+
+    .step.completed .step-label {
+        color: {{ enterprise.primary_color }};
+        font-weight: 600;
+    }
+
+    .progress-steps[data-status="AC"]::after { 
+        width: calc(12.5% - 25px);
+    }
+
+    .progress-steps[data-status="PE"]::after { 
+        width: calc(25% - 12.5px);
+    }
+    
+    .progress-steps[data-status="AN"]::after { 
+        width: calc(37.5% - 6.25px);
+    }
+
+    .progress-steps[data-status="AP"]::after { 
+        width: calc(50% - 0px);
+    }
+
+    .progress-steps[data-status="AF"]::after { 
+        width: calc(62.5% + 6.25px);
+    }
+
+    .progress-steps[data-status="FM"]::after { 
+        width: calc(75% + 12.5px);
+    }
+
+    .progress-steps[data-status="LB"]::after { 
+        width: calc(87.5% + 18.75px);
+    }
+
+    .progress-steps[data-status="RC"]::after { 
+        width: calc(102% - 25px);
+    }
+
+    @media (max-width: 768px) {
+        .progress-bar-container {
+            padding: 0 10px;
+        }
+        
+        .progress-steps {
+            min-width: 800px;
+            padding: 0 15px;
+        }
+    }
+
+    .progress-steps::before {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 0;
+        width: 100%;
+        height: 7px;
+        border-radius: 18px;
+        background-color: #e9ecef;
+        z-index: 1;
+    }
+
+    .progress-steps::after {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 0;
+        height: 7px;
+        border-radius: 18px;
+        background-color: {{ enterprise.primary_color }};
+        z-index: 1;
+        transition: width 0.3s ease;
+    }
+
+    .step {
+        text-align: center;
+        position: relative;
+        z-index: 2;
+        flex-grow: 1; /* Faz com que as etapas ocupem o mesmo espaço */
+    }
+
+    .step-icon {
+        width: 50px;  /* Tamanho fixo para os ícones */
+        height: 50px; /* Tamanho fixo para os ícones */
+        background-color:#dee2e6;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        position: relative;
+    }
+
+    .step-icon i {
+        color: #6c757d;
+        font-size: 1.5rem; /* Tamanho padrão do ícone */
+    }
+
+    .step-label {
+        margin-top: 8px;
+        font-size: 0.75rem;
+        color: #495057;
+    }
+
+    .step.active .step-icon {
+        border: 3px solid {{ enterprise.secondary_color }};
+        background-color: {{ enterprise.primary_color }};
+    }
+
+    .step.active .step-icon i {
+        color: #ffffff;
+    }
+
+    .step.active .step-label {
+        color: {{ enterprise.primary_color }};
+        font-weight: 600;
+    }
+
+    .step.completed .step-icon {
+        background-color: {{ enterprise.primary_color }};
+        border: none;
+    }
+
+    .step.completed .step-icon i {
+        color: #ffffff;
+    }
+
+    .progress-bar-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 0%;
+        color: #16365f;
+    }
+
+    .custom-btn {
+        background-color: {{ enterprise.primary_color }};
+        color: #ffffff;
+        border: none;
+        transition: background-color 0.3s;
+    }
+
+    .container-style {
+        background-color: #ffffff;
+        border-radius: 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .file-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 15px;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .file-item:hover {
+        background-color: #f8f9fa;
+        border-color: #adb5bd;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .file-actions {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+    }
+
+    .file-actions button {
+        padding: 0;
+    }
+
+    .file-name {
+        font-weight: 500;
+        color: #495057;
+        flex: 1;
+    }
+
+    .file-size {
+        font-size: 0.875rem;
+    }
+
+    /* Estilos personalizados para Select2 */
+    .select2-container {
+        width: 100% !important;
+    }
+
+    .select2-container .select2-selection--single {
+        height: calc(1.5em + 0.75rem + 2px) !important;
+        border: 1px solid #ced4da !important;
+        border-radius: 0.375rem !important;
+        background-color: #fff !important;
+        font-size: 1rem !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: calc(1.5em + 0.75rem) !important;
+        padding-left: 0.75rem !important;
+        padding-right: 3rem !important;
+        color: #495057 !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: calc(1.5em + 0.75rem) !important;
+        right: 0.75rem !important;
+        width: 20px !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__clear {
+        position: absolute !important;
+        right: 2.5rem !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        font-size: 1.2rem !important;
+        line-height: 1 !important;
+        color: #6c757d !important;
+        cursor: pointer !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: none !important;
+        border: none !important;
+        z-index: 10 !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__clear:hover {
+        color: #dc3545 !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__placeholder {
+        color: #6c757d !important;
+    }
+
+    .select2-dropdown {
+        border: 1px solid #ced4da !important;
+        border-radius: 0.375rem !important;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15) !important;
+        z-index: 9999 !important;
+    }
+
+    .select2-search--dropdown .select2-search__field {
+        border: 1px solid #ced4da !important;
+        border-radius: 0.25rem !important;
+        padding: 0.375rem 0.75rem !important;
+        font-size: 0.9rem !important;
+        margin: 0.5rem !important;
+        width: calc(100% - 1rem) !important;
+    }
+
+    .select2-results__option {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.9rem !important;
+    }
+
+    .select2-results__option--highlighted[aria-selected] {
+        background-color: {{ enterprise.primary_color }} !important;
+        color: white !important;
+    }
+
+    .select2-container--default .select2-selection--single:focus {
+        border-color: #86b7fe !important;
+        outline: 0 !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+    }
+
+    /* Desabilitar botões de anexo do Trix Editor */
+    trix-toolbar [data-trix-button-group="file-tools"] {
+        display: none !important;
+    }
+    
+    /* Esconder ícone de clipe de papel para anexos */
+    trix-toolbar .trix-button--icon-attach {
+        display: none !important;
+    }
+
+    /* Estilo para tema escuro */
+    [data-theme="dark"] .file-item {
+        background-color: #404040;
+        border-color: #525252;
+        color: #e4e4e7;
+    }
+
+    [data-theme="dark"] .file-item:hover {
+        background-color: #4a4a4a;
+        border-color: #6c757d;
+    }
+
+    [data-theme="dark"] .file-name {
+        color: #e4e4e7;
+    }
+
+    [data-theme="dark"] .select2-container .select2-selection--single {
+        background-color: #404040 !important;
+        border-color: #525252 !important;
+        color: #e4e4e7 !important;
+    }
+
+    [data-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #e4e4e7 !important;
+    }
+
+    [data-theme="dark"] .select2-dropdown {
+        background-color: #404040 !important;
+        border-color: #525252 !important;
+    }
+
+    [data-theme="dark"] .select2-results__option {
+        background-color: #404040 !important;
+        color: #e4e4e7 !important;
+    }
+
+    [data-theme="dark"] .select2-search--dropdown .select2-search__field {
+        background-color: #525252 !important;
+        border-color: #6c757d !important;
+        color: #e4e4e7 !important;
+    }
+
+    [data-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__clear {
+        color: #a1a1aa !important;
+    }
+
+    [data-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__clear:hover {
+        color: #ef4444 !important;
+    }
+ 
+
+    
+    .drag-drop-zone.dragover {
+        background-color: #e0e0e0;
+        border-color: #909090;
+    }
+    
+    .drag-drop-zone:hover {
+        background-color: #ebebeb;
+    }
+
+    .file-list {
+        margin-top: 15px;
+    }
+     
+    .current-documents {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .alert-docs {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .drag-drop-zone {
+        background-color: #f5f5f5;
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .drag-drop-zone.dragover {
+        background-color: #e0e0e0;
+        border-color: #909090;
+    }
+
+    .drag-drop-zone:hover {
+        background-color: #ebebeb;
+    }
+
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 0%;
+        color: #16365f;
+    }
+</style>
+
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Detalhes do Projeto  <span class="fw-light">{{ project }}</span></h2>
+        </div>
+    </div>
+</div>
+<div class="container-style">
+    <div class="progress-bar-container">
+        <ul class="progress-steps" data-status="{{ project.status }}">
+            <li class="step {% if project.status == 'AC' %}active{% elif project.status in 'PE,AN,AP,AF,FM,LB,RC' %}completed{% endif %}">
+                <div class="step-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <span class="step-label">Acolhimento</span>
+            </li>
+            <li class="step {% if project.status == 'PE' %}active{% elif project.status in 'AN,AP,AF,FM,LB,RC' %}completed{% endif %}">
+                <div class="step-icon">
+                    <i class="bi bi-exclamation-circle"></i>
+                </div>
+                <span class="step-label">Pendência</span>
+            </li>
+            <li class="step {% if project.status == 'AN' %}active{% elif project.status in 'AP,AF,FM,LB,RC' %}completed{% endif %}">
+                <div class="step-icon">
+                    <i class="bi bi-search"></i>
+                </div>
+                <span class="step-label">Análise</span>
+            </li>
+            <li class="step {% if project.status == 'AP' %}active{% elif project.status in 'AF,FM,LB,RC' %}completed{% endif %}">
+                <div class="step-icon">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <span class="step-label">Aprovados</span>
+            </li>
+            <li class="step {% if project.status == 'AF' %}active{% elif project.status in 'FM,LB,RC' %}completed{% endif %}">
+                <div class="step-icon">
+                    <i class="bi bi-clock"></i>
+                </div>
+                <span class="step-label">Formalização</span>
+            </li>
+            <li class="step {% if project.status == 'FM' %}active{% elif project.status in 'LB,RC' %}completed{% endif %}">
+                <div class="step-icon">
+                    <i class="bi bi-file-earmark-text"></i>
+                </div>
+                <span class="step-label">Formalizado</span>
+            </li>
+            <li class="step {% if project.status == 'LB' %}active{% elif project.status in 'RC' %}completed{% endif %}">
+                <div class="step-icon">
+                    <i class="bi bi-box-arrow-in-up-right"></i>
+                </div>
+                <span class="step-label">Liberado</span>
+            </li>
+            <li class="step {% if project.status == 'RC' %}active{% endif %}">
+                <div class="step-icon">
+                    <i class="bi bi-bar-chart"></i>
+                </div>
+                <span class="step-label">Receita</span>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<div class="container-style">
+    <div class="row">
+        <!-- Projetista Responsável -->
+        <div class="col-md-4 mt-2 mb-2">
+            <div class="d-flex align-items-center">
+                <img src="{% if designer.profile_image %}{{ designer.profile_image.url }}{% else %}{% static 'images/user_default_icon.svg' %}{% endif %}" 
+                     alt="Projetista" 
+                     class="rounded-circle me-3" 
+                     style="width: 60px; height: 60px; object-fit: cover;">
+                <div>
+                    <h5 class="m-0">{{ designer.name }}</h5>
+                    <small class="text-muted">Projetista Responsável</small>
+                </div>
+                <!-- Link do WhatsApp -->
+                <a href="https://wa.me/{{ designer.phone|default_if_none:'' }}" 
+                   class="btn ms-auto"
+                   target="_blank"
+                   style="background-color: {{ enterprise.primary_color }}; border-radius: 50%; padding: 8px; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center;">
+                        <i class="bi bi-whatsapp" style="color: white; font-size: 20px;"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Gerente Responsável -->
+        <div class="col-md-4 mt-2 mb-2">
+            <div class="d-flex align-items-center">
+                <img src="{% if manager.profile_image %}{{ manager.profile_image.url }}{% else %}{% static 'images/user_default_icon.svg' %}{% endif %}" 
+                     alt="Gerente" 
+                     class="rounded-circle me-3" 
+                     style="width: 60px; height: 60px; object-fit: cover;">
+                <div>
+                    <h5 class="m-0">{{ manager.name }}</h5>
+                    <small class="text-muted">Gerente Responsável</small>
+                </div>
+                <!-- Link do WhatsApp -->
+                <a href="https://wa.me/{{ manager.phone|default_if_none:'' }}" 
+                   class="btn ms-auto"
+                   target="_blank"
+                   style="background-color: {{ enterprise.primary_color }}; border-radius: 50%; padding: 8px; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center;">
+                        <i class="bi bi-whatsapp" style="color: white; font-size: 20px;"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Sócio Responsável -->
+        <div class="col-md-4 mt-2 mb-2">
+            <div class="d-flex align-items-center">
+                <img src="{% if partner.profile_image %}{{ partner.profile_image.url }}{% else %}{% static 'images/user_default_icon.svg' %}{% endif %}" 
+                     alt="Sócio" 
+                     class="rounded-circle me-3" 
+                     style="width: 60px; height: 60px; object-fit: cover;">
+                <div>
+                    <h5 class="m-0">{{ partner.name }}</h5>
+                    <small class="text-muted">Sócio Responsável</small>
+                </div>
+                <!-- Link do WhatsApp -->
+                <a href="https://wa.me/{{ partner.phone|default_if_none:'' }}" 
+                   class="btn ms-auto"
+                   target="_blank"
+                   style="background-color: {{ enterprise.primary_color }}; border-radius: 50%; padding: 8px; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center;">
+                        <i class="bi bi-whatsapp" style="color: white; font-size: 20px;"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-style">
+    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="client" class="form-label fw-bold">Cliente:</label>
+                <input type="text" name="client" id="client" class="form-control" value="{{ project.client.name }}" readonly disabled>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="value" class="form-label fw-bold">Valor do Projeto:</label>
+                <div class="input-group">
+                    <span class="input-group-text">R$</span>
+                    <input type="text" name="value" id="value" class="form-control" 
+                        value="{% if project.value %}{{ project.value|floatformat:2|stringformat:'s'|cut:'.'|default:''}}{% endif %}" 
+                        {% if is_completed %}disabled{% endif %} >
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="bank" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Instituição financeira responsável pelo financiamento, caso o banco não esteja cadastrado fale com seu superior"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Banco:</label>
+                <select name="bank" id="bank" class="form-control select2" {% if is_completed %}disabled{% endif %}>
+                    <option value="">Selecione um Banco</option>
+                    {% for bank in banks %}
+                        <option value="{{ bank.id }}" {% if bank.id == project.bank.id %}selected{% endif %}>
+                            {{ bank.name }}
+                        </option>
+                    {% endfor %}            
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="credit_line" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Modalidade de financiamento específica oferecida pelo banco, caso não esteja cadastrada fale com seu superior"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Linha de Crédito:</label>
+                <select name="credit_line" id="credit_line" class="form-control select2" {% if is_completed %}disabled{% endif %}>
+                    <option value="">Selecione uma linha de crédito</option>
+                    {% for credit_line in credit_lines %}
+                        <option value="{{ credit_line.id }}" {% if credit_line.id == project.credit_line.id %}selected{% endif %}>
+                            {{ credit_line.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="activity" class="form-label fw-bold">Atividade:</label>
+                <select name="activity" id="activity" class="form-control" {% if is_completed %}disabled{% endif %}>
+                    {% for choice in activity_choices %}
+                        <option value="{{ choice.0 }}" {% if choice.0 == project.activity %}selected{% endif %}>{{ choice.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="size" class="form-label fw-bold">Tamanho do Projeto:</label>
+                <select name="size" id="size" class="form-control" {% if is_completed %}disabled{% endif %}>
+                    {% for choice in size_choices %}
+                        <option value="{{ choice.0 }}" {% if choice.0 == project.size %}selected{% endif %}>{{ choice.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="land_size" class="form-label fw-bold">Tamanho da Terra (ha):</label>
+                <input type="number" step="0.01" name="land_size" id="land_size" class="form-control" 
+                    value="{{ project.land_size|default_if_none:''|stringformat:'.2f' }}" 
+                    list="land_size_options" 
+                    {% if is_completed %}disabled readonly{% endif %}>
+                <datalist id="land_size_options">
+                    {% for size_code, size_label in size_choices %}
+                        <option value="{{ size_label }}"></option>
+                    {% endfor %}
+                </datalist>
+             </div>
+            <div class="col-md-6 mb-3">
+                <label for="unit" class="form-label fw-bold">Unidade:</label>
+                <input type="text" name="unit" id="unit" class="form-control" value="{{ project.unit.name }}" readonly disabled>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="project_deadline" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Prazo total em anos para quitação do financiamento"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Prazo para Pagamento:</label>
+                <input type="number" name="project_deadline" id="project_deadline" class="form-control" value="{{ project.project_deadline }}" {% if is_completed %}disabled readonly{% endif %}>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="installments" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Número total de parcelas do financiamento"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Parcelas:</label>
+                <input type="number" name="installments" id="installments" class="form-control" value="{{ project.installments }}" {% if is_completed %}disabled readonly{% endif %}>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="fees" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Taxa de juros anual aplicada ao financiamento"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Juros:</label>
+                <input type="number" step="0.01" name="fees" id="fees" class="form-control" value="{{ project.fees|default_if_none:''|stringformat:'.2f' }}" {% if is_completed %}disabled readonly{% endif %}>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="payment_grace" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Período em anos onde o cliente paga apenas os juros do financiamento, sem amortização do principal"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Carência: 
+                </label>
+                <input type="number" name="payment_grace" id="payment_grace" class="form-control" value="{{ project.payment_grace }}" {% if is_completed %}disabled readonly{% endif %}>
+             </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="approval_date" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Data de aprovação na cedula "
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Data de aprovação:</label>
+                <input type="date" name="approval_date" id="approval_date" class="form-control" value="{{ project.approval_date|date:'Y-m-d'|default_if_none:'' }}" {% if is_completed %}disabled readonly{% endif %}>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="value" class="form-label fw-bold"><i class="bi bi-question-circle-fill me-1 small" 
+                    style="font-size: 12px;"
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="top" 
+                    title="Insira o valor somente se o projeto tiver um consorcio"
+                    data-bs-custom-class="custom-tooltip">
+                </i>Valor do consorcio:</label>
+                <div class="input-group">
+                    <span class="input-group-text">R$</span>
+                    <input type="text" name="consortium_value" id="consortium_value" class="form-control" 
+                        value="{% if project.consortium_value %}{{ project.consortium_value|floatformat:2|stringformat:'s'|cut:'.'|default:''}}{% endif %}" 
+                        {% if is_completed %}disabled readonly{% endif %}>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="percentage_astec" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Percentual da assistência técnica sobre o valor do projeto"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Porcentagem ASTEC:</label>
+                <input type="number" step="0.01" name="percentage_astec" id="percentage_astec" class="form-control" value="{{ project.percentage_astec|default_if_none:''|stringformat:'.2f' }}" {% if is_completed %}disabled readonly{% endif %}>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="next_phase_deadline" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Data prevista para conclusão da fase atual"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Prazo Estimado Para Próxima Fase:</label>
+                <input type="date" name="next_phase_deadline" id="next_phase_deadline" class="form-control" value="{{ project.next_phase_deadline|date:'Y-m-d'|default_if_none:'' }}" {% if is_completed %}disabled readonly{% endif %}>
+            </div>
+        </div>
+
+        <!-- Observações -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <label for="observacoes" class="form-label fw-bold">Observações:</label>
+                <input id="observacoes" type="hidden" name="description" value="{{ project.description }}">
+                <trix-editor input="observacoes" {% if is_completed %}contentEditable="false"{% endif %}></trix-editor>
+            </div>
+        </div>
+
+        <!-- Seção de Documentos -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <label class="form-label fw-bold">Documentos Atuais:</label>
+                <div class="current-documents">
+                    {% for doc in project_documents %}
+                        <div class="file-item d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center ms-3">
+                                <i class="fas {% if doc.file_type == 'application/pdf' %}fa-file-pdf{% else %}fa-file-image{% endif %} me-2" style="color: #16365f; font-size: 45px;"></i>
+                                <div class="file-info ms-1">
+                                    <div class="file-name fw-bold">{{ doc.file_name }}</div>
+                                    <small class="text-muted">• Tamanho: {{ doc.file_size|filesizeformat }}</small><br>
+                                    <small class="text-muted">• Enviado em: {{ doc.uploaded_at|date:"d/m/Y H:i" }}</small>
+                                </div>
+                            </div>
+                            <div class="file-actions d-flex me-3">
+                                <a href="{{ doc.file.url }}" class="btn btn-link text-primary p-0 me-2" target="_blank" title="Baixar">
+                                    <i class="fa-solid fa-eye" style="font-size: 25px; color: {{ enterprise.primary_color }};"
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="top" 
+                                        title="Visualizar arquivo"
+                                        data-bs-custom-class="custom-tooltip">
+                                    </i>
+                                </a>
+                                {% if not is_completed %}
+                                <button type="button" class="btn btn-link text-danger p-0" 
+                                    onclick="showDeleteModal('{{ doc.id }}', '{{ doc.file_name }}')" title="Excluir">
+                                    <i class="fa-solid fa-trash" style="font-size: 25px;"
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="top" 
+                                        title="Apagar arquivo"
+                                        data-bs-custom-class="custom-tooltip">
+                                    </i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">Nenhum documento cadastrado.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Adicionar Novos Documentos -->
+        {% if not is_completed %}
+        <div class="row mb-3">
+            <div class="col-12">
+                <label for="new_documents" class="form-label fw-bold">Adicionar Novos Documentos:</label>
+                <div id="dragDropZone" class="drag-drop-zone">
+                    <i class="fas fa-cloud-upload-alt mb-2" style="font-size: 36px;"></i>
+                    <div class="fw-bold">Arraste e solte arquivos aqui ou clique para selecionar</div>
+                    <p class="alert-docs text-danger">PNG, JPG, PDF - 5MB tamanho máximo suportado</p>
+                    <input type="file" id="fileInput" multiple name="documents[]" accept=".pdf,.jpg,.jpeg,.png" style="display: none">
+                </div>
+                <div id="fileList" class="file-list mt-3"></div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Botões de ação -->
+        <div class="row g-3">
+            {% if not is_completed %}
+                <div class="col-6 col-md-3">
+                    <button type="button" style="background-color: {{ enterprise.primary_color }}; border: none;" class="btn btn-primary w-100" onclick="previousPhase()">
+                        <i class="bi bi-arrow-left-short"></i> Fase Anterior
+                    </button>
+                </div>
+                <div class="col-6 col-md-3">
+                    <button type="button" style="background-color: {{ enterprise.primary_color }}; border: none;" class="btn btn-primary w-100" onclick="nextPhase()">
+                        <i class="bi bi-arrow-right-short"></i> Próxima Fase
+                    </button>
+                </div>
+                <div class="col-12 col-md-6">
+                    <button type="submit" 
+                            style="background-color: {{ enterprise.primary_color }}; border: none;" 
+                            name="action" 
+                            value="save" 
+                            class="btn btn-primary w-100">
+                        <i class="fa-solid fa-floppy-disk"></i> Salvar Alterações
+                    </button>
+                </div>
+                {% if project.status == 'RC' and request.user.access_level <= 2 or request.user.access_level == 5 %}
+                <div class="col-12">
+                    <button type="button"
+                            style="background-color: #28a745; border: none;"
+                            class="btn btn-success w-100"
+                            data-bs-toggle="modal"
+                            data-bs-target="#completeProjectModal">
+                        <i class="fa-solid fa-check"></i> Concluir Projeto
+                    </button>
+                </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </form>
+</div>
+<div class="container-style">
+    <div class="row mb-3">
+        <div class="col-12">
+            <label for="observacoes" class="form-label fw-bold">Histórico:</label>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <table class="table">
+                <tbody>
+                    {% for history in project_history %}
+                        {% for field, change in history.changes.items %}
+                            {% if 'document_' in field or 'next_phase_deadline' not in field and change.de != change.para or 'next_phase_deadline' in field and change.de|slice:":10" != change.para|slice:":10" %}
+                                <tr>
+                                    <td class="text-center align-middle" style="width: 5%;"><i class="bi bi-check-circle"></i></td>
+                                    <td class="text-start align-middle" style="width: 20%;">
+                                        {% if 'document_' in field %}
+                                            {{ change.data|slice:":16" }}
+                                        {% else %}
+                                            {{ history.timestamp|date:"d/m/Y H:i" }}
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-start align-middle">
+                                        {% if field == 'document_added' %}
+                                            {{ change.usuario }} - Adicionou o arquivo "{{ change.arquivo }}"
+                                        {% elif field == 'document_deleted' %}
+                                            {{ change.usuario }} - Removeu o arquivo "{{ change.arquivo }}"
+                                        {% else %}
+                                            {{ change.usuario }} - Alterou {{ change.campo }} de "{{ change.de }}" para "{{ change.para }}"
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Conclusão do Projeto -->
+<form method="post">
+    {% csrf_token %}
+    <div class="modal fade" id="completeProjectModal" tabindex="-1" aria-labelledby="completeProjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="completeProjectModalLabel">Confirmar Conclusão do Projeto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    Tem certeza que deseja concluir este projeto? Esta ação não poderá ser desfeita.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" 
+                            style="background-color: #28a745; border: none;" 
+                            name="action" 
+                            value="complete_project" 
+                            class="btn btn-success"><i class="bi bi-check-lg"></i> 
+                        Confirmar Conclusão
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Modals de Confirmação -->
+<div class="modal fade" id="previousPhaseModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Mudança de Fase</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Deseja realmente retornar à fase anterior do projeto?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" style="background-color: {{ enterprise.primary_color }}; border: none;" onclick="confirmPreviousPhase()"><i class="bi bi-check-lg"></i> Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+   
+<div class="modal fade" id="nextPhaseModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Mudança de Fase</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Deseja realmente avançar para a próxima fase do projeto?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" style="background-color: {{ enterprise.primary_color }}; border: none;" onclick="confirmNextPhase()"><i class="bi bi-check-lg"></i> Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Tem certeza que deseja excluir o documento "<span id="documentName"></span>"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" id="deleteForm" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="delete_document" value="true">
+                    <input type="hidden" name="document_id" id="documentId">
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function previousPhase() {
+        new bootstrap.Modal(document.getElementById('previousPhaseModal')).show();
+    }
+    
+    function nextPhase() {
+        new bootstrap.Modal(document.getElementById('nextPhaseModal')).show();
+    }
+        
+    function confirmPreviousPhase() {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            {% csrf_token %}
+            <input type="hidden" name="previous_phase" value="true">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function confirmNextPhase() {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            {% csrf_token %}
+            <input type="hidden" name="next_phase" value="true">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+<script>
+    function formatCurrency(input) {
+        // Remove tudo que não for número e vírgula
+        let value = input.replace(/\D/g, '');
+        
+        // Converte para float (2 casas decimais)
+        value = (parseFloat(value) / 100).toFixed(2);
+        
+        // Substitui ponto por vírgula
+        value = value.replace('.', ',');
+        
+        // Adiciona pontos a cada 3 dígitos antes da vírgula
+        value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        
+        return value;
+    }
+    
+    document.getElementById('value').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value) {
+            e.target.value = formatCurrency(value);
+        }
+    });
+    
+    // Formata o valor inicial se existir
+    window.addEventListener('load', function() {
+        const input = document.getElementById('value');
+        if (input.value) {
+            const rawValue = input.value.replace(/\D/g, '');
+            input.value = formatCurrency(rawValue);
+        }
+    });
+</script>
+
+<script>
+    $(document).ready(function() {
+        // Configuração específica para banco
+        $('#bank').select2({
+            allowClear: true,
+            width: '100%',
+            placeholder: 'Digite o nome do banco...',
+            minimumInputLength: 0,
+            language: {
+                noResults: function() {
+                    return "Nenhum banco encontrado";
+                },
+                searching: function() {
+                    return "Buscando bancos...";
+                },
+                inputTooShort: function() {
+                    return "Digite o nome do banco...";
+                }
+            }
+        });
+
+        // Configuração específica para linha de crédito
+        $('#credit_line').select2({
+            allowClear: true,
+            width: '100%',
+            placeholder: 'Digite o nome da linha de crédito...',
+            minimumInputLength: 0,
+            language: {
+                noResults: function() {
+                    return "Nenhuma linha de crédito encontrada";
+                },
+                searching: function() {
+                    return "Buscando linhas de crédito...";
+                },
+                inputTooShort: function() {
+                    return "Digite o nome da linha de crédito...";
+                }
+            }
+        });
+
+        // Inicialização dos tooltips do Bootstrap
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+</script>
+
+<script type="text/javascript">
+    // Lista de classes de botões que queremos remover
+    const UNUSED_TOOLBAR_CLASSES = [
+        ".trix-button-group--file-tools",   // Ferramentas de arquivo (incluindo o botão de imagem)
+        ".trix-button--icon-image"     // Botão de imagem
+    ];
+
+    // Remover os botões da barra de ferramentas quando o Trix Editor for inicializado
+    document.addEventListener("trix-initialize", function(event) {
+        // Garantir que o editor foi carregado corretamente
+        const toolbar = event.target.toolbarElement;
+        if (toolbar) {
+            UNUSED_TOOLBAR_CLASSES.forEach((cls) => {
+                const buttonGroup = toolbar.querySelector(cls);
+                if (buttonGroup) {
+                    buttonGroup.remove();  // Remove o grupo de botões do editor
+                }
+            });
+        }
+    });
+
+    // Desabilitar funcionalidade de anexos do Trix Editor
+    document.addEventListener('trix-file-accept', function(event) {
+        event.preventDefault();
+        return false;
+    });
+
+    // Prevenir arrastar e soltar arquivos no editor de observações
+    document.addEventListener('trix-attachment-add', function(event) {
+        event.attachment.remove();
+        event.preventDefault();
+        
+        // Mostrar aviso ao usuário
+        alert('Não é possível adicionar arquivos nas observações. Use a seção "Adicionar Novos Documentos" abaixo.');
+    });
+</script>
+
+<script>
+    // Variáveis globais para upload de arquivos
+    let selectedFiles = [];
+    let dragDropZone, fileInput, fileList;
+
+    // Inicializar elementos do upload
+    dragDropZone = document.getElementById('dragDropZone');
+    fileInput = document.getElementById('fileInput');
+    fileList = document.getElementById('fileList');
+
+    // Funções globais para manipulação de arquivos
+    window.removeFile = function(index) {
+        selectedFiles.splice(index, 1);
+        updateFileDisplay();
+        updateFileInput();
+    };
+
+    function updateFileDisplay() {
+        if (!fileList) return;
+        fileList.innerHTML = '';
+
+        selectedFiles.forEach((file, index) => {
+            const listItem = document.createElement('div');
+            listItem.className = 'file-item mt-2';
+            listItem.innerHTML = `
+                <i class="fas ${file.type === 'application/pdf' ? 'fa-file-pdf text-danger' : 'fa-file-image text-primary'} me-2"></i>
+                <span class="file-name">${file.name}</span>
+                <div class="file-actions">
+                    <span class="file-size text-muted me-2">(${(file.size / 1024).toFixed(2)} KB)</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFile(${index})" title="Remover arquivo" style="padding-left: 10px; padding-right: 10px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            fileList.appendChild(listItem);
+        });
+
+        // Mostrar contador de arquivos
+        if (selectedFiles.length > 0) {
+            const counterDiv = document.createElement('div');
+            counterDiv.className = 'mt-2 text-muted small';
+            counterDiv.innerHTML = `<i class="fas fa-info-circle me-1"></i>${selectedFiles.length} arquivo(s) selecionado(s)`;
+            fileList.appendChild(counterDiv);
+        }
+    }
+
+    function updateFileInput() {
+        if (!fileInput) return;
+        // Criar um novo DataTransfer para atualizar o input
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => {
+            dataTransfer.items.add(file);
+        });
+        fileInput.files = dataTransfer.files;
+    }
+
+    function addFilesToList(newFiles) {
+        // Adicionar novos arquivos ao array existente
+        Array.from(newFiles).forEach(file => {
+            // Verificar se o arquivo já existe (por nome e tamanho)
+            const fileExists = selectedFiles.some(existingFile => 
+                existingFile.name === file.name && existingFile.size === file.size
+            );
+            
+            if (!fileExists) {
+                selectedFiles.push(file);
+            }
+        });
+        
+        updateFileDisplay();
+        updateFileInput();
+    }
+
+    function handleFileSelect(event) {
+        const files = event.target?.files || event.dataTransfer?.files;
+        if (files && files.length > 0) {
+            addFilesToList(files);
+        }
+    }
+
+    // Event Listeners para drag and drop
+    if (dragDropZone && fileInput) {
+        dragDropZone.addEventListener('click', () => {
+            // Limpar o input antes de abrir para permitir selecionar os mesmos arquivos novamente
+            fileInput.value = '';
+            fileInput.click();
+        });
+        fileInput.addEventListener('change', handleFileSelect);
+
+        dragDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dragDropZone.classList.add('dragover');
+        });
+
+        dragDropZone.addEventListener('dragleave', () => {
+            dragDropZone.classList.remove('dragover');
+        });
+
+        dragDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragDropZone.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelect(e);
+        });
+    }
+</script>
+
+<!-- Script para o Modal -->
+<script>
+    function showDeleteModal(documentId, fileName) {
+        document.getElementById('documentId').value = documentId;
+        document.getElementById('documentName').textContent = fileName;
+        var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    }
+</script>
+
+{% endblock %}

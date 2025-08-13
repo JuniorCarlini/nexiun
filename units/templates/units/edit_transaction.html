@@ -1,0 +1,290 @@
+{% extends "base/base.html" %}
+
+{% load static %}
+
+{% block title %}Editar Transação - {{ transaction.unit.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Cabeçalho -->
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">
+                <i class="fas fa-edit me-2"></i>Editar Transação
+            </h2>
+            <p class="text-muted m-0">{{ transaction.unit.name }}</p>
+        </div>
+    </div>
+
+    <!-- Formulário -->
+    <div class="container-style">
+        <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+            
+            <div class="row">
+                <!-- Tipo de Transação -->
+                <div class="col-md-6 mb-3">
+                    <label for="transaction_type" class="form-label fw-bold d-flex align-items-center">
+                        <i class="fas fa-exchange-alt me-2"></i>Tipo de Transação:
+                    </label>
+                    <select name="transaction_type" id="transaction_type" class="form-select" required>
+                        <option value="">Selecione o tipo...</option>
+                        {% for value, label in transaction_types %}
+                        <option value="{{ value }}" {% if form_data.transaction_type == value or transaction.transaction_type == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">
+                        Por favor, selecione o tipo de transação.
+                    </div>
+                </div>
+
+                <!-- Categoria -->
+                <div class="col-md-6 mb-3">
+                    <label for="category" class="form-label fw-bold d-flex align-items-center">
+                        <i class="fas fa-tags me-2"></i>Categoria:
+                    </label>
+                    <select name="category" id="category" class="form-select" required>
+                        <option value="">Selecione a categoria...</option>
+                        {% for value, label in transaction_categories %}
+                        <option value="{{ value }}" {% if form_data.category == value or transaction.category == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">
+                        Por favor, selecione a categoria.
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Conta Bancária -->
+                <div class="col-12 mb-3">
+                    <label for="bank_account" class="form-label fw-bold d-flex align-items-center">
+                        <i class="fas fa-university me-2"></i>Conta Bancária:
+                    </label>
+                    <select name="bank_account" id="bank_account" class="form-select" required>
+                        <option value="">Selecione a conta bancária...</option>
+                        {% for account in bank_accounts %}
+                        <option value="{{ account.id }}" {% if form_data.bank_account == account.id|stringformat:"s" or transaction.bank_account.id == account.id %}selected{% endif %}>
+                            {{ account.bank_name }} - {{ account.name }} 
+                            {% if account.account_number %}({{ account.account_number }}){% endif %}
+                            - Saldo: R$ {{ account.get_current_balance|floatformat:2 }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">
+                        Por favor, selecione a conta bancária.
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Descrição -->
+                <div class="col-md-8 mb-3">
+                    <label for="description" class="form-label fw-bold d-flex align-items-center">
+                        <i class="fas fa-file-alt me-2"></i>Descrição:
+                    </label>
+                    <input type="text" 
+                           name="description" 
+                           id="description" 
+                           class="form-control" 
+                           value="{{ form_data.description|default:transaction.description }}"
+                           placeholder="Descreva a transação..."
+                           required>
+                    <div class="invalid-feedback">
+                        Por favor, informe a descrição da transação.
+                    </div>
+                </div>
+
+                <!-- Data -->
+                <div class="col-md-4 mb-3">
+                    <label for="date" class="form-label fw-bold d-flex align-items-center">
+                        <i class="fas fa-calendar me-2"></i>Data:
+                    </label>
+                    <input type="date" 
+                           name="date" 
+                           id="date" 
+                           class="form-control" 
+                           value="{{ form_data.date|default:transaction.date|date:'Y-m-d' }}"
+                           required>
+                    <div class="invalid-feedback">
+                        Por favor, selecione a data da transação.
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Valor -->
+                <div class="col-md-6 mb-3">
+                    <label for="amount" class="form-label fw-bold d-flex align-items-center">
+                        <i class="fas fa-dollar-sign me-2"></i>Valor (R$):
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input type="text" 
+                               name="amount" 
+                               id="amount" 
+                               class="form-control" 
+                               value="{{ form_data.amount|default:transaction.amount }}"
+                               placeholder="0,00"
+                               required>
+                        <div class="invalid-feedback">
+                            Por favor, informe o valor da transação.
+                        </div>
+                    </div>
+                    <div class="form-text">
+                        <small class="text-muted">Use vírgula para separar os centavos (ex: 150,50)</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Observações -->
+                <div class="col-12 mb-3">
+                    <label for="notes" class="form-label fw-bold d-flex align-items-center">
+                        <i class="fas fa-sticky-note me-2"></i>Observações (opcional):
+                    </label>
+                    <textarea name="notes" 
+                              id="notes" 
+                              class="form-control" 
+                              rows="3"
+                              placeholder="Adicione observações adicionais...">{{ form_data.notes|default:transaction.notes }}</textarea>
+                </div>
+            </div>
+
+            <!-- Resumo da Transação -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-info-circle me-2"></i>Resumo da Transação
+                            </h6>
+                            <div id="transaction-summary" class="text-muted">
+                                Complete os campos acima para ver o resumo da transação.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões de ação -->
+            <div class="row mt-4">
+                <div class="col-12 text-end">
+                    <a href="{% url 'unit_transactions_list' %}" class="btn btn-secondary me-2">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                    <button type="submit" class="btn btn-primary rounded" style="background-color: {{ enterprise.primary_color }}; border: none;">
+                        <i class="fas fa-save"></i> Salvar Alterações
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validação do formulário
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+
+    // Máscara para valor monetário
+    $('#amount').mask('#.##0,00', {
+        reverse: true,
+        placeholder: '0,00'
+    });
+
+    // Atualizar resumo da transação em tempo real
+    function updateSummary() {
+        const type = document.getElementById('transaction_type').value;
+        const category = document.getElementById('category').value;
+        const description = document.getElementById('description').value;
+        const amount = document.getElementById('amount').value;
+        const date = document.getElementById('date').value;
+        const bankAccount = document.getElementById('bank_account').value;
+        
+        const summaryDiv = document.getElementById('transaction-summary');
+        
+        if (type && category && description && amount && date && bankAccount) {
+            const typeText = type === 'ENTRADA' ? 'Entrada' : 'Saída';
+            const typeIcon = type === 'ENTRADA' ? '↗️' : '↙️';
+            const typeColor = type === 'ENTRADA' ? 'text-success' : 'text-danger';
+            const categoryText = document.querySelector(`#category option[value="${category}"]`).textContent;
+            const bankAccountText = document.querySelector(`#bank_account option[value="${bankAccount}"]`).textContent;
+            
+            summaryDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Tipo:</strong> <span class="${typeColor}">${typeIcon} ${typeText}</span><br>
+                        <strong>Categoria:</strong> ${categoryText}<br>
+                        <strong>Descrição:</strong> ${description}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Valor:</strong> <span class="${typeColor}">R$ ${amount}</span><br>
+                        <strong>Data:</strong> ${new Date(date).toLocaleDateString('pt-BR')}<br>
+                        <strong>Conta:</strong> ${bankAccountText}<br>
+                        <strong>Unidade:</strong> {{ transaction.unit.name }}
+                    </div>
+                </div>
+            `;
+        } else {
+            summaryDiv.innerHTML = 'Complete os campos acima para ver o resumo da transação.';
+        }
+    }
+
+    // Event listeners para atualizar o resumo
+    ['transaction_type', 'category', 'description', 'amount', 'date', 'bank_account'].forEach(function(id) {
+        document.getElementById(id).addEventListener('input', updateSummary);
+        document.getElementById(id).addEventListener('change', updateSummary);
+    });
+
+    // Atualizar resumo inicial
+    updateSummary();
+
+    // Foco no primeiro campo
+    document.getElementById('transaction_type').focus();
+});
+</script>
+{% endblock %}
+
+<style>
+.input-group-text {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+.card {
+    border: 1px solid #dee2e6;
+}
+
+.form-label {
+    color: #495057;
+    font-size: 0.95rem;
+}
+
+.was-validated .form-control:valid {
+    border-color: #28a745;
+}
+
+.was-validated .form-select:valid {
+    border-color: #28a745;
+}
+
+#transaction-summary {
+    min-height: 60px;
+}
+</style>
+{% endblock %} 

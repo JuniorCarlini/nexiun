@@ -1,0 +1,253 @@
+{% extends "base/base.html" %}
+
+{% load static %}
+
+{% block title %}Seus Projetos{% endblock %}
+
+{% block content %}
+
+<style>
+    .status-box {
+        width: 190px;
+        padding: 25px;
+        height: 100px;
+        display: flex;
+        margin-top: 10px;
+        align-items: center;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        flex-direction: column;
+        background-color: white;
+        justify-content: center;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+
+    .status-box:hover {
+        transform: scale(0.95);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .status-container {
+        position: relative;
+    }
+
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 50px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #e1e1e1;
+        border-radius: 50px;
+    }
+
+    .active-status-ac {
+        background-color: rgba(0, 123, 255, 0.1);
+        /* Azul claro */
+    }
+
+    .active-status-pe {
+        background-color: rgba(220, 53, 69, 0.1);
+        /* Vermelho claro */
+    }
+
+    .active-status-an {
+        background-color: rgba(23, 162, 184, 0.1);
+        /* Azul claro do ícone 'Em Análise' */
+    }
+
+    .active-status-ap {
+        background-color: rgba(40, 167, 69, 0.1);
+        /* Verde claro */
+    }
+
+    .active-status-af {
+        background-color: rgba(255, 193, 7, 0.1);
+        /* Amarelo claro */
+    }
+
+    .active-status-fm {
+        background-color: rgba(108, 117, 125, 0.1);
+        /* Cinza claro */
+    }
+
+    .active-status-lb {
+        background-color: rgba(40, 167, 69, 0.1);
+        /* Verde claro */
+    }
+
+    .active-status-rc {
+        background-color: rgba(220, 53, 69, 0.1);
+        /* Vermelho claro */
+    }
+
+    .btn-primary {
+        background-color:{{ enterprise.primary_color }};
+        border-color: {{ enterprise.primary_color }};
+    }
+    
+    .btn-primary:hover {
+        background-color: {{ enterprise.primary_color }};
+        border-color:{{ enterprise.primary_color }};
+    }
+</style>
+
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-2 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Seus Projetos <span class="fw-light">{{ current_status }}</span></h2>
+        </div>
+    </div>
+
+    <!-- Filtros de Status -->
+    <div class="status-container position-relative  mb-4">
+        <div class="d-flex justify-content-between flex-nowrap gap-3 overflow-auto">
+            <a href="?status=AC"
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'AC' %}active-status-ac{% endif %}">
+                <i class="bi bi-people text-primary fs-3"></i>
+                <p class="mt-2 mb-0 text-secondary">Em Acolhimento</p>
+            </a>
+            <a href="?status=PE"
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'PE' %}active-status-pe{% endif %}">
+                <i class="bi bi-exclamation-circle text-danger fs-3"></i>
+                <p class="mt-2 mb-0 text-secondary">Com Pendência</p>
+            </a>
+            <a href="?status=AN"
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'AN' %}active-status-an{% endif %}">
+                <i class="bi bi-search text-info fs-3"></i>
+                <p class="mt-2 mb-0 text-secondary">Em Análise</p>
+            </a>
+            <a href="?status=AP"
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'AP' %}active-status-ap{% endif %}">
+                <i class="bi bi-check-circle text-success fs-3"></i>
+                <p class="mt-2 mb-0 text-secondary">Aprovado</p>
+            </a>
+            <a href="?status=AF"
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'AF' %}active-status-af{% endif %}">
+                <i class="bi bi-clock text-warning fs-3"></i>
+                <p class="mt-2 mb-0 text-secondary">Em Formalização</p>
+            </a>
+            <a href="?status=FM"
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'FM' %}active-status-fm{% endif %}">
+                <i class="bi bi-file-earmark-text text-dark fs-3"></i>
+                <p class="mt-2 mb-0 text-secondary">Formalizado</p>
+            </a>
+            <a href="?status=LB"
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'LB' %}active-status-lb{% endif %}">
+                <i class="bi bi-box-arrow-in-up-right text-success fs-3"></i>
+                <p class="mt-2 mb-0 text-secondary">Liberado</p>
+            </a>
+            <a href="?status=RC"
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'RC' %}active-status-rc{% endif %}">
+                <i class="bi bi-bar-chart text-danger fs-3"></i>
+                <p class="mt-2 mb-0 text-secondary">Receita</p>
+            </a>
+        </div>
+        <div class="fade-effect"></div>
+    </div>
+
+    <!-- Conteúdo dos Projetos -->
+    <div class="container-style">
+        <div class="table-container">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th class="col-description">Status</th>
+                        <th class="col-category">Cliente</th>
+                        <th class="col-type">Linha de Crédito</th>
+                        <th class="col-amount">Unidade</th>
+                        <th class="col-date">Valor</th>
+                        <th class="col-date">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="d-inline-block rounded-circle me-2" 
+                                     data-bs-toggle="tooltip" 
+                                     data-bs-placement="top"
+                                     title="{% if project.deadline_status == 'red' %}Em atraso 
+                                            {% elif project.deadline_status == 'yellow' %}Próximo do prazo (Faltam {{ project.next_phase_deadline|timeuntil }})
+                                            {% elif project.deadline_status == 'green' %}Em andamento (Faltam {{ project.next_phase_deadline|timeuntil }})
+                                            {% else %}Sem prazo definido{% endif %}"
+                                     style="width: 12px; height: 12px; background-color: 
+                                        {% if project.deadline_status == 'red' %}#dc3545
+                                        {% elif project.deadline_status == 'yellow' %}#ffc107
+                                        {% elif project.deadline_status == 'green' %}#28a745
+                                        {% else %}#6c757d{% endif %};
+                                        border: 1px solid rgba(0,0,0,0.1);">
+                                </div>
+                                <span class="transaction-text">Status</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="transaction-text">
+                                <i class="fas fa-user me-1" style="color: {{ enterprise.primary_color }};"></i>
+                                {{ project.client.name }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge-category">
+                                <i class="fas fa-folder-tree me-1"></i>
+                                {{ project.credit_line.name }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge-date">
+                                <i class="fas fa-building me-1"></i>
+                                {{ project.unit }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="transaction-amount text-success">
+                                <i class="fas fa-dollar-sign me-1"></i>
+                                {% load humanize %}
+                                R$ {{ project.value|intcomma }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'project_details' project.id %}" class="btn button-style btn-primary rounded" style="background-color: {{ enterprise.primary_color }}; border: none;">
+                                <i class="fa-solid fa-eye"></i> Ver Detalhes
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center" style="padding: 60px 0;">
+                            <div><i class="bi bi-exclamation-circle text-muted fs-1"></i></div>
+                            <p class="mt-1">Não há Projetos nessa fase!</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+             </table>
+        </div>
+
+        <!-- Paginação Moderna -->
+        {% if projects.paginator.num_pages > 1 %}
+        <div class="table-pagination mt-3">
+            <button type="button" class="btn btn-sm pagination-btn" {% if not projects.has_previous %}disabled{% endif %} data-page="{% if projects.has_previous %}{{ projects.previous_page_number }}{% else %}1{% endif %}">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="pagination-info mx-2">
+                Página {{ projects.number }} de {{ projects.paginator.num_pages }}
+            </div>
+            <div class="pagination-track">
+                <div class="pagination-thumb" data-current="{{ projects.number }}" data-total="{{ projects.paginator.num_pages }}"></div>
+            </div>
+            <button type="button" class="btn btn-sm pagination-btn" {% if not projects.has_next %}disabled{% endif %} data-page="{% if projects.has_next %}{{ projects.next_page_number }}{% else %}1{% endif %}">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

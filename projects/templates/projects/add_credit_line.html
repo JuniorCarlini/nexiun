@@ -1,0 +1,103 @@
+{% extends "base/base.html" %}
+
+{% load static %}
+
+{% block title %}Cadastrar Linha de Crédito{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Cadastrar Linha de Crédito</h2>
+        </div>
+    </div>
+
+    <!-- Formulário de Cadastro -->
+    <div class="container-style">
+        <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label for="name" class="form-label fw-bold d-flex align-items-center">Nome da Linha de Crédito:</label>
+                    <input type="text" 
+                           name="name" 
+                           id="name" 
+                           class="form-control" 
+                           required>
+                    <div class="invalid-feedback">
+                        Por favor, informe o nome da linha de crédito.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label for="type_credit" class="form-label fw-bold d-flex align-items-center">Tipo de Crédito:</label>
+                    <select name="type_credit" 
+                            id="type_credit" 
+                            class="form-control"
+                            required>
+                        {% for value, label in type_choices %}
+                            <option value="{{ value }}" {% if credit_line.type_credit == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">
+                        Por favor, selecione o tipo de crédito.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label for="description" class="form-label fw-bold d-flex align-items-center">
+                        <i class="bi bi-question-circle-fill me-1 small"
+                           style="font-size: 12px;"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="top"
+                           title="Descrição ou informações adicionais sobre a linha de crédito"
+                           data-bs-custom-class="custom-tooltip">
+                        </i>Descrição:</label>
+                    <textarea name="description" 
+                              id="description" 
+                              class="form-control" 
+                              rows="3"></textarea>
+                </div>
+            </div>
+
+            <!-- Botões de ação -->
+            <div class="row mt-4">
+                <div class="col-12 text-end">
+                    <a href="{% url 'credit_line_list' %}" class="btn btn-secondary">
+                        <i class="fa-solid fa-arrow-left"></i> Voltar
+                    </a>
+                    <button type="submit" class="btn btn-primary" style="background-color: {{ enterprise.primary_color }}; border: none;">
+                        <i class="fa-solid fa-check"></i> Salvar Linha de Crédito
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validação do formulário
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})
+</script>
+{% endblock %}
+
+{% endblock %}

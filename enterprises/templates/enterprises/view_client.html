@@ -1,0 +1,802 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}Cliente{% endblock %}
+
+{% block content %}
+
+<!-- Incluir Trix Editor -->
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/trix/1.3.1/trix.css">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/trix/1.3.1/trix.js"></script>
+
+<!-- Mantém os mesmos estilos do template original -->
+<style>
+    .file-item {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+
+    .file-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 10px;
+    }
+
+    .file-actions button {
+        padding: 0;
+    }
+
+    .alert-docs {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .drag-drop-zone {
+        background-color: #f5f5f5;
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .drag-drop-zone.dragover {
+        background-color: #e0e0e0;
+        border-color: #909090;
+    }
+
+    .drag-drop-zone:hover {
+        background-color: #ebebeb;
+    }
+
+    .file-list {
+        margin-top: 15px;
+    }
+    
+    .current-documents {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 0%;
+        color: #16365f;
+    }
+
+    /* Desabilitar botões de anexo do Trix Editor */
+    trix-toolbar [data-trix-button-group="file-tools"] {
+        display: none !important;
+    }
+    
+    /* Esconder ícone de clipe de papel para anexos */
+    trix-toolbar .trix-button--icon-attach {
+        display: none !important;
+    }
+</style>
+<style>
+    @media print {
+        @page {
+            size: portrait;
+            margin: 1cm;
+        }
+
+        /* Esconde tudo inicialmente */
+        body * {
+            visibility: hidden !important;
+        }
+
+        /* Mostra apenas área de impressão */
+        .print-area,
+        .print-area * {
+            visibility: visible !important;
+        }
+
+        /* Ajustes do modal para impressão */
+        .modal {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: none !important;
+        }
+
+        .modal-dialog {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            transform: none !important;
+        }
+
+        .modal-content {
+            border: none !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+        }
+
+        /* Esconde elementos desnecessários */
+        .modal-header,
+        .modal-footer,
+        .btn-close,
+        .page-break {
+            display: none !important;
+        }
+
+        /* Ajustes da tabela */
+        .table {
+            width: 100% !important;
+            font-size: 12px !important;
+        }
+
+        /* Mantém cores de fundo */
+        .table-success {
+            background-color: #d4edda !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .table-warning {
+            background-color: #fff3cd !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        /* Ajusta cabeçalho colorido */
+        .header-print {
+            background-color: inherit !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        /* Remove scrollbars */
+        .table-responsive {
+            overflow: visible !important;
+        }
+
+        /* Evita quebras indesejadas */
+        .content-print {
+            page-break-inside: avoid !important;
+        }
+
+        /* Evita qualquer quebra após o conteúdo */
+        html, body {
+            height: auto !important;
+            overflow: hidden !important;
+        }
+    }
+</style>
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Cliente <span class="fw-light">{{ client.name }}</span></h2>
+        </div>
+    </div>
+</div>
+
+<div class="container-style">
+    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+        {% csrf_token %}
+        
+        <!-- Informações Básicas -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="name" class="form-label fw-bold">Nome:</label>
+                <input type="text" name="name" id="name" class="form-control" value="{{ client.name }}" required>
+                <div class="invalid-feedback">
+                    Por favor, informe o nome do cliente.
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="email" class="form-label fw-bold">Email:</label>
+                <input type="email" name="email" id="email" class="form-control" value="{{ client.email }}" required>
+                <div class="invalid-feedback">
+                    Por favor, informe um email válido.
+                </div>
+            </div>
+        </div>
+
+        <!-- Contato e Localização -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="phone" class="form-label fw-bold">Telefone:</label>
+                <input type="tel" name="phone" id="phone" class="form-control" value="{{ client.phone }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="units" class="form-label fw-bold">Unidades:</label>
+                <input type="text" name="units" id="units" class="form-control" 
+                    value="{% if client.units.exists %}{{ client.get_units_display }}{% else %}Sem unidade{% endif %}" readonly disabled>
+            </div>
+        </div>
+
+        <!-- Endereço -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="address" class="form-label fw-bold">Endereço:</label>
+                <input type="text" name="address" id="address" class="form-control" value="{{ client.address }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="city" class="form-label fw-bold">Cidade:</label>
+                <input type="text" name="city" id="city" class="form-control" value="{{ client.city }}">
+            </div>
+        </div>
+
+        <!-- Retorno até -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="status" class="form-label fw-bold">Situação:</label>
+                <select name="status" id="status" class="form-control">
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if client.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 mb-3" id="retorno_ate_field">
+                <label for="retorno_ate" class="form-label fw-bold">
+                    Retorno até <span class="text-danger" id="retorno_required" style="display: none;">*</span>:
+                </label>
+                <input type="date" name="retorno_ate" id="retorno_ate" class="form-control" value="{{ client.retorno_ate|date:'Y-m-d'|default_if_none:'' }}">
+                <small class="form-text text-muted">Obrigatório quando em negociação (até 5 dias a partir de hoje)</small>
+            </div>
+        </div>
+
+        <!-- Data de aniversario e Retorno até -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="date_of_birth" class="form-label fw-bold">Data de aniversario:</label>
+                <input type="date" name="date_of_birth" id="date_of_birth" class="form-control" value="{{ client.date_of_birth|date:'Y-m-d'|default_if_none:'' }}" {% if is_completed %}readonly{% endif %}>
+            </div>
+        </div>
+
+        <!-- Observações -->
+        <div class="row">
+            <div class="col-12">
+                <label for="observacoes" class="form-label fw-bold">Observações:</label>
+                <input id="observacoes" type="hidden" name="observations" value="{{ client.observations }}">
+                <trix-editor input="observacoes"></trix-editor>
+            </div>
+        </div>
+
+        <!-- Seção de Documentos -->
+        <div class="row">
+            <div class="col-12">
+                <label class="form-label fw-bold">Documentos Atuais:</label>
+                <div class="current-documents">
+                    {% for doc in client.documents.all %}
+                        <div class="file-item">
+                            <div class="d-flex align-items-center ms-3">
+                                <i class="fas {% if doc.file_type == 'application/pdf' %}fa-file-pdf{% else %}fa-file-image{% endif %} me-2" 
+                                   style="color: #16365f; font-size: 45px;"></i>
+                                <div class="file-info ms-1">
+                                    <div class="file-name fw-bold">{{ doc.file_name }}</div>
+                                    <small class="text-muted">• Tamanho: {{ doc.file_size|filesizeformat }}</small><br>
+                                    <small class="text-muted">• Enviado em: {{ doc.uploaded_at|date:"d/m/Y H:i" }}</small>
+                                </div>
+                            </div>
+                            <div class="file-actions d-flex me-3">
+                                <a href="{{ doc.file.url }}" class="btn btn-link text-primary p-0 me-2" 
+                                   target="_blank" title="Visualizar">
+                                    <i class="fa-solid fa-eye" style="font-size: 25px; color: {{ enterprise.primary_color }};"
+                                       data-bs-toggle="tooltip" 
+                                       data-bs-placement="top" 
+                                       title="Visualizar arquivo"
+                                       data-bs-custom-class="custom-tooltip">
+                                    </i>
+                                </a>
+                                <button type="button" class="btn btn-link text-danger p-0" 
+                                        onclick="showDeleteModal('{{ doc.id }}', '{{ doc.file_name }}')" 
+                                        title="Excluir">
+                                    <i class="fa-solid fa-trash" style="font-size: 25px;"
+                                       data-bs-toggle="tooltip" 
+                                       data-bs-placement="top" 
+                                       title="Apagar arquivo"
+                                       data-bs-custom-class="custom-tooltip">
+                                    </i>
+                                </button>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">Nenhum documento cadastrado.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Adicionar Novos Documentos -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <label for="new_documents" class="form-label fw-bold">Adicionar Novos Documentos:</label>
+                <div id="dragDropZone" class="drag-drop-zone">
+                    <i class="fas fa-cloud-upload-alt mb-2" style="font-size: 36px;"></i>
+                    <div class="fw-bold">Arraste e solte arquivos aqui ou clique para selecionar</div>
+                    <p class="alert-docs text-danger">PNG, JPG, PDF - 5MB tamanho máximo suportado</p>
+                    <input type="file" id="fileInput" multiple name="documents[]" 
+                           accept=".pdf,.jpg,.jpeg,.png" style="display: none">
+                </div>
+                <div id="fileList" class="file-list mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Metadados do Cliente -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card border-0 bg-light">
+                    <div class="card-body py-2">
+                        <h6 class="text-muted mb-2">Informações de Registro</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <small class="text-muted">Registrado por:</small><br>
+                                <strong>
+                                    {% if client.created_by %}
+                                        {{ client.created_by.name }}
+                                    {% else %}
+                                        <span class="text-muted">Não informado</span>
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-muted">Data de cadastro:</small><br>
+                                <strong>{{ client.created_at|date:"d/m/Y H:i" }}</strong>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-muted">Última atualização:</small><br>
+                                <strong>{{ client.updated_at|date:"d/m/Y H:i" }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botões de ação -->
+        <div class="row mt-4">
+            <div class="col-12 text-end">
+                <a href="{% url 'list_clients' %}" class="btn btn-secondary">
+                    <i class="fa-solid fa-arrow-left"></i> Voltar
+                </a>
+                <button type="submit" class="btn btn-primary rounded" 
+                        style="background-color: {{ enterprise.primary_color }}; border: none;">
+                        <i class="fa-solid fa-check"></i> Salvar Alterações
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+<div class="container-style mt-4">
+    <div>
+        {{ periodo.valor_parcela}}
+    </div>
+    <h6 class=" text-color-secondary">Projetos de {{ client.name }}</h6>
+    <div class="table-container">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th class="col-description">Status</th>
+                    <th class="col-category">Linha de Crédito</th>
+                    <th class="col-type">Banco</th>
+                    <th class="col-amount">Valor</th>
+                    <th class="col-date">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for project in projects %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="d-inline-block rounded-circle me-2" 
+                                 data-bs-toggle="tooltip" 
+                                 data-bs-placement="top"
+                                 title="{% if project.project_finalized %}Projeto concluído{% else %}Projeto em andamento{% endif %}"
+                                 style="width: 12px; height: 12px; background-color: 
+                                    {% if project.project_finalized %}#28a745{% else %}#ffc107{% endif %};
+                                    border: 1px solid rgba(0,0,0,0.1);">
+                            </div>
+                            <span class="transaction-text">Status</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge-category">
+                            <i class="fas fa-folder-tree me-1"></i>
+                            {{ project.credit_line.name }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge-date">
+                            <i class="fas fa-university me-1"></i>
+                            {{ project.bank.name }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="transaction-amount text-success">
+                            <i class="fas fa-dollar-sign me-1"></i>
+                            {% if project.value %}
+                                R$ {{ project.value|floatformat:2 }}
+                            {% else %}
+                                R$ 0,00
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a href="#" 
+                               class="btn button-style btn-primary rounded text-nowrap"
+                               style="background-color: {{ enterprise.primary_color }}; border: none; font-size: 0.85rem; padding: 6px 12px;">
+                                <i class="fa-solid fa-eye"></i> Ver Projeto
+                            </a>
+                            <button type="button"
+                                class="btn button-style btn-primary rounded text-nowrap"
+                                style="background-color: {{ enterprise.primary_color }}; border: none; font-size: 0.85rem; padding: 6px 12px;"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#parcelasModal{{ project.id }}">
+                                <i class="bi bi-calendar-range"></i> Ver Parcelas
+                            </button>
+                        </div>
+
+                        <!-- Modal Parcelas -->
+                        <div class="modal fade" id="parcelasModal{{ project.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-lg modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Detalhes do Financiamento</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        {% if project.parcelas %}
+                                            <div class="print-area">
+                                                <!-- Cabeçalho da Impressão -->
+                                                <div class="header-print">
+                                                    <div style="background-color: {{ enterprise.primary_color }};" class="p-3 text-white">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <img src="{{ enterprise.logo.url }}" alt="Logo" class="d-block" style="height: 50px;">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                        
+                                                <!-- Conteúdo -->
+                                                <div class="content-print p-4">
+                                                    <!-- Resumo -->
+                                                    <div class="mb-4">
+                                                        <h5 class="border-bottom pb-2">Resumo do Financiamento</h5>
+                                                        <div class="row mt-3">
+                                                            <div class="col-6">
+                                                                <table class="table table-borderless table-sm">
+                                                                    <tr>
+                                                                        <td><strong>Cliente:</strong></td>
+                                                                        <td class="text-end">{{ project.client }}</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td><strong>Valor do Projeto:</strong></td>
+                                                                        <td class="text-end">R$ {{ project.parcelas.valor_inicial|floatformat:2 }}</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td><strong>Total de Juros:</strong></td>
+                                                                        <td class="text-end">R$ {{ project.parcelas.valor_juros|floatformat:2 }}</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td><strong>Valor Total:</strong></td>
+                                                                        <td class="text-end">R$ {{ project.parcelas.valor_total|floatformat:2 }}</td>
+                                                                    </tr>
+                                                                </table>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <table class="table table-borderless table-sm">
+                                                                    <tr>
+                                                                        <td><strong>Linha de Crédito:</strong></td>
+                                                                        <td class="text-end">{{ project.credit_line }}</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td><strong>Carência:</strong></td>
+                                                                        <td class="text-end">{{ project.payment_grace }} anos</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td><strong>Parcelas:</strong></td>
+                                                                        <td class="text-end">{{ project.installments }} anos</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td><strong>Taxa de Juros:</strong></td>
+                                                                        <td class="text-end">{{ project.fees }}% ao ano</td>
+                                                                    </tr>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                        
+                                                    <!-- Tabela de Fluxo -->
+                                                    <div>
+                                                        <h5 class="border-bottom pb-2">Fluxo de Parcelas</h5>
+                                                        <div class="table-responsive mt-3">
+                                                            <table class="table table-bordered">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th class="text-center">Ano</th>
+                                                                        <th class="text-end">Saldo Devedor</th>
+                                                                        <th class="text-end">Juros</th>
+                                                                        <th class="text-end">Valor Parcela</th>
+                                                                        <th class="text-center">Data Vencimento</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for periodo in project.parcelas.fluxo %}
+                                                                    <tr class="{% if periodo.valor_parcela == 0 %}table-success{% else %}table-warning{% endif %}">
+                                                                        <td class="text-center">{{ periodo.ano }}º Ano</td>
+                                                                        <td class="text-end">R$ {{ periodo.saldo_devedor|floatformat:2 }}</td>
+                                                                        <td class="text-end">R$ {{ periodo.juros|floatformat:2 }}</td>
+                                                                        <td class="text-end">R$ {{ periodo.valor_parcela|floatformat:2 }}</td>
+                                                                        <td class="text-center">{{ periodo.data_vencimento|date:"d/m/Y" }}</td>
+                                                                    </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-primary" onclick="printFinanciamento()"
+                                            style="background-color: {{ enterprise.primary_color }}; border: none;">
+                                            <i class="fa-solid fa-print"></i> Imprimir
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center" style="padding: 60px 0;">
+                        <div><i class="fas fa-folder-open text-muted fs-1"></i></div>
+                        <p class="mt-1">Nenhum projeto cadastrado para este cliente.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Seção de Histórico -->
+<div class="container-style mt-4">
+    <div class="row mb-3">
+        <div class="col-12">
+            <label class="form-label fw-bold">Histórico de Alterações:</label>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="table-container">
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th class="col-description">Data/Hora</th>
+                            <th class="col-category">Alteração</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for history in client_history %}
+                            {% for field, change in history.changes.items %}
+                                {% if 'document_' in field or 'date_of_birth' not in field and change.de != change.para or 'date_of_birth' in field and change.de|slice:":10" != change.para|slice:":10" or 'retorno_ate' in field and change.de|slice:":10" != change.para|slice:":10" %}
+                                    <tr>
+                                        <td>
+                                            <div class="transaction-text">
+                                                <i class="fas fa-clock me-1" style="color: {{ enterprise.primary_color }};"></i>
+                                                {% if 'document_' in field %}
+                                                    {{ change.data|slice:":16" }}
+                                                {% else %}
+                                                    {{ history.timestamp|date:"d/m/Y H:i" }}
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge-category">
+                                                {% if field == 'document_added' %}
+                                                    <i class="fas fa-plus me-1"></i>
+                                                    {{ change.usuario }} - Adicionou o arquivo "{{ change.arquivo }}"
+                                                {% elif field == 'document_deleted' %}
+                                                    <i class="fas fa-trash me-1"></i>
+                                                    {{ change.usuario }} - Removeu o arquivo "{{ change.arquivo }}"
+                                                {% else %}
+                                                    <i class="fas fa-edit me-1"></i>
+                                                    {{ change.usuario }} - Alterou {{ change.campo }} de "{{ change.de }}" para "{{ change.para }}"
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="2" class="text-center" style="padding: 60px 0;">
+                                <div><i class="bi bi-clock-history text-muted fs-1"></i></div>
+                                <p class="mt-1">Nenhuma alteração registrada ainda.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Tem certeza que deseja excluir o documento "<span id="documentName"></span>"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" id="deleteForm" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="delete_document" value="true">
+                    <input type="hidden" name="document_id" id="documentId">
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mantém o mesmo JavaScript do template original -->
+<script>
+    // Drag and Drop
+    const dragDropZone = document.getElementById('dragDropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+
+    function handleFileSelect(event) {
+        const files = event.target?.files || event.dataTransfer?.files;
+        fileList.innerHTML = '';
+
+        if (files && files.length > 0) {
+            Array.from(files).forEach(file => {
+                const listItem = document.createElement('div');
+                listItem.className = 'file-item mt-2';
+                listItem.innerHTML = `
+                    <i class="fas ${file.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'} me-2"></i>
+                    ${file.name} (${(file.size / 1024).toFixed(2)} KB)
+                `;
+                fileList.appendChild(listItem);
+            });
+        }
+    }
+
+    // Modal de exclusão
+    function showDeleteModal(documentId, documentName) {
+        document.getElementById('documentId').value = documentId;
+        document.getElementById('documentName').textContent = documentName;
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    }
+
+    // Event Listeners
+    dragDropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', handleFileSelect);
+
+    dragDropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dragDropZone.classList.add('dragover');
+    });
+
+    dragDropZone.addEventListener('dragleave', () => {
+        dragDropZone.classList.remove('dragover');
+    });
+
+    dragDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dragDropZone.classList.remove('dragover');
+        fileInput.files = e.dataTransfer.files;
+        handleFileSelect(e);
+    });
+</script>
+
+<script>
+    function printFinanciamento() {
+        const modalBackdrop = document.querySelector('.modal-backdrop');
+        if (modalBackdrop) {
+            modalBackdrop.style.display = 'none';
+        }
+        window.print();
+    }
+</script>
+
+<script>
+    // Controle do campo "Retorno até"
+    function setDateLimits() {
+        const today = new Date();
+        const maxDate = new Date();
+        maxDate.setDate(today.getDate() + 5);
+        
+        const retornoAteInput = document.getElementById('retorno_ate');
+        retornoAteInput.min = today.toISOString().split('T')[0];
+        retornoAteInput.max = maxDate.toISOString().split('T')[0];
+    }
+    
+    function toggleRetornoAteField() {
+        const statusSelect = document.getElementById('status');
+        const retornoAteField = document.getElementById('retorno_ate_field');
+        const retornoAteInput = document.getElementById('retorno_ate');
+        const retornoRequired = document.getElementById('retorno_required');
+        
+        if (statusSelect.value === 'EM_NEGOCIACAO') {
+            retornoRequired.style.display = 'inline';
+            retornoAteInput.required = true;
+            setDateLimits();
+        } else {
+            retornoRequired.style.display = 'none';
+            retornoAteInput.required = false;
+        }
+    }
+
+    // Validação de data em tempo real
+    function validateRetornoDate() {
+        const retornoAteInput = document.getElementById('retorno_ate');
+        if (!retornoAteInput.value) return;
+        
+        const selectedDate = new Date(retornoAteInput.value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const maxDate = new Date();
+        maxDate.setDate(today.getDate() + 5);
+        
+        if (selectedDate < today) {
+            retornoAteInput.setCustomValidity('A data não pode ser anterior à data atual.');
+        } else if (selectedDate > maxDate) {
+            retornoAteInput.setCustomValidity('A data não pode ser superior a 5 dias a partir de hoje.');
+        } else {
+            retornoAteInput.setCustomValidity('');
+        }
+    }
+
+    // Event listener para mudança no status
+    document.addEventListener('DOMContentLoaded', function() {
+        const statusSelect = document.getElementById('status');
+        const retornoAteInput = document.getElementById('retorno_ate');
+        
+        if (statusSelect) {
+            statusSelect.addEventListener('change', toggleRetornoAteField);
+            // Verificar estado inicial
+            toggleRetornoAteField();
+        }
+        
+        if (retornoAteInput) {
+            retornoAteInput.addEventListener('change', validateRetornoDate);
+            // Definir limites iniciais
+            setDateLimits();
+            // Validar data atual se houver
+            validateRetornoDate();
+        }
+
+        // Desabilitar funcionalidade de anexos do Trix Editor
+        document.addEventListener('trix-file-accept', function(event) {
+            event.preventDefault();
+            return false;
+        });
+
+        // Prevenir arrastar e soltar arquivos no editor de observações
+        document.addEventListener('trix-attachment-add', function(event) {
+            event.attachment.remove();
+            event.preventDefault();
+            
+            // Mostrar aviso ao usuário
+            alert('Não é possível adicionar arquivos nas observações. Use a seção "Adicionar Novos Documentos" abaixo.');
+        });
+    });
+</script>
+
+{% endblock %}

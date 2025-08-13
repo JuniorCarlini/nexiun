@@ -1,0 +1,232 @@
+{% extends "base/base.html" %}
+
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Editar Unidade{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Editar <span class="fw-light">{{ unit.name }}</span></h2>
+        </div>
+    </div>
+
+    <!-- Formulário de Edição -->
+    <div class="container-style">
+        <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="name" class="form-label fw-bold d-flex align-items-center">
+                        <i class="bi bi-question-circle-fill me-1 small" 
+                            style="font-size: 12px;"
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="top" 
+                            title="É recomendado que o nome da unidade seja único. então combine aqui o nome da unidade com a localização. Exemplo: Unidade 1 - São Paulo."
+                            data-bs-custom-class="custom-tooltip">
+                        </i>Nome da Unidade:</label>
+                    <input type="text" 
+                           name="name" 
+                           id="name" 
+                           class="form-control" 
+                           value="{{ name|default:unit.name }}"
+                           required>
+                    <div class="invalid-feedback">
+                        Por favor, informe o nome da unidade.
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="location" class="form-label fw-bold d-flex align-items-center">
+                        <i class="bi bi-question-circle-fill me-1 small" 
+                            style="font-size: 12px;"
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="top" 
+                            title="Informe a localização da unidade. Exemplo: São Paulo, SP."
+                            data-bs-custom-class="custom-tooltip">
+                        </i>Localização:</label>
+                    <input type="text" 
+                           name="location" 
+                           id="location" 
+                           class="form-control" 
+                           value="{{ location|default:unit.location }}"
+                           required>
+                    <div class="invalid-feedback">
+                        Por favor, informe a localização da unidade.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Porcentagens -->
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <h5 class="text-color-primary">Configuração de Porcentagens</h5>
+                    <hr>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="royalties_percentage" class="form-label fw-bold d-flex align-items-center">
+                        <i class="bi bi-question-circle-fill me-1 small"
+                           style="font-size: 12px;"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="top"
+                           title="Porcentagem destinada aos royalties da unidade"
+                           data-bs-custom-class="custom-tooltip">
+                        </i>Royalties (%):</label>
+                    <input type="number" 
+                           name="royalties_percentage" 
+                           id="royalties_percentage" 
+                           class="form-control" 
+                           value="{{ royalties_percentage|default:unit.royalties_percentage }}"
+                           step="0.01"
+                           min="0"
+                           max="100"
+                           placeholder="0.00">
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="marketing_percentage" class="form-label fw-bold d-flex align-items-center">
+                        <i class="bi bi-question-circle-fill me-1 small"
+                           style="font-size: 12px;"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="top"
+                           title="Porcentagem destinada ao marketing da unidade"
+                           data-bs-custom-class="custom-tooltip">
+                        </i>Marketing (%):</label>
+                    <input type="number" 
+                           name="marketing_percentage" 
+                           id="marketing_percentage" 
+                           class="form-control" 
+                           value="{{ marketing_percentage|default:unit.marketing_percentage }}"
+                           step="0.01"
+                           min="0"
+                           max="100"
+                           placeholder="0.00">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="designers_percentage" class="form-label fw-bold d-flex align-items-center">
+                        <i class="bi bi-question-circle-fill me-1 small"
+                           style="font-size: 12px;"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="top"
+                           title="Porcentagem destinada aos projetistas da unidade"
+                           data-bs-custom-class="custom-tooltip">
+                        </i>Projetistas (%):</label>
+                    <input type="number" 
+                           name="designers_percentage" 
+                           id="designers_percentage" 
+                           class="form-control" 
+                           value="{{ designers_percentage|default:unit.designers_percentage }}"
+                           step="0.01"
+                           min="0"
+                           max="100"
+                           placeholder="0.00">
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="collectors_percentage" class="form-label fw-bold d-flex align-items-center">
+                        <i class="bi bi-question-circle-fill me-1 small"
+                           style="font-size: 12px;"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="top"
+                           title="Porcentagem destinada aos captadores da unidade"
+                           data-bs-custom-class="custom-tooltip">
+                        </i>Captadores (%):</label>
+                    <input type="number" 
+                           name="collectors_percentage" 
+                           id="collectors_percentage" 
+                           class="form-control" 
+                           value="{{ collectors_percentage|default:unit.collectors_percentage }}"
+                           step="0.01"
+                           min="0"
+                           max="100"
+                           placeholder="0.00">
+                </div>
+            </div>
+            
+            <!-- Total das porcentagens -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <strong>Total das Porcentagens: <span id="total-percentage">0.00</span>%</strong>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                A soma das porcentagens não precisa totalizar 100%, mas é recomendado não exceder este valor.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Botões de ação -->
+            <div class="row mt-4">
+                <div class="col-12 text-end">
+                    <a href="{% url 'units_list' %}" class="btn btn-secondary">
+                        <i class="fa-solid fa-arrow-left"></i> Voltar
+                    </a>
+                    <button type="submit" class="btn btn-primary rounded" style="background-color: {{ enterprise.primary_color }}; border: none;">
+                        <i class="fa-solid fa-check"></i> Salvar Alterações
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Habilitar tooltips do Bootstrap
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+
+        // Validação do formulário
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+
+        // Calcular total das porcentagens
+        function calculateTotalPercentage() {
+            const royalties = parseFloat(document.getElementById('royalties_percentage').value) || 0;
+            const marketing = parseFloat(document.getElementById('marketing_percentage').value) || 0;
+            const designers = parseFloat(document.getElementById('designers_percentage').value) || 0;
+            const collectors = parseFloat(document.getElementById('collectors_percentage').value) || 0;
+            
+            const total = royalties + marketing + designers + collectors;
+            document.getElementById('total-percentage').textContent = total.toFixed(2);
+            
+            // Alterar cor do alert baseado no total
+            const alertDiv = document.querySelector('.alert-info, .alert-warning');
+            if (total > 100) {
+                alertDiv.className = 'alert alert-warning';
+            } else {
+                alertDiv.className = 'alert alert-info';
+            }
+        }
+
+        // Adicionar event listeners aos campos de porcentagem
+        ['royalties_percentage', 'marketing_percentage', 'designers_percentage', 'collectors_percentage'].forEach(function(id) {
+            document.getElementById(id).addEventListener('input', calculateTotalPercentage);
+        });
+
+        // Calcular total inicial
+        calculateTotalPercentage();
+    })
+</script>
+
+{% endblock %}

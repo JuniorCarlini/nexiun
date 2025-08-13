@@ -1,0 +1,204 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Conta | Nexiun</title>
+    <link rel="shortcut icon" href="{% static 'icons/favicon.svg' %}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        body {
+            background-color: #d8550a;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        input.form-control:focus {
+            border-color: #F36E20;
+            box-shadow: 0 0 0 0.2rem rgba(247, 162, 24, 0.25);
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 2;
+        }
+
+        .logo {
+            width: 160px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .text-description {
+            margin-left: 1px;
+            margin-top: -15px;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            margin-top: 10px;
+            width: 100%;
+            height: 42px;
+        }
+
+        .custom-btn {
+            background-color: #F36E20;
+            color: #ffffff;
+            border: none;
+            transition: background-color 0.3s;
+        }
+
+        .custom-btn:focus,
+        .custom-btn:hover,
+        .custom-btn:active {
+            background-color: #F36E20 !important;
+            box-shadow: none !important;
+        }
+
+        .additional-content {
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            padding-top: 40px;
+            background-color: #F7F7F7;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-top: -25px;
+        }
+
+        .text-create-account {
+            color: #F36E20;
+        }
+
+        .password-container {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 75%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #848484;
+        }
+
+        .message-error {
+            color: #dc3545;
+            font-size: 0.8rem;
+        }
+
+        ::selection {
+            background-color: #e1e1e1; 
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <img src="{% static 'icons/logo.svg' %}" alt="Logo" class="logo">
+        <h2 class="fw-bold">Criar conta</h2>
+        <p class="text-description">Crie uma conta para continuar!</p>
+
+        <form action="{% url 'register' %}" method="POST">
+            {% csrf_token %}
+            <div class="mb-2">
+                <label for="name" class="form-label fw-bold">Nome:</label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ request.POST.name }}" required>
+            </div>
+            <div class="mb-2">
+                <label for="email" class="form-label fw-bold">E-mail:</label>
+                <input type="email" class="form-control" id="email" name="email" value="{{ request.POST.email }}" required>
+            </div>
+            <div class="mb-2">
+                <label for="cpf" class="form-label fw-bold">CPF:</label>
+                <input type="text" class="form-control" id="cpf" name="cpf" value="{{ request.POST.cpf }}" required>
+            </div>
+            <div class="mb-2 password-container">
+                <label for="password1" class="form-label fw-bold">Senha:</label>
+                <input type="password" class="form-control" id="password1" name="password1" required>
+                <span class="toggle-password" onclick="togglePassword('password1', 'eye-icon1', 'eye-slash-icon1')">
+                    <i class="bi bi-eye-fill" id="eye-icon1" style="display: none;"></i>
+                    <i class="bi bi-eye-slash-fill" id="eye-slash-icon1"></i>
+                </span>
+            </div>
+            <div class="mb-2 password-container">
+                <label for="password2" class="form-label fw-bold">Confirmar senha:</label>
+                <input type="password" class="form-control" id="password2" name="password2" required>
+                <span class="toggle-password" onclick="togglePassword('password2', 'eye-icon2', 'eye-slash-icon2')">
+                    <i class="bi bi-eye-fill" id="eye-icon2" style="display: none;"></i>
+                    <i class="bi bi-eye-slash-fill" id="eye-slash-icon2"></i>
+                </span>
+            </div>
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="text-center message-error">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            <button type="submit" class="btn btn-primary button btn-block fw-bold custom-btn">Criar conta</button>
+        </form>
+    </div>
+
+    <div class="additional-content">
+        <p class="text-center">Já tem uma conta? <a href="{% url 'login' %}" class="fw-bold text-create-account">Entrar</a></p>
+    </div>
+
+    <script>
+        // Função para alternar a visibilidade da senha
+        function togglePassword(fieldId, eyeIconId, eyeSlashIconId) {
+            const passwordField = document.getElementById(fieldId);
+            const eyeIcon = document.getElementById(eyeIconId);
+            const eyeSlashIcon = document.getElementById(eyeSlashIconId);
+
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                eyeIcon.style.display = 'block';
+                eyeSlashIcon.style.display = 'none';
+            } else {
+                passwordField.type = 'password';
+                eyeIcon.style.display = 'none';
+                eyeSlashIcon.style.display = 'block';
+            }
+        }
+        // Função para formatar CPF enquanto o usuário digita
+        document.getElementById('cpf').addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\D/g, ''); // Remove caracteres não numéricos
+            if (value.length > 3 && value.length <= 6) {
+                value = value.replace(/(\d{3})(\d+)/, '$1.$2');
+            } else if (value.length > 6 && value.length <= 9) {
+                value = value.replace(/(\d{3})(\d{3})(\d+)/, '$1.$2.$3');
+            } else if (value.length > 9) {
+                value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2}).*/, '$1.$2.$3-$4');
+            }
+            e.target.value = value;
+        });
+
+        // Função para remover a pontuação do CPF antes de enviar o formulário
+        document.querySelector('form').addEventListener('submit', function () {
+            const cpfField = document.getElementById('cpf');
+            cpfField.value = cpfField.value.replace(/\D/g, ''); // Remove pontos e traços
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

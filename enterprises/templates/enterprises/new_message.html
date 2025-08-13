@@ -1,0 +1,240 @@
+{% extends "base/base.html" %}
+
+{% load static %}
+
+{% block title %}Nova Mensagem{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
+        <div class="col-auto">
+            <h2 class="text-color-primary m-0">Nova Mensagem</h2>
+        </div>
+    </div>
+
+    <!-- Formulário de Cadastro -->
+    <div class="container-style">
+        <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+            
+            <div class="row">
+
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="title" class="form-label fw-bold d-flex align-items-center">Título:</label>
+                    <input type="text" 
+                            name="title" 
+                            id="title" 
+                            class="form-control" 
+                            value="{{ form_data.title }}"
+                            required>
+                    <div class="invalid-feedback">
+                        Por favor, informe o título da mensagem.
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="level" class="form-label fw-bold d-flex align-items-center">
+                        <i class="bi bi-question-circle-fill me-1 small" 
+                            style="font-size: 12px;"
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="top" 
+                            title="Nível de importância da mensagem"
+                            data-bs-custom-class="custom-tooltip">
+                        </i>Nível:</label>
+                    <select name="level" id="level" class="form-control" required>
+                        <option value="info" {% if form_data.level == 'info' %}selected{% endif %}>Info</option>
+                        <option value="warning" {% if form_data.level == 'warning' %}selected{% endif %}>Aviso</option>
+                        <option value="danger" {% if form_data.level == 'danger' %}selected{% endif %}>Urgente</option>
+                    </select>
+                    <div class="invalid-feedback">
+                        Por favor, selecione um nível.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="scope" class="form-label fw-bold d-flex align-items-center">
+                        <i class="bi bi-question-circle-fill me-1 small" 
+                            style="font-size: 12px;"
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="top" 
+                            title="Defina se a mensagem é para toda a empresa ou apenas uma unidade específica"
+                            data-bs-custom-class="custom-tooltip">
+                        </i>Escopo:</label>
+                    <select name="scope" id="scope" class="form-control" required>
+                        <option value="empresa" {% if form_data.scope == 'empresa' %}selected{% endif %}>Toda a Empresa</option>
+                        <option value="unidade" {% if form_data.scope == 'unidade' %}selected{% endif %}>Unidade Específica</option>
+                    </select>
+                    <div class="invalid-feedback">
+                        Por favor, selecione um escopo.
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3" id="unit-field" style="display: {% if form_data.scope == 'unidade' %}block{% else %}none{% endif %};">
+                    <label for="unit" class="form-label fw-bold d-flex align-items-center">
+                        <i class="bi bi-question-circle-fill me-1 small" 
+                            style="font-size: 12px;"
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="top" 
+                            title="Selecione a unidade que receberá a mensagem"
+                            data-bs-custom-class="custom-tooltip">
+                        </i>Unidade:</label>
+                    <select name="unit" id="unit" class="form-control">
+                        <option value="">Selecione uma unidade</option>
+                        {% for unit in units %}
+                        <option value="{{ unit.id }}" {% if form_data.unit == unit.id|stringformat:"s" %}selected{% endif %}>
+                            {{ unit.name }} - {{ unit.location }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">
+                        Por favor, selecione uma unidade.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="expires_at" class="form-label fw-bold d-flex align-items-center">
+                        <i class="bi bi-question-circle-fill me-1 small" 
+                            style="font-size: 12px;"
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="top" 
+                            title="Data de expiração da mensagem (opcional). Após essa data a mensagem não será mais exibida."
+                            data-bs-custom-class="custom-tooltip">
+                        </i>Expira em (Opcional):</label>
+                    <input type="date" 
+                           name="expires_at" 
+                           id="expires_at" 
+                           class="form-control date-input" 
+                           value="{{ form_data.expires_at }}"
+                           min="{{ today|date:'Y-m-d' }}">
+                    <div class="invalid-feedback">
+                        Por favor, selecione uma data de expiração válida.
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label for="description" class="form-label fw-bold d-flex align-items-center">
+                        <i class="bi bi-question-circle-fill me-1 small"
+                           style="font-size: 12px;"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="top"
+                           title="Mensagem que será exibida para o usuário."
+                           data-bs-custom-class="custom-tooltip">
+                        </i>Mensagem:</label>
+                    <textarea name="content" 
+                              id="content" 
+                              class="form-control" 
+                              rows="4" 
+                              required>{{ form_data.content }}</textarea>
+                    <div class="invalid-feedback">
+                        Por favor, informe o conteúdo da mensagem.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões de ação -->
+            <div class="row mt-4">
+                <div class="col-12 text-end">
+                    <a href="{% url 'list_messages' %}" class="btn btn-secondary">
+                        <i class="fa-solid fa-arrow-left"></i> Voltar
+                    </a>
+                    <button type="submit" class="btn button-style btn-primary rounded" style="background-color: {{ enterprise.primary_color }}; border: none;" >
+                        <i class="fa-solid fa-check"></i> Salvar Mensagem
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validação do formulário
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+    
+    // Configurar data de expiração
+    const dateInput = document.getElementById('expires_at');
+    if (dateInput) {
+        // Define data mínima como hoje
+        const today = new Date();
+        const todayString = today.toISOString().split('T')[0];
+        dateInput.setAttribute('min', todayString);
+        
+        // Definir data padrão como 7 dias a partir de hoje
+        const defaultDate = new Date();
+        defaultDate.setDate(defaultDate.getDate() + 7);
+        const defaultDateString = defaultDate.toISOString().split('T')[0];
+        dateInput.value = defaultDateString;
+        
+        // Validação adicional para data
+        dateInput.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Reset time to compare only dates
+            
+            if (selectedDate < today) {
+                this.setCustomValidity('A data de expiração deve ser hoje ou uma data futura.');
+                this.reportValidity();
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+    }
+    
+    // Controle do campo de unidade baseado no escopo
+    const scopeSelect = document.getElementById('scope');
+    const unitField = document.getElementById('unit-field');
+    const unitSelect = document.getElementById('unit');
+    
+    if (scopeSelect && unitField && unitSelect) {
+        scopeSelect.addEventListener('change', function() {
+            if (this.value === 'unidade') {
+                unitField.style.display = 'block';
+                unitSelect.setAttribute('required', 'required');
+            } else {
+                unitField.style.display = 'none';
+                unitSelect.removeAttribute('required');
+                unitSelect.value = '';
+            }
+        });
+        
+        // Validação customizada para unidade quando escopo for 'unidade'
+        const form = document.querySelector('.needs-validation');
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                if (scopeSelect.value === 'unidade' && !unitSelect.value) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    unitSelect.setCustomValidity('Por favor, selecione uma unidade.');
+                    unitSelect.reportValidity();
+                } else {
+                    unitSelect.setCustomValidity('');
+                }
+            });
+        }
+    }
+    
+    // Inicializar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+})
+</script>
+{% endblock %}
+
+{% endblock %}
