@@ -17,6 +17,7 @@
 ## 🚀 Início Rápido
 
 ### 📋 Pré-requisitos
+
 - Python 3.11+
 - PostgreSQL 13+
 - Docker (opcional, recomendado)
@@ -68,30 +69,35 @@ docker run -p 8000:8000 --env-file .env nexiun
 ## 🎯 Funcionalidades Principais
 
 ### 🏢 **Multi-Tenant Architecture**
+
 - **Isolamento completo** de dados entre empresas
 - **Subdomínios automáticos**: `empresa.nexiun.com.br`
 - **Personalização** de marca por empresa
 - **Escalabilidade** horizontal automática
 
 ### 📊 **Gestão de Processos**
+
 - **Kanban interativo** para acompanhamento de projetos
 - **Dashboard em tempo real** com métricas personalizadas
 - **Fluxo de aprovação** configurável por empresa
 - **Notificações automáticas** de vencimentos e prazos
 
 ### 💰 **Controle Financeiro Avançado**
+
 - **Gestão multi-unidade** com consolidação automática
 - **Relatórios financeiros** em tempo real
 - **Previsão de receitas** baseada em projetos
 - **Controle de comissões** por captador/projetista
 
 ### 🏦 **Gestão de Bancos e Linhas de Crédito**
+
 - **Catálogo completo** de bancos e linhas de crédito rurais
 - **Comparativo automático** de condições
 - **Histórico de aprovações** por instituição
 - **Métricas de performance** por banco
 
 ### 🔐 **Segurança Empresarial**
+
 - **Sistema de permissões** granular por módulo
 - **Cargos hierárquicos** configuráveis
 - **Auditoria completa** de ações
@@ -177,42 +183,48 @@ nexiun/
 
 ### 🔗 **Módulos do Sistema**
 
-| Módulo | Funcionalidades | Permissões |
-|--------|----------------|------------|
-| **👥 Usuários** | Gestão de usuários, cargos e permissões | `view_users`, `add_users`, `manage_roles_users` |
-| **📋 Projetos** | Criação, aprovação e acompanhamento | `view_projects`, `approve_projects`, `finalize_projects` |
-| **💰 Financeiro** | Controle de receitas, despesas e comissões | `view_financial`, `manage_transactions` |
-| **🏬 Unidades** | Gestão de unidades de negócio | `view_units`, `manage_units` |
-| **🏢 Empresas** | Configurações multi-tenant | `manage_enterprise`, `view_enterprise` |
+
+| Módulo           | Funcionalidades                             | Permissões                                              |
+| ------------------- | --------------------------------------------- | ---------------------------------------------------------- |
+| **👥 Usuários**  | Gestão de usuários, cargos e permissões  | `view_users`, `add_users`, `manage_roles_users`          |
+| **📋 Projetos**   | Criação, aprovação e acompanhamento     | `view_projects`, `approve_projects`, `finalize_projects` |
+| **💰 Financeiro** | Controle de receitas, despesas e comissões | `view_financial`, `manage_transactions`                  |
+| **🏬 Unidades**   | Gestão de unidades de negócio             | `view_units`, `manage_units`                             |
+| **🏢 Empresas**   | Configurações multi-tenant                | `manage_enterprise`, `view_enterprise`                   |
 
 ---
 
 ## 🔧 Stack Tecnológica
 
 ### 🐍 **Backend**
+
 - **Django 5.2.5** - Framework web robusto e seguro
 - **Python 3.11+** - Linguagem moderna e performática
 - **Django REST Framework** - APIs RESTful para integrações
 - **Gunicorn 22.0** - Servidor WSGI para produção
 
 ### 🗄️ **Banco de Dados**
+
 - **PostgreSQL** - Banco relacional principal
 - **psycopg 3.2.3** - Driver PostgreSQL otimizado
 - **Migrations automáticas** - Versionamento de schema
 
 ### ☁️ **Infraestrutura**
+
 - **Docker** - Containerização e deploy
 - **AWS S3** - Armazenamento de arquivos
 - **Cloudflare** - CDN e proteção DDoS
 - **SSL/TLS** - Criptografia obrigatória
 
 ### 🎨 **Frontend**
+
 - **Bootstrap 5** - Framework CSS responsivo
 - **JavaScript Vanilla** - Interatividade nativa
 - **Chart.js** - Gráficos e dashboards
 - **Progressive Web App** - Experiência mobile
 
 ### 🔒 **Segurança**
+
 - **python-decouple** - Gestão segura de configurações
 - **Django Security** - Proteções CSRF, XSS, SQL Injection
 - **Pillow 11.1** - Processamento seguro de imagens
@@ -225,18 +237,21 @@ nexiun/
 ### 📊 **Dashboards Dinâmicos**
 
 **Análise de Performance:**
+
 - 🎯 **Captadores**: Número de clientes e valor total captado
 - 👨‍💼 **Projetistas**: Projetos aprovados e valor em análise
 - 🏬 **Unidades**: Performance por região e categoria
 - 🏦 **Bancos**: Tempo de aprovação e taxa de sucesso
 
 **Segmentação Inteligente:**
+
 - 🏷️ **Por categoria**: Pequeno, médio e grande produtor
 - 📍 **Por unidade**: Comparativo regional
 - 📅 **Por período**: Análise temporal de tendências
 - 💰 **Por tipo**: Custeio vs. Investimento
 
 ### 📋 **Relatórios Especializados**
+
 - 📈 **Vencimento de operações** com alertas automáticos
 - 📞 **Carteira de contatos** segmentada por unidade
 - 💼 **Pipeline de projetos** em tempo real
@@ -247,6 +262,7 @@ nexiun/
 ## 🌐 Configuração Multi-Tenant
 
 ### 🏢 **Domínios Configurados**
+
 - **Principal**: `nexiun.com.br`
 - **Wildcard**: `*.nexiun.com.br`
 - **Desenvolvimento**: `*.nexiun.local`
@@ -268,11 +284,13 @@ AWS_STORAGE_BUCKET_NAME=seu_bucket_s3
 ## 📚 Documentação Avançada
 
 ### 🐳 **Deploy e DevOps**
+
 - [`deploy/README.md`](deploy/README.md) - Guia completo de deploy
 - [`deploy/DOCKER_SETUP.md`](deploy/DOCKER_SETUP.md) - Configuração Docker
 - [`deploy/CLOUDFLARE_SETUP.md`](deploy/CLOUDFLARE_SETUP.md) - Integração Cloudflare
 
 ### 🔧 **Desenvolvimento**
+
 - **Tests**: `python manage.py test` - Suite de testes automatizados
 - **Linting**: Seguindo PEP 8 e Django best practices
 - **Git Hooks**: Validação automática pre-commit
@@ -298,6 +316,7 @@ git push origin feature/nova-funcionalidade
 ```
 
 ### 📝 **Padrões de Commit**
+
 - `feat:` - Nova funcionalidade
 - `fix:` - Correção de bug
 - `docs:` - Documentação
@@ -313,11 +332,12 @@ git push origin feature/nova-funcionalidade
 
 ### 💬 **Canais de Suporte**
 
-| Canal | Descrição | Resposta |
-|-------|-----------|----------|
-| 📧 **Email** | [suporte@nexiun.com.br](mailto:suporte@nexiun.com.br) | 24h |
-| 🐛 **Issues** | [GitHub Issues](https://github.com/usuario/nexiun/issues) | 48h |
-| 📖 **Documentação** | [Wiki do Projeto](https://github.com/usuario/nexiun/wiki) | - |
+
+| Canal                | Descrição                                               | Resposta |
+| ---------------------- | ----------------------------------------------------------- | ---------- |
+| 📧**Email**          | [suporte@nexiun.com.br](mailto:suporte@nexiun.com.br)     | 24h      |
+| 🐛**Issues**         | [GitHub Issues](https://github.com/usuario/nexiun/issues) | 48h      |
+| 📖**Documentação** | [Wiki do Projeto](https://github.com/usuario/nexiun/wiki) | -        |
 
 </div>
 

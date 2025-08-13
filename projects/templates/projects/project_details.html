@@ -863,43 +863,66 @@
         </div>
     </form>
 </div>
-<div class="container-style">
+<!-- Seção de Histórico -->
+<div class="container-style mt-4">
     <div class="row mb-3">
         <div class="col-12">
-            <label for="observacoes" class="form-label fw-bold">Histórico:</label>
+            <label class="form-label fw-bold">Histórico de Alterações:</label>
         </div>
     </div>
     <div class="row">
         <div class="col-12">
-            <table class="table">
-                <tbody>
-                    {% for history in project_history %}
-                        {% for field, change in history.changes.items %}
-                            {% if 'document_' in field or 'next_phase_deadline' not in field and change.de != change.para or 'next_phase_deadline' in field and change.de|slice:":10" != change.para|slice:":10" %}
-                                <tr>
-                                    <td class="text-center align-middle" style="width: 5%;"><i class="bi bi-check-circle"></i></td>
-                                    <td class="text-start align-middle" style="width: 20%;">
-                                        {% if 'document_' in field %}
-                                            {{ change.data|slice:":16" }}
-                                        {% else %}
-                                            {{ history.timestamp|date:"d/m/Y H:i" }}
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-start align-middle">
-                                        {% if field == 'document_added' %}
-                                            {{ change.usuario }} - Adicionou o arquivo "{{ change.arquivo }}"
-                                        {% elif field == 'document_deleted' %}
-                                            {{ change.usuario }} - Removeu o arquivo "{{ change.arquivo }}"
-                                        {% else %}
-                                            {{ change.usuario }} - Alterou {{ change.campo }} de "{{ change.de }}" para "{{ change.para }}"
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endif %}
+            <div class="table-container">
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th class="col-description">Data/Hora</th>
+                            <th class="col-category">Alteração</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for history in project_history %}
+                            {% for field, change in history.changes.items %}
+                                {% if 'document_' in field or 'next_phase_deadline' not in field and change.de != change.para or 'next_phase_deadline' in field and change.de|slice:":10" != change.para|slice:":10" %}
+                                    <tr>
+                                        <td>
+                                            <div class="transaction-text">
+                                                <i class="fas fa-clock me-1" style="color: {{ enterprise.primary_color }};"></i>
+                                                {% if 'document_' in field %}
+                                                    {{ change.data|slice:":16" }}
+                                                {% else %}
+                                                    {{ history.timestamp|date:"d/m/Y H:i" }}
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge-category">
+                                                {% if field == 'document_added' %}
+                                                    <i class="fas fa-plus me-1"></i>
+                                                    {{ change.usuario }} - Adicionou o arquivo "{{ change.arquivo }}"
+                                                {% elif field == 'document_deleted' %}
+                                                    <i class="fas fa-trash me-1"></i>
+                                                    {{ change.usuario }} - Removeu o arquivo "{{ change.arquivo }}"
+                                                {% else %}
+                                                    <i class="fas fa-edit me-1"></i>
+                                                    {{ change.usuario }} - Alterou {{ change.campo }} de "{{ change.de }}" para "{{ change.para }}"
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="2" class="text-center" style="padding: 60px 0;">
+                                <div><i class="bi bi-clock-history text-muted fs-1"></i></div>
+                                <p class="mt-1">Nenhuma alteração registrada ainda.</p>
+                            </td>
+                        </tr>
                         {% endfor %}
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
