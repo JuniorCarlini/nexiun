@@ -5,10 +5,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% if enterprise.favicon %}
-        <link rel="shortcut icon" href="{{ enterprise.favicon.url }}" type="image/x-icon">
-    {% elif enterprise.logo %}
-        <link rel="shortcut icon" href="{{ enterprise.logo.url }}" type="image/x-icon">
+    {% if enterprise %}
+        <link rel="shortcut icon" href="{{ enterprise.get_favicon_url }}" type="image/x-icon">
     {% else %}
         <link rel="shortcut icon" href="{% static 'icons/favicon.svg' %}" type="image/x-icon">
     {% endif %}
@@ -592,7 +590,11 @@
                 <!-- Logo centralizado vertical e horizontalmente -->
                 <div class="col d-flex align-items-center justify-content-center">
                     <a class="navbar-brand m-0 d-flex align-items-center" href="/">
-                        <img src="{{ enterprise.logo.url }}" alt="Logo" class="d-block" style="height: 50px;">
+                        {% if enterprise %}
+                            <img src="{{ enterprise.get_logo_dark_url }}" alt="Logo" class="d-block" style="height: 50px;">
+                        {% else %}
+                            <img src="{% static 'icons/logo_white.svg' %}" alt="Logo Padrão" class="d-block" style="height: 50px;">
+                        {% endif %}
                     </a>
                 </div>
 

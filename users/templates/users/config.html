@@ -256,6 +256,28 @@
                     <input type="text" class="form-control" id="cpf" name="cpf" value="{{ user.cpf }}">
                 </div>
                 <div class="col-md-6 mb-3">
+                    <label for="date_of_birth" class="form-label">Data de Nascimento:</label>
+                    <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="{{ user.date_of_birth|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="unit_info" class="form-label">
+                        <i class="fas fa-building me-2"></i>Unidade:
+                    </label>
+                    <input type="text" class="form-control" id="unit_info" value="{% if user.unit %}{{ user.unit.name }}{% else %}Nenhuma unidade atribuída{% endif %}" disabled readonly>
+                    <div class="form-text">
+                        <small class="text-muted">Entre em contato com o administrador para alterar a unidade</small>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="user_roles" class="form-label">
+                        <i class="fas fa-user-tag me-2"></i>Cargos:
+                    </label>
+                    <input type="text" class="form-control" id="user_roles" value="{% for role in user.roles.all %}{{ role.name }}{% if not forloop.last %}, {% endif %}{% empty %}Nenhum cargo atribuído{% endfor %}" disabled readonly>
+                    <div class="form-text">
+                        <small class="text-muted">Entre em contato com o administrador para alterar cargos</small>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
                     <label for="theme_preference" class="form-label">
                         <i class="fas fa-palette me-2"></i>Tema de Aparência:
                     </label>
@@ -284,42 +306,53 @@
 
             <!-- Upload da Logo e Favicon -->
             <div class="row mb-4">
-                <!-- Logo da Empresa -->
-                <div class="col-md-6">
+                <!-- Logo Claro -->
+                <div class="col-md-4">
                     <h6 class="text-center mb-3 text-color-secondary">
-                        <i class="fas fa-image me-2"></i>Logo da Empresa
+                        <i class="fas fa-sun me-2"></i>Logo Claro
                     </h6>
                     <div class="text-center d-flex align-items-center justify-content-center">
                         <div class="position-relative d-inline-block profile-image-container">
-                            <label for="enterprise_logo" class="cursor-pointer m-0 p-0">
-                            {% if enterprise.logo %}
-                                    <img src="{{ enterprise.logo.url }}" alt="Logo da Empresa" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 120px; height: 120px; object-fit: cover;">
-                            {% else %}
-                                    <img src="{% static 'images/enterprise_default_icon.svg' %}" alt="Logo Padrão da Empresa" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 120px; height: 120px; object-fit: cover;">
-                            {% endif %}
+                            <label for="enterprise_logo_light" class="cursor-pointer m-0 p-0">
+                            <img src="{{ enterprise.get_logo_light_url }}" alt="Logo Claro da Empresa" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 120px; height: 120px; object-fit: cover; background-color: #f8f9fa;">
                                 <div class="profile-image-overlay rounded-circle">
-                                    <i class="fas fa-image text-white" style="font-size: 25px;"></i>
+                                    <i class="fas fa-sun text-white" style="font-size: 25px;"></i>
                                 </div>
                             </label>
-                            <input type="file" id="enterprise_logo" name="logo" class="d-none" accept="image/*">
+                            <input type="file" id="enterprise_logo_light" name="logo_light" class="d-none" accept="image/*">
                         </div>
                     </div>
-                    <small class="text-muted d-block text-center mt-2">Logo principal da empresa</small>
+                    <small class="text-muted d-block text-center mt-2">Para fundos claros</small>
+                </div>
+                
+                <!-- Logo Escuro -->
+                <div class="col-md-4">
+                    <h6 class="text-center mb-3 text-color-secondary">
+                        <i class="fas fa-moon me-2"></i>Logo Escuro
+                    </h6>
+                    <div class="text-center d-flex align-items-center justify-content-center">
+                        <div class="position-relative d-inline-block profile-image-container">
+                            <label for="enterprise_logo_dark" class="cursor-pointer m-0 p-0">
+                            <img src="{{ enterprise.get_logo_dark_url }}" alt="Logo Escuro da Empresa" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 120px; height: 120px; object-fit: cover; background-color: #343a40;">
+                                <div class="profile-image-overlay rounded-circle">
+                                    <i class="fas fa-moon text-white" style="font-size: 25px;"></i>
+                                </div>
+                            </label>
+                            <input type="file" id="enterprise_logo_dark" name="logo_dark" class="d-none" accept="image/*">
+                        </div>
+                    </div>
+                    <small class="text-muted d-block text-center mt-2">Para fundos escuros</small>
                 </div>
                 
                 <!-- Favicon da Empresa -->
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <h6 class="text-center mb-3 text-color-secondary">
                         <i class="fas fa-star me-2"></i>Favicon
                     </h6>
                     <div class="text-center d-flex align-items-center justify-content-center">
                         <div class="position-relative d-inline-block profile-image-container">
                             <label for="enterprise_favicon" class="cursor-pointer m-0 p-0">
-                            {% if enterprise.favicon %}
-                                    <img src="{{ enterprise.favicon.url }}" alt="Favicon da Empresa" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 120px; height: 120px; object-fit: cover;">
-                            {% else %}
-                                    <img src="{% static 'icons/favicon.svg' %}" alt="Favicon Padrão" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 120px; height: 120px; object-fit: cover;">
-                            {% endif %}
+                            <img src="{{ enterprise.get_favicon_url }}" alt="Favicon da Empresa" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 120px; height: 120px; object-fit: cover;">
                                 <div class="profile-image-overlay rounded-circle">
                                     <i class="fas fa-star text-white" style="font-size: 25px;"></i>
                                 </div>
@@ -343,13 +376,36 @@
                     <input type="text" class="form-control" id="enterprise_cnpj_or_cpf" name="enterprise_cnpj_or_cpf"
                         value="{{ enterprise.cnpj_or_cpf }}" required>
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label for="subdomain" class="form-label">
+                        <i class="fas fa-globe me-2"></i>Subdomínio:
+                    </label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="subdomain" value="{{ enterprise.subdomain }}" disabled readonly>
+                        <span class="input-group-text">.nexiun.com.br</span>
+                    </div>
+                    <div class="form-text">
+                        <small class="text-muted">
+                            <i class="fas fa-link me-1"></i>
+                            <a href="{{ enterprise.get_absolute_url }}" target="_blank" class="text-decoration-none">
+                                {{ enterprise.get_absolute_url }}
+                            </a>
+                        </small>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="enterprise_created" class="form-label">
+                        <i class="fas fa-calendar me-2"></i>Empresa criada em:
+                    </label>
+                    <input type="text" class="form-control" id="enterprise_created" value="{% if enterprise.id %}Informação não disponível{% else %}N/A{% endif %}" disabled readonly>
+                    <div class="form-text">
+                        <small class="text-muted">Data de criação da empresa no sistema</small>
+                    </div>
+                </div>
             </div>
 
             <!-- Seleção de Cores -->
             <div class="color-picker-container">
-                <h6 class="color-picker-title">
-                    <i class="fas fa-palette me-2"></i>Personalização de Cores
-                </h6>
                 <div class="color-inputs">
                 <div class="color-group">
                         <label for="primary_color">Cor Primária</label>

@@ -8,7 +8,7 @@ from enterprises.models import Enterprise
 from django.core.paginator import Paginator
 from users.decorators import permission_required
 from users.models import User, Role, SystemModule
-from django.contrib.auth.models import User, Permission
+from django.contrib.auth.models import Permission
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login , authenticate, logout
 from django.shortcuts import render, redirect, get_object_or_404
@@ -101,7 +101,37 @@ def login_view(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
 
-        # Autentica o usuário
+        # ANTES da autenticação, verifica se o usuário pertence a uma empresa
+        # e se está tentando fazer login no domínio principal
+        current_host = request.get_host().lower()
+        
+        # Remove porta se presente (para desenvolvimento)
+        if ':' in current_host:
+            current_host = current_host.split(':')[0]
+        
+        # Se estiver no domínio principal, verifica se o usuário tem empresa
+        if current_host in ['nexiun.com.br', 'www.nexiun.com.br', 'nexiun.local', 'localhost', '127.0.0.1']:
+            # Só verifica se o email foi fornecido
+            if email:
+                try:
+                    # Busca o usuário pelo email para verificar se tem empresa
+                    from users.models import User
+                    user_check = User.objects.get(email=email)
+                    
+                    if user_check.enterprise:
+                        # Usuário tem empresa - redireciona para login da empresa
+                        messages.info(
+                            request, 
+                            f'Redirecionando para o login da {user_check.enterprise.name}...'
+                        )
+                        login_url = f"{user_check.enterprise.get_absolute_url()}/users/login/"
+                        return redirect(login_url)
+                        
+                except User.DoesNotExist:
+                    # Usuário não existe - continua com o fluxo normal para mostrar erro
+                    pass
+
+        # Autentica o usuário (fluxo normal)
         user = authenticate(request, email=email, password=password)
         
         # Caso a autenticação falhe, mostra mensagem de erro
@@ -117,7 +147,7 @@ def login_view(request):
             # Redireciona para a criação de empresa
             return redirect('create_enterprise')
         
-        # Se o usuário tiver empresa, redireciona para a página desejada ou para a home
+        # Se chegou até aqui, significa que está no subdomínio correto
         next_url = request.GET.get('next', '/')
         return redirect(next_url)
 
@@ -130,10 +160,7 @@ def logout_view(request):
 @login_required
 def config_view(request):
     user = request.user
-    try:
-        enterprise = Enterprise.objects.get(user=user)
-    except Enterprise.DoesNotExist:
-        enterprise = None
+    enterprise = user.enterprise
 
     if request.method == 'POST':
         # Atualizando dados do usuário apenas se o campo foi enviado no formulário
@@ -142,6 +169,16 @@ def config_view(request):
         user.theme_preference = request.POST.get('theme_preference', user.theme_preference)
         user.email = request.POST.get('email', user.email)
         user.cpf = request.POST.get('cpf', user.cpf)
+        
+        # Atualizar data de nascimento se fornecida
+        date_of_birth = request.POST.get('date_of_birth')
+        if date_of_birth:
+            from datetime import datetime
+            try:
+                user.date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+            except ValueError:
+                messages.error(request, 'Data de nascimento inválida.')
+                return redirect('config')
 
         # Verificando se uma nova imagem de perfil foi enviada
         if request.FILES.get('profile_image'):
@@ -157,9 +194,12 @@ def config_view(request):
             enterprise.secondary_color = request.POST.get('secondary_color', enterprise.secondary_color)
             enterprise.text_icons_color = request.POST.get('text_icons_color', enterprise.text_icons_color)
 
-            # Verificando se um novo logotipo da empresa foi enviado
-            if request.FILES.get('logo'):
-                enterprise.logo = request.FILES['logo']
+            # Verificando se novos logotipos da empresa foram enviados
+            if request.FILES.get('logo_light'):
+                enterprise.logo_light = request.FILES['logo_light']
+            
+            if request.FILES.get('logo_dark'):
+                enterprise.logo_dark = request.FILES['logo_dark']
             
             # Verificando se um novo favicon da empresa foi enviado
             if request.FILES.get('favicon'):
@@ -504,40 +544,14 @@ class PasswordResetDoneView(DjangoPasswordResetDoneView):
 class PasswordResetConfirmView(DjangoPasswordResetConfirmView):
     template_name = 'password_reset/password_reset_confirm.html'
     success_url = reverse_lazy('password_reset_complete')
-    token = None
-    uidb64 = None
-
-    def get(self, request, *args, **kwargs):
-        self.token = kwargs.get('token')
-        self.uidb64 = kwargs.get('uidb64')
-        return super().get(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        self.token = kwargs.get('token')
-        self.uidb64 = kwargs.get('uidb64')
-        return super().post(request, *args, **kwargs)
 
     def form_valid(self, form):
-        if self.token == 'set-password':
-            messages.error(self.request, 'Este link já foi utilizado.')
-            return self.render_to_response(self.get_context_data(form=form))
-            
         # Salva a nova senha
         form.save()
         
-        # Atualiza o last_login para invalidar o token
-        self.user.last_login = timezone.now()
-        self.user.save(update_fields=['last_login'])
-        
-        # Adiciona mensagem de sucesso e redireciona
+        # Adiciona mensagem de sucesso
         messages.success(self.request, 'Sua senha foi alterada com sucesso!')
         return redirect(self.success_url)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if not self.validlink or self.token == 'set-password':
-            messages.error(self.request, 'O link de recuperação de senha é inválido ou já foi usado.')
-        return context
 
 class PasswordResetCompleteView(DjangoPasswordResetCompleteView):
     template_name = 'password_reset/password_reset_complete.html'

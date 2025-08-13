@@ -48,11 +48,21 @@ class Enterprise(models.Model):
         verbose_name='Subdomínio'
     )
     
-    logo = models.ImageField(
+    logo_light = models.ImageField(
         upload_to=enterprise_directory_path,
         blank=True,
-        default='images/enterprise_default_icon.svg',
-        null=True
+        default='icons/logo.svg',
+        null=True,
+        verbose_name='Logo Claro',
+        help_text='Logo para usar em fundos claros'
+    )
+    logo_dark = models.ImageField(
+        upload_to=enterprise_directory_path,
+        blank=True,
+        default='icons/logo_white.svg',
+        null=True,
+        verbose_name='Logo Escuro',
+        help_text='Logo para usar em fundos escuros'
     )
     favicon = models.ImageField(
         upload_to=enterprise_directory_path,
@@ -121,6 +131,50 @@ class Enterprise(models.Model):
         else:
             # Em produção, usar domínio real
             return f"https://{self.get_full_domain()}"
+    
+    def get_logo_url(self, theme='light'):
+        """Retorna a URL correta do logo baseado no tema (estático ou upload)"""
+        from django.templatetags.static import static
+        
+        # Seleciona o logo baseado no tema
+        logo_field = self.logo_light if theme == 'light' else self.logo_dark
+        default_logo = 'icons/logo.svg' if theme == 'light' else 'icons/logo_white.svg'
+        
+        if not logo_field:
+            # Sem logo definido, usar padrão
+            return static(default_logo)
+        
+        # Verifica se é um arquivo de upload real ou o valor padrão
+        if str(logo_field) in ['icons/logo.svg', 'icons/logo_white.svg', 'icons/favicon.svg']:
+            # É um valor padrão, usar arquivos estáticos
+            return static(str(logo_field))
+        else:
+            # É um arquivo de upload, usar URL de mídia
+            return logo_field.url
+
+    def get_logo_light_url(self):
+        """Retorna a URL do logo claro"""
+        return self.get_logo_url('light')
+    
+    def get_logo_dark_url(self):
+        """Retorna a URL do logo escuro"""
+        return self.get_logo_url('dark')
+    
+    def get_favicon_url(self):
+        """Retorna a URL correta do favicon (estático ou upload)"""
+        from django.templatetags.static import static
+        
+        if not self.favicon:
+            # Sem favicon definido, usar padrão
+            return static('icons/favicon.svg')
+        
+        # Verifica se é um arquivo de upload real ou o valor padrão
+        if str(self.favicon) in ['icons/logo_white.svg', 'icons/favicon.svg']:
+            # É um valor padrão, usar arquivos estáticos
+            return static(str(self.favicon))
+        else:
+            # É um arquivo de upload, usar URL de mídia
+            return self.favicon.url
 
 class InternalMessage(models.Model):
     SCOPE_CHOICES = [

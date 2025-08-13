@@ -40,9 +40,8 @@
         }
 
         .logo {
-            width: 200px;
-            margin-top: 20px;
-            margin-bottom: 20px;
+            width: 160px;
+            margin: 20px 0;
         }
 
         .text-description {
@@ -225,13 +224,29 @@
                     <p class="text-utils-title mb-2">Logo</p>
 
                 </div>
-                <div class="image-upload">
-                    <input type="file" id="logo" name="logo" accept="image/*" onchange="showImage(event)">
-                    <label class="upload-label" for="logo" title="Clique para editar a imagem">
-                        <img src="{% static 'images/enterprise_default_icon.svg' %}" alt="Imagem Padrão">
-                        <span class="bi bi-pencil-fill edit-icon"></span>
-                    </label>
-                    <img id="logoPreview" src="#" alt="Preview da Logo" style="display: none;">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="image-upload">
+                            <input type="file" id="logo_light" name="logo_light" accept="image/*" onchange="showImage(event, 'light')">
+                            <label class="upload-label" for="logo_light" title="Logo para fundos claros">
+                                <img src="{% static 'icons/logo.svg' %}" alt="Logo Claro" style="background-color: #f8f9fa;">
+                                <span class="bi bi-sun-fill edit-icon"></span>
+                            </label>
+                            <img id="logoPreviewLight" src="#" alt="Preview Logo Claro" style="display: none;">
+                        </div>
+                        <p class="text-center text-utils-title mt-2">Logo Claro</p>
+                    </div>
+                    <div class="col-6">
+                        <div class="image-upload">
+                            <input type="file" id="logo_dark" name="logo_dark" accept="image/*" onchange="showImage(event, 'dark')">
+                            <label class="upload-label" for="logo_dark" title="Logo para fundos escuros">
+                                <img src="{% static 'icons/logo_white.svg' %}" alt="Logo Escuro" style="background-color: #343a40;">
+                                <span class="bi bi-moon-fill edit-icon"></span>
+                            </label>
+                            <img id="logoPreviewDark" src="#" alt="Preview Logo Escuro" style="display: none;">
+                        </div>
+                        <p class="text-center text-utils-title mt-2">Logo Escuro</p>
+                    </div>
                 </div>
             </div>
             <div class="separator"></div>
@@ -266,22 +281,23 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        function showImage(event) {
-            const logoPreview = document.getElementById('logoPreview');
-            const defaultImage = document.querySelector('.image-upload img'); // Seleciona a imagem padrão
+        function showImage(event, theme) {
+            const logoPreview = document.getElementById('logoPreview' + (theme === 'light' ? 'Light' : 'Dark'));
+            const container = event.target.closest('.image-upload');
+            const defaultImage = container.querySelector('label img');
             const file = event.target.files[0];
             
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     logoPreview.src = e.target.result;
-                    logoPreview.style.display = 'block'; // Mostra a imagem selecionada
-                    defaultImage.style.display = 'none'; // Esconde a imagem padrão
+                    logoPreview.style.display = 'block';
+                    defaultImage.style.display = 'none';
                 }
                 reader.readAsDataURL(file);
             } else {
-                logoPreview.style.display = 'none'; // Esconde a imagem selecionada
-                defaultImage.style.display = 'block'; // Mostra a imagem padrão
+                logoPreview.style.display = 'none';
+                defaultImage.style.display = 'block';
             }
         }
 

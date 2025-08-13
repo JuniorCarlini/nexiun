@@ -112,6 +112,18 @@ SYSTEM_MODULES = {
             ('view_company_dashboard', 'Ver dashboard da empresa'),
             ('view_unit_dashboard', 'Ver dashboard da unidade'),
         ]
+    },
+    'mensagens': {
+        'name': 'Mensagens',
+        'icon': 'bi-envelope-fill',
+        'permissions': [
+            ('view_messages', 'Visualizar mensagens'),
+            ('add_messages', 'Adicionar mensagens'),
+            ('change_messages', 'Editar mensagens'),
+            ('delete_messages', 'Excluir mensagens'),
+            ('view_all_messages', 'Ver todas as mensagens da empresa'),
+            ('view_unit_messages', 'Ver mensagens da unidade'),
+        ]
     }
 }
 
@@ -142,6 +154,8 @@ DEFAULT_ROLES = {
             'users.view_settings', 'users.change_settings', 
             'users.manage_enterprise_settings', 'users.manage_system_settings',
             'users.view_dashboard', 'users.view_company_dashboard',
+            'users.view_messages', 'users.add_messages', 'users.change_messages', 
+            'users.delete_messages', 'users.view_all_messages', 'users.view_unit_messages',
         ]
     },
     'diretor': {

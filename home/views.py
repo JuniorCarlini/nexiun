@@ -99,7 +99,7 @@ def home(request):
             Q(scope='unit', unit=user.unit) | Q(scope='enterprise')
         )
     
-    recent_messages = messages_queryset.order_by('-created_at')[:5]
+    recent_messages = messages_queryset.order_by('-date')[:5]
     
     context = {
         'saldo_atual': saldo_atual,

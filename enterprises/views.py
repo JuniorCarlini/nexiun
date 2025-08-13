@@ -20,7 +20,10 @@ from projects.models import Project, User, CreditLine, Bank, ProjectDocument, Pr
 @login_required
 def create_enterprise(request):
     context = {
-        'enterprise': getattr(request.user, 'enterprise', None)
+        'enterprise': getattr(request.user, 'enterprise', None),
+        'primary_color': '#05677D',
+        'secondary_color': '#FFB845',
+        'text_icons_color': '#FFFFFF',
     }
     
     if request.method == 'POST':
@@ -30,7 +33,8 @@ def create_enterprise(request):
         primary_color = request.POST.get('primary_color', '#05677D')
         secondary_color = request.POST.get('secondary_color', '#FFB845')
         text_icons_color = request.POST.get('text_icons_color', '#FFFFFF')
-        logo = request.FILES.get('logo')
+        logo_light = request.FILES.get('logo_light')
+        logo_dark = request.FILES.get('logo_dark')
         
         # Validações
         errors = []
@@ -56,6 +60,15 @@ def create_enterprise(request):
         if errors:
             for error in errors:
                 messages.error(request, error)
+            # Preservar valores digitados pelo usuário
+            context.update({
+                'name': name,
+                'cnpj_or_cpf': cnpj_or_cpf,
+                'subdomain': subdomain,
+                'primary_color': primary_color,
+                'secondary_color': secondary_color,
+                'text_icons_color': text_icons_color,
+            })
             return render(request, 'enterprises/create_enterprise.html', context)
         
         try:
@@ -72,9 +85,12 @@ def create_enterprise(request):
             if subdomain:
                 enterprise_data['subdomain'] = subdomain
             
-            # Adicionar logo apenas se foi enviado
-            if logo:
-                enterprise_data['logo'] = logo
+            # Adicionar logos apenas se foram enviados
+            if logo_light:
+                enterprise_data['logo_light'] = logo_light
+            
+            if logo_dark:
+                enterprise_data['logo_dark'] = logo_dark
                 
             enterprise = Enterprise.objects.create(**enterprise_data)
             
@@ -102,6 +118,15 @@ def create_enterprise(request):
             
         except Exception as e:
             messages.error(request, f"Erro ao criar empresa: {str(e)}")
+            # Preservar valores digitados pelo usuário
+            context.update({
+                'name': name,
+                'cnpj_or_cpf': cnpj_or_cpf,
+                'subdomain': subdomain,
+                'primary_color': primary_color,
+                'secondary_color': secondary_color,
+                'text_icons_color': text_icons_color,
+            })
             return render(request, 'enterprises/create_enterprise.html', context)
 
     return render(request, 'enterprises/create_enterprise.html', context)
