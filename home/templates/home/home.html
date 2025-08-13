@@ -18,31 +18,6 @@
             <h2 class="text-color-primary m-0">Inicio</h2>
         </div>
     </div>
-
-    <!-- Informações do Subdomínio -->
-    {% if is_subdomain_access and subdomain_info %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="alert alert-info d-flex align-items-center" role="alert">
-                <i class="fas fa-globe me-3 fs-4"></i>
-                <div class="flex-grow-1">
-                    <h6 class="alert-heading mb-1">🌐 Acesso via Subdomínio</h6>
-                    <div class="mb-0">
-                        <strong>Domínio:</strong> {{ subdomain_info.full_domain }}<br>
-                        <strong>Empresa:</strong> {{ enterprise.name }}<br>
-                        <small class="text-muted">
-                            Você está acessando através do subdomínio personalizado da sua empresa.
-                            <a href="{{ subdomain_info.absolute_url }}" target="_blank" class="text-decoration-none">
-                                Compartilhar link <i class="fas fa-external-link-alt"></i>
-                            </a>
-                        </small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
     <!-- Alerta de Aniversário -->
     {% if is_birthday %}
     <div class="row">
