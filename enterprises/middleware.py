@@ -1,7 +1,7 @@
-from django.shortcuts import redirect, get_object_or_404
+from .models import Enterprise
 from django.http import Http404
 from django.conf import settings
-from .models import Enterprise
+from django.shortcuts import redirect, get_object_or_404
 
 class SubdomainMiddleware:
     """

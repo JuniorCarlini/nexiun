@@ -1,9 +1,9 @@
 import os
-import uuid
 import re
+import uuid
 from django.db import models
-from django.core.exceptions import ValidationError
 from django.utils.text import slugify
+from django.core.exceptions import ValidationError
 
 def enterprise_directory_path(instance, filename):
     unique_filename = f"{uuid.uuid4()}.{filename.split('.')[-1]}"

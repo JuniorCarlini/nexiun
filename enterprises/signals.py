@@ -1,8 +1,8 @@
-from django.db.models.signals import pre_save, post_save, post_delete
-from django.dispatch import receiver
 from django.utils import timezone
+from django.dispatch import receiver
 from .models import Client, ClientDocument, ClientHistory
 from projects.signals import get_current_user, get_user_display_name
+from django.db.models.signals import pre_save, post_save, post_delete
 
 
 def format_value(value, field):
