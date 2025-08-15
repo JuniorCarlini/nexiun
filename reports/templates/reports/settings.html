@@ -1,0 +1,143 @@
+{% extends 'reports/base_reports.html' %}
+
+{% block reports_title %}Configurações de Relatórios{% endblock %}
+{% block reports_subtitle %}
+<p class="text-muted mb-0">Configure as preferências do sistema de relatórios</p>
+{% endblock %}
+
+{% block reports_actions %}
+<!-- Remover ação de exportar -->
+{% endblock %}
+
+{% block reports_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <!-- Configurações Gerais -->
+            <div class="container-style mb-4">
+                <h5 class="fw-bold mb-3 text-color-primary">
+                    <i class="bi bi-gear me-2"></i>
+                    Configurações Gerais
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="default_period_days" class="form-label fw-bold">Período Padrão:</label>
+                        <select name="default_period_days" id="default_period_days" class="form-select">
+                            <option value="30" {% if settings.default_period_days == 30 %}selected{% endif %}>30 dias</option>
+                            <option value="90" {% if settings.default_period_days == 90 %}selected{% endif %}>90 dias</option>
+                            <option value="365" {% if settings.default_period_days == 365 %}selected{% endif %}>1 ano</option>
+                            <option value="730" {% if settings.default_period_days == 730 %}selected{% endif %}>2 anos</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="auto_refresh_interval" class="form-label fw-bold">Intervalo de Atualização:</label>
+                        <select name="auto_refresh_interval" id="auto_refresh_interval" class="form-select">
+                            <option value="30" {% if settings.auto_refresh_interval == 30 %}selected{% endif %}>30 minutos</option>
+                            <option value="60" {% if settings.auto_refresh_interval == 60 %}selected{% endif %}>1 hora</option>
+                            <option value="120" {% if settings.auto_refresh_interval == 120 %}selected{% endif %}>2 horas</option>
+                            <option value="240" {% if settings.auto_refresh_interval == 240 %}selected{% endif %}>4 horas</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="auto_refresh_enabled" id="auto_refresh_enabled" 
+                                   {% if settings.auto_refresh_enabled %}checked{% endif %}>
+                            <label class="form-check-label fw-bold" for="auto_refresh_enabled">
+                                Atualização Automática
+                            </label>
+                            <div class="form-text">Os relatórios serão atualizados automaticamente no intervalo definido.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Relatórios por Email -->
+            <div class="container-style mb-4">
+                <h5 class="fw-bold mb-3 text-color-primary">
+                    <i class="bi bi-envelope me-2"></i>
+                    Relatórios por Email
+                </h5>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="email_reports_enabled" id="email_reports_enabled" 
+                                   {% if settings.email_reports_enabled %}checked{% endif %}>
+                            <label class="form-check-label fw-bold" for="email_reports_enabled">
+                                Receber Relatórios por Email
+                            </label>
+                            <div class="form-text">Receba resumos dos indicadores principais por email.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="email_frequency" class="form-label fw-bold">Frequência:</label>
+                        <select name="email_frequency" id="email_frequency" class="form-select">
+                            <option value="daily" {% if settings.email_frequency == 'daily' %}selected{% endif %}>Diário</option>
+                            <option value="weekly" {% if settings.email_frequency == 'weekly' %}selected{% endif %}>Semanal</option>
+                            <option value="monthly" {% if settings.email_frequency == 'monthly' %}selected{% endif %}>Mensal</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Metas -->
+            <div class="container-style mb-4">
+                <h5 class="fw-bold mb-3 text-color-primary">
+                    <i class="bi bi-bullseye me-2"></i>
+                    Metas Personalizadas
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="target_proposals_month" class="form-label fw-bold">Propostas por Mês:</label>
+                        <input type="number" name="target_proposals_month" id="target_proposals_month" 
+                               class="form-control" value="{{ settings.target_proposals_month|default:'' }}" 
+                               placeholder="Ex: 50">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="target_approval_time_days" class="form-label fw-bold">Tempo de Aprovação (dias):</label>
+                        <input type="number" name="target_approval_time_days" id="target_approval_time_days" 
+                               class="form-control" value="{{ settings.target_approval_time_days|default:'' }}" 
+                               placeholder="Ex: 20">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="target_conversion_rate" class="form-label fw-bold">Taxa de Conversão (%):</label>
+                        <input type="number" step="0.1" name="target_conversion_rate" id="target_conversion_rate" 
+                               class="form-control" value="{{ settings.target_conversion_rate|default:'' }}" 
+                               placeholder="Ex: 70.0">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="target_repurchase_rate" class="form-label fw-bold">Taxa de Recompra (%):</label>
+                        <input type="number" step="0.1" name="target_repurchase_rate" id="target_repurchase_rate" 
+                               class="form-control" value="{{ settings.target_repurchase_rate|default:'' }}" 
+                               placeholder="Ex: 15.0">
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Dica:</strong> As metas definidas aqui serão usadas para calcular alertas e indicadores de performance nos relatórios.
+                </div>
+            </div>
+            
+            <!-- Botões -->
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'reports_dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    Voltar
+                </a>
+                <button type="submit" class="btn button-style text-white">
+                    <i class="bi bi-check-lg me-1"></i>
+                    Salvar Configurações
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

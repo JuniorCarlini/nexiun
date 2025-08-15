@@ -58,10 +58,17 @@
                             {% endfor %}
                         </td>
                         <td>
-                            <span class="badge-entrada">
-                                <i class="fas fa-building me-1"></i>
-                                {{ user.unit.name }}
-                            </span>
+                            {% for unit in user.units.all %}
+                                <span class="badge-entrada me-1 mb-1">
+                                    <i class="fas fa-building me-1"></i>
+                                    {{ unit.name }}
+                                </span>
+                            {% empty %}
+                                <span class="badge-saida">
+                                    <i class="fas fa-minus-circle me-1"></i>
+                                    Sem unidades
+                                </span>
+                            {% endfor %}
                         </td>
                         <td>
                             <a href="{% url 'edit_user' user.id %}" class="btn button-style btn-primary" style="background-color: {{ enterprise.primary_color }}; border: none;" title="Editar usuário">

@@ -14,6 +14,7 @@ urlpatterns = [
     path("enterprises/", include("enterprises.urls")),
     path("units/", include("units.urls")),
     path("projects/", include("projects.urls")),
+    path('reports/', include('reports.urls')),
 
     #recuperar senha
     path('password-reset/', views.PasswordResetView.as_view(), name='password_reset'),

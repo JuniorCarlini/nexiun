@@ -17,10 +17,11 @@ def home(request):
     """View principal"""
     user = request.user
     
-    # Filtrar contas bancárias baseado na unidade do usuário
+    # Filtrar contas bancárias baseado nas unidades do usuário
     contas_bancarias = BankAccount.objects.filter(unit__enterprise=user.enterprise)
-    if user.unit and user.has_perm('users.view_unit_dashboard') and not user.has_perm('users.view_company_dashboard'):
-        contas_bancarias = contas_bancarias.filter(unit=user.unit)
+    user_units = user.units.all()
+    if user_units.exists() and user.has_perm('users.view_unit_dashboard') and not user.has_perm('users.view_company_dashboard'):
+        contas_bancarias = contas_bancarias.filter(unit__in=user_units)
     
     # Calcular saldo total atual
     saldo_atual = sum(conta.get_current_balance() for conta in contas_bancarias)
@@ -30,8 +31,8 @@ def home(request):
     start_of_month = today.replace(day=1)
     
     transactions_filter = {'date__gte': start_of_month, 'date__lte': today}
-    if user.unit and user.has_perm('users.view_unit_dashboard') and not user.has_perm('users.view_company_dashboard'):
-        transactions_filter['bank_account__unit'] = user.unit
+    if user_units.exists() and user.has_perm('users.view_unit_dashboard') and not user.has_perm('users.view_company_dashboard'):
+        transactions_filter['bank_account__unit__in'] = user_units
     else:
         transactions_filter['bank_account__unit__enterprise'] = user.enterprise
     
@@ -51,8 +52,8 @@ def home(request):
     
     # Transações dos últimos 6 meses
     transactions_6m_filter = {'date__gte': six_months_ago, 'date__lte': today}
-    if user.unit and user.has_perm('users.view_unit_dashboard') and not user.has_perm('users.view_company_dashboard'):
-        transactions_6m_filter['bank_account__unit'] = user.unit
+    if user_units.exists() and user.has_perm('users.view_unit_dashboard') and not user.has_perm('users.view_company_dashboard'):
+        transactions_6m_filter['bank_account__unit__in'] = user_units
     else:
         transactions_6m_filter['bank_account__unit__enterprise'] = user.enterprise
     
@@ -93,10 +94,10 @@ def home(request):
     
     # Obter mensagens internas recentes
     messages_queryset = InternalMessage.objects.filter(enterprise=user.enterprise)
-    if user.unit and user.has_perm('users.view_unit_dashboard') and not user.has_perm('users.view_company_dashboard'):
-        # Se usuário só pode ver dados da unidade, filtra por mensagens da unidade ou corporativas
+    if user_units.exists() and user.has_perm('users.view_unit_dashboard') and not user.has_perm('users.view_company_dashboard'):
+        # Se usuário só pode ver dados das unidades, filtra por mensagens das unidades ou corporativas
         messages_queryset = messages_queryset.filter(
-            Q(scope='unit', unit=user.unit) | Q(scope='enterprise')
+            Q(scope='unit', unit__in=user_units) | Q(scope='enterprise')
         )
     
     recent_messages = messages_queryset.order_by('-date')[:5]

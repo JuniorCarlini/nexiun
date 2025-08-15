@@ -713,6 +713,36 @@
                             </li>
                         </div>
 
+                        <div>
+                            <hr class="separator">
+                            <p class="fw-bold menu-color ms-4">RELATÓRIOS</p>
+                            <li class="li-style {% if request.path == '/reports/' %}menu-active{% endif %}">
+                                <a href="/reports/" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-chart-pie"></i> Dashboard
+                                </a>
+                            </li>
+                            <li class="li-style {% if '/reports/operations/' in request.path %}menu-active{% endif %}">
+                                <a href="/reports/operations/performance/" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-chart-line"></i> Operações
+                                </a>
+                            </li>
+                            <li class="li-style {% if '/reports/clients/' in request.path %}menu-active{% endif %}">
+                                <a href="/reports/clients/indicators/" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-users"></i> Clientes
+                                </a>
+                            </li>
+                            <li class="li-style {% if '/reports/performance/' in request.path %}menu-active{% endif %}">
+                                <a href="/reports/performance/captadores/" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-trophy"></i> Desempenho
+                                </a>
+                            </li>
+                            <li class="li-style {% if '/reports/special/' in request.path %}menu-active{% endif %}">
+                                <a href="/reports/special/aniversarios/" class="nav-link menu-color fw-bold ms-3">
+                                    <i class="fa-solid fa-star"></i> Especiais
+                                </a>
+                            </li>
+                        </div>
+
                     <div>
                         <hr class="separator">
                         <p class="fw-bold menu-color ms-4">PERFIL</p>

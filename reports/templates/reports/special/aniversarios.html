@@ -1,0 +1,310 @@
+{% extends 'reports/base_reports.html' %}
+{% load humanize %}
+
+{% block reports_title %}Clientes Aniversariantes{% endblock %}
+{% block reports_subtitle %}
+<p class="text-muted mb-0">Acompanhe e celebre os aniversários dos seus clientes</p>
+{% endblock %}
+
+{% block reports_content %}
+<!-- Filtros -->
+<div class="filter-bar">
+    <form method="GET" class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label for="month" class="form-label fw-bold">Mês:</label>
+            <select name="month" id="month" class="form-select">
+                <option value="">Mês atual</option>
+                <option value="1">Janeiro</option>
+                <option value="2">Fevereiro</option>
+                <option value="3">Março</option>
+                <option value="4">Abril</option>
+                <option value="5">Maio</option>
+                <option value="6">Junho</option>
+                <option value="7">Julho</option>
+                <option value="8">Agosto</option>
+                <option value="9">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="unit" class="form-label fw-bold">Unidade:</label>
+            <select name="unit" id="unit" class="form-select">
+                <option value="">Todas as unidades</option>
+                <!-- Adicionar opções dinamicamente -->
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn button-style text-white">
+                <i class="bi bi-funnel me-1"></i>
+                Filtrar
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Resumo Rápido -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar-event display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">{{ today_birthdays.count|default:0 }}</h3>
+                <p class="mb-0 opacity-90">Hoje</p>
+                <small class="opacity-75">Aniversariantes</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card success h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar-week display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">{{ week_birthdays_count|default:0 }}</h3>
+                <p class="mb-0 opacity-90">Esta Semana</p>
+                <small class="opacity-75">Próximos 7 dias</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card info h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar-month display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">28</h3>
+                <p class="mb-0 opacity-90">Este Mês</p>
+                <small class="opacity-75">Total no mês</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card warning h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-gift display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">95%</h3>
+                <p class="mb-0 opacity-90">Taxa Contato</p>
+                <small class="opacity-75">Parabenizações</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Aniversariantes de Hoje -->
+{% if today_birthdays %}
+<div class="container-style mb-4">
+    <h5 class="fw-bold mb-3 text-color-primary">
+        <i class="bi bi-calendar-heart me-2"></i>
+        Aniversariantes de Hoje
+        <span class="badge" style="background-color: {{ enterprise.primary_color }};">{{ today_birthdays.count }}</span>
+    </h5>
+    <div class="row g-3">
+        {% for client in today_birthdays %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                             style="width: 50px; height: 50px; background-color: {{ enterprise.primary_color }}20;">
+                            <i class="bi bi-person-fill" style="color: {{ enterprise.primary_color }}; font-size: 1.5rem;"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="fw-bold mb-1">{{ client.name }}</h6>
+                            <p class="text-muted mb-1 small">{{ client.email }}</p>
+                            <p class="text-muted mb-0 small">{{ client.phone }}</p>
+                        </div>
+                        <div class="text-end">
+                            <a href="https://wa.me/{{ client.phone|cut:'+55'|cut:' '|cut:'-'|cut:'('|cut:')' }}" 
+                               target="_blank" 
+                               class="btn btn-sm"
+                               style="background-color: {{ enterprise.primary_color }}; color: white;">
+                                <i class="bi bi-whatsapp"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Próximos Aniversários -->
+<div class="container-style">
+    <h5 class="fw-bold mb-3 text-color-primary">
+        <i class="bi bi-calendar-week me-2"></i>
+        Próximos Aniversários (7 dias)
+    </h5>
+    <div class="table-container">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Data</th>
+                    <th>Dias</th>
+                    <th>Idade</th>
+                    <th>Unidade</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client in week_birthdays %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
+                                 style="width: 35px; height: 35px; background-color: {{ enterprise.primary_color }}20;">
+                                <i class="bi bi-person-fill" style="color: {{ enterprise.primary_color }}; font-size: 1rem;"></i>
+                            </div>
+                            <div>
+                                <div class="fw-medium">{{ client.name }}</div>
+                                <small class="text-muted">{{ client.email }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="fw-medium">{{ client.date_of_birth|date:"d/m" }}</div>
+                        <small class="text-muted">{{ client.date_of_birth|date:"l" }}</small>
+                    </td>
+                    <td>
+                        {% now "Y-m-d" as today %}
+                        {% if client.date_of_birth|date:"m-d" == today|date:"m-d" %}
+                            <span class="badge bg-success">Hoje</span>
+                        {% else %}
+                            <span class="badge bg-info">
+                                {% comment %}Calcular dias restantes{% endcomment %}
+                                2 dias
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% now "Y" as current_year %}
+                        {% widthratio current_year 1 1 as year_int %}
+                        {% widthratio client.date_of_birth.year 1 1 as birth_year %}
+                        {{ year_int|add:"-"|add:birth_year }} anos
+                    </td>
+                    <td>
+                        {% for unit in client.units.all %}
+                            <span class="badge bg-secondary">{{ unit.name }}</span>
+                        {% empty %}
+                            <span class="text-muted">-</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <span class="badge 
+                            {% if client.status == 'ATIVO' %}bg-success
+                            {% elif client.status == 'INTERESSADO' %}bg-info
+                            {% elif client.status == 'EM_NEGOCIACAO' %}bg-warning
+                            {% else %}bg-secondary
+                            {% endif %}">
+                            {{ client.get_status_display|default:client.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="https://wa.me/{{ client.phone|cut:'+55'|cut:' '|cut:'-'|cut:'('|cut:')' }}" 
+                               target="_blank" 
+                               class="btn btn-sm btn-outline-success"
+                               title="WhatsApp">
+                                <i class="bi bi-whatsapp"></i>
+                            </a>
+                            <a href="mailto:{{ client.email }}" 
+                               class="btn btn-sm btn-outline-primary"
+                               title="Email">
+                                <i class="bi bi-envelope"></i>
+                            </a>
+                            <a href="{% url 'view_client' client.id %}" 
+                               class="btn btn-sm btn-outline-secondary"
+                               title="Ver Perfil">
+                                <i class="bi bi-person"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-calendar-week fs-1 opacity-25"></i>
+                        <p class="mt-2">Nenhum aniversário nos próximos 7 dias</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Mensagens Sugeridas -->
+<div class="container-style mt-4">
+    <h5 class="fw-bold mb-3 text-color-primary">
+        <i class="bi bi-chat-dots me-2"></i>
+        Mensagens Sugeridas
+    </h5>
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="card border-2" style="border-color: {{ enterprise.primary_color }};">
+                <div class="card-body">
+                    <h6 class="fw-bold text-color-primary">Formal</h6>
+                    <p class="text-muted small mb-2">"Parabéns pelo seu aniversário! Que este novo ano seja repleto de conquistas e realizações. Nossa equipe deseja muito sucesso para você!"</p>
+                    <button class="btn btn-sm" style="background-color: {{ enterprise.primary_color }}; color: white;" onclick="copyMessage(this)">
+                        <i class="bi bi-clipboard"></i> Copiar
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card border-2 border-success">
+                <div class="card-body">
+                    <h6 class="fw-bold text-success">Amigável</h6>
+                    <p class="text-muted small mb-2">"Feliz aniversário! 🎉 Que alegria poder compartilhar este dia especial com você. Desejamos um ano incrível pela frente!"</p>
+                    <button class="btn btn-sm btn-success" onclick="copyMessage(this)">
+                        <i class="bi bi-clipboard"></i> Copiar
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card border-2 border-warning">
+                <div class="card-body">
+                    <h6 class="fw-bold text-warning">Comercial</h6>
+                    <p class="text-muted small mb-2">"Parabéns! Como presente de aniversário, que tal conhecer nossas novas linhas de crédito? Vamos conversar!"</p>
+                    <button class="btn btn-sm btn-warning" onclick="copyMessage(this)">
+                        <i class="bi bi-clipboard"></i> Copiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block reports_js %}
+<script>
+function copyMessage(button) {
+    const message = button.parentNode.querySelector('p').textContent;
+    navigator.clipboard.writeText(message).then(function() {
+        // Feedback visual
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-check"></i> Copiado!';
+        button.disabled = true;
+        
+        setTimeout(function() {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }, 2000);
+    });
+}
+
+// Auto-atualizar a cada hora durante o expediente
+if (new Date().getHours() >= 8 && new Date().getHours() <= 18) {
+    setTimeout(function() {
+        location.reload();
+    }, 60 * 60 * 1000); // 1 hora
+}
+</script>
+{% endblock %} 

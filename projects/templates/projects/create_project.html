@@ -336,7 +336,21 @@
             </div>
             <div class="col-md-6 mb-3">
                 <label for="unit" class="form-label fw-bold">Unidade:</label>
-                <input type="text" name="unit" id="unit" class="form-control" value="{{ request.user.unit.name }}" readonly disabled>
+                {% if has_multiple_units %}
+                    <select name="unit_id" id="unit" class="form-control" required>
+                        <option value="">Selecione uma unidade</option>
+                        {% for unit in user_units %}
+                            <option value="{{ unit.id }}">{{ unit.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">
+                        Por favor, selecione uma unidade.
+                    </div>
+                {% else %}
+                    <input type="text" name="unit" id="unit" class="form-control" 
+                        value="{{ single_unit.name }}" readonly disabled>
+                    <input type="hidden" name="unit_id" value="{{ single_unit.id }}">
+                {% endif %}
             </div>
         </div>
 

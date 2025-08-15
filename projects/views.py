@@ -37,7 +37,6 @@ def create_project_view(request):
                 percentage_astec=request.POST.get('percentage_astec'),
                 description=request.POST.get('description'),
                 next_phase_deadline=request.POST.get('next_phase_deadline'),
-                unit=request.user.unit,
                 enterprise=request.user.enterprise
             )
             
@@ -59,7 +58,17 @@ def create_project_view(request):
 
             if value:
                 project.value = Decimal(value)
-
+            
+            # Definir a unidade do projeto
+            user_units = request.user.units.all()
+            selected_unit_id = request.POST.get('unit_id')
+            if selected_unit_id and user_units.filter(id=selected_unit_id).exists():
+                # Se uma unidade específica foi selecionada, usa apenas ela
+                project.unit_id = selected_unit_id
+            elif user_units.exists():
+                # Se não selecionou unidade específica ou usuário tem apenas uma unidade
+                project.unit = user_units.first()
+            
             project.save()
 
             # Processar documentos
@@ -99,10 +108,11 @@ def create_project_view(request):
         # Usuários que podem ver todos os clientes da empresa
         clients = Client.objects.filter(enterprise=request.user.enterprise)
     else:
-        # Usuários que só podem ver clientes da sua unidade
+        # Usuários que só podem ver clientes das suas unidades
+        user_units = request.user.units.all()
         clients = Client.objects.filter(
             enterprise=request.user.enterprise,
-            units=request.user.unit
+            units__in=user_units
         )
 
     credit_lines = CreditLine.objects.filter(enterprise=request.user.enterprise)
@@ -115,6 +125,9 @@ def create_project_view(request):
         is_active=True
     ).distinct()
 
+    # Preparar contexto das unidades
+    user_units = request.user.units.all()
+
     return render(request, 'projects/create_project.html', {
         'clients': clients,
         'credit_lines': credit_lines,
@@ -125,6 +138,9 @@ def create_project_view(request):
         'is_completed': False,
         'project': None,
         'enterprise': request.user.enterprise,
+        'user_units': user_units,
+        'has_multiple_units': user_units.count() > 1,
+        'single_unit': user_units.first() if user_units.count() == 1 else None
     })
 
 # Adiciona um novo banco
@@ -360,8 +376,9 @@ def projects_list_view(request):
         # Ver apenas próprios projetos
         projects = projects.filter(project_designer=request.user)
     elif request.user.has_perm('users.view_unit_projects') and not request.user.has_perm('users.view_all_projects'):
-        # Ver projetos da unidade
-        projects = projects.filter(unit=request.user.unit)
+        # Ver projetos das unidades
+        user_units = request.user.units.all()
+        projects = projects.filter(unit__in=user_units)
     # Se tem view_all_projetos, vê todos (não filtra)
         
     if status_filter:

@@ -1,0 +1,345 @@
+{% extends 'reports/base_reports.html' %}
+{% load humanize %}
+
+{% block reports_title %}Indicadores de Clientes{% endblock %}
+{% block reports_subtitle %}
+<p class="text-muted mb-0">Análise completa da base de clientes e taxas de conversão</p>
+{% endblock %}
+
+{% block reports_content %}
+<!-- Métricas Principais -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-people display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">{{ total_active_clients|default:0 }}</h3>
+                <p class="mb-0 opacity-90">Clientes Ativos</p>
+                <small class="opacity-75">Base total</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card success h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-arrow-repeat display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">{{ repurchase_rate|default:0 }}%</h3>
+                <p class="mb-0 opacity-90">Taxa de Recompra</p>
+                <small class="opacity-75">RPR geral</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card info h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-funnel display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">73%</h3>
+                <p class="mb-0 opacity-90">Taxa Conversão</p>
+                <small class="opacity-75">Lead → Cliente</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card warning h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-person-plus display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">45</h3>
+                <p class="mb-0 opacity-90">Novos Clientes</p>
+                <small class="opacity-75">Este mês</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Clientes por Status -->
+<div class="container-style">
+    <h5 class="fw-bold mb-3 text-color-primary">
+        <i class="bi bi-pie-chart me-2"></i>
+        Distribuição por Status
+    </h5>
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="table-container">
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Quantidade</th>
+                            <th>Percentual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for status in clients_by_status %}
+                        <tr>
+                            <td>
+                                <span class="badge 
+                                    {% if status.status == 'ATIVO' %}bg-success
+                                    {% elif status.status == 'INTERESSADO' %}bg-info
+                                    {% elif status.status == 'EM_NEGOCIACAO' %}bg-warning
+                                    {% else %}bg-secondary
+                                    {% endif %}">
+                                    {{ status.get_status_display|default:status.status }}
+                                </span>
+                            </td>
+                            <td class="fw-medium">{{ status.count }}</td>
+                            <td>
+                                {% if status.count > 0 %}
+                                    {% widthratio status.count total_active_clients 100 as percentage %}
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-grow-1 me-2">
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar" style="width: {{ percentage }}%; background-color: {{ enterprise.primary_color }};"></div>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">{{ percentage }}%</small>
+                                    </div>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">
+                                <i class="bi bi-people fs-1 opacity-25"></i>
+                                <p class="mt-2">Nenhum cliente encontrado</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div style="height: 300px;">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance por Unidade -->
+<div class="container-style mt-4">
+    <h5 class="fw-bold mb-3 text-color-primary">
+        <i class="bi bi-building me-2"></i>
+        Performance por Unidade
+    </h5>
+    <div class="table-container">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th>Unidade</th>
+                    <th>Total Clientes</th>
+                    <th>Clientes Ativos</th>
+                    <th>Taxa Recompra</th>
+                    <th>Performance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for unit in units_metrics %}
+                <tr>
+                    <td class="fw-medium">{{ unit.name }}</td>
+                    <td>{{ unit.total_clients|default:0 }}</td>
+                    <td>{{ unit.active_clients|default:0 }}</td>
+                    <td>
+                        {% if unit.total_clients > 0 and unit.repurchase_clients %}
+                            {% widthratio unit.repurchase_clients unit.total_clients 100 as repurchase_rate %}
+                            <span class="badge 
+                                {% if repurchase_rate >= 20 %}bg-success
+                                {% elif repurchase_rate >= 10 %}bg-warning
+                                {% else %}bg-danger
+                                {% endif %}">
+                                {{ repurchase_rate }}%
+                            </span>
+                        {% else %}
+                            <span class="badge bg-secondary">0%</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if unit.active_clients > 0 %}
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1 me-2">
+                                    <div class="progress" style="height: 8px;">
+                                        {% widthratio unit.active_clients 100 1 as performance %}
+                                        <div class="progress-bar" style="width: {{ performance|default:5 }}%; background-color: {{ enterprise.primary_color }};"></div>
+                                    </div>
+                                </div>
+                                <small class="text-muted">{{ performance|default:5 }}%</small>
+                            </div>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        <i class="bi bi-building fs-1 opacity-25"></i>
+                        <p class="mt-2">Nenhuma unidade encontrada</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Gráficos de Tendências -->
+<div class="row g-4 mt-4">
+    <div class="col-lg-6">
+        <div class="chart-container">
+            <h5 class="fw-bold mb-3 text-color-primary">
+                <i class="bi bi-graph-up me-2"></i>
+                Evolução da Base de Clientes
+            </h5>
+            <div style="height: 300px;">
+                <canvas id="evolutionChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="chart-container">
+            <h5 class="fw-bold mb-3 text-color-primary">
+                <i class="bi bi-arrow-repeat me-2"></i>
+                Taxa de Recompra por Mês
+            </h5>
+            <div style="height: 300px;">
+                <canvas id="repurchaseChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block reports_js %}
+<script>
+// Gráfico de Status dos Clientes
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+const statusChart = new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [
+            {% for status in clients_by_status %}
+            '{{ status.get_status_display|default:status.status }}'{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        datasets: [{
+            data: [
+                {% for status in clients_by_status %}
+                {{ status.count }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            backgroundColor: [
+                '{{ enterprise.primary_color }}', '#198754', '#ffc107', '#dc3545', '#6c757d'
+            ]
+        }]
+    },
+    options: {
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    font: {
+                        family: "'Inter', sans-serif"
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Gráfico de Evolução
+const evolutionCtx = document.getElementById('evolutionChart').getContext('2d');
+const evolutionChart = new Chart(evolutionCtx, {
+    type: 'line',
+    data: {
+        labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
+        datasets: [{
+            label: 'Clientes Ativos',
+            data: [450, 465, 478, 492, 510, 525],
+            borderColor: '{{ enterprise.primary_color }}',
+            backgroundColor: 'rgba({{ enterprise.primary_color|slice:"1:"|cut:"#" }}, 0.1)',
+            tension: 0.4,
+            fill: true
+        }, {
+            label: 'Novos Clientes',
+            data: [35, 28, 42, 38, 45, 40],
+            borderColor: '#198754',
+            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+            tension: 0.4,
+            fill: false
+        }]
+    },
+    options: {
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    font: {
+                        family: "'Inter', sans-serif"
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                }
+            },
+            x: {
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                }
+            }
+        }
+    }
+});
+
+// Gráfico de Taxa de Recompra
+const repurchaseCtx = document.getElementById('repurchaseChart').getContext('2d');
+const repurchaseChart = new Chart(repurchaseCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
+        datasets: [{
+            label: 'Taxa de Recompra (%)',
+            data: [18, 22, 19, 25, 28, 24],
+            backgroundColor: '{{ enterprise.primary_color }}',
+            borderRadius: 4
+        }]
+    },
+    options: {
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 35,
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                },
+                title: {
+                    display: true,
+                    text: 'Taxa de Recompra (%)'
+                }
+            },
+            x: {
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %} 

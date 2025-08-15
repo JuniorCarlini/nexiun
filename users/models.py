@@ -80,10 +80,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('auto', 'Automático (Sistema)'),
     ]
     
-    name = models.CharField(max_length=255)
-    email = models.EmailField(unique=True, null=True)
-    cpf = models.CharField(max_length=14, unique=True, null=True)
-    phone = models.CharField(max_length=20, null=True)
+    name = models.CharField(max_length=255, verbose_name="Nome")
+    email = models.EmailField(unique=True, null=True, verbose_name="Email")
+    cpf = models.CharField(max_length=14, unique=True, null=True, verbose_name="CPF")
+    phone = models.CharField(max_length=20, null=True, verbose_name="Telefone")
     theme_preference = models.CharField(
         max_length=10, 
         choices=THEME_CHOICES, 
@@ -108,11 +108,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Permissões específicas além das do cargo"
     )
     date_of_birth = models.DateField(null=True, blank=True, verbose_name="Data de Nascimento")
-    profile_image = models.ImageField(upload_to=user_directory_path, blank=True, null=True)
-    enterprise = models.ForeignKey(Enterprise, on_delete=models.SET_NULL, null=True, blank=True)
-    unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True)
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
+    profile_image = models.ImageField(upload_to=user_directory_path, blank=True, null=True, verbose_name="Imagem de Perfil")
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Empresa")
+    units = models.ManyToManyField(Unit, blank=True, related_name='users', verbose_name="Unidades")
+    is_active = models.BooleanField(default=True, verbose_name="Ativo")
+    is_staff = models.BooleanField(default=False, verbose_name="Django Staff")
 
     objects = CustomUserManager()
 

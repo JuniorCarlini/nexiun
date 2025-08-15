@@ -1,0 +1,242 @@
+{% extends 'reports/base_reports.html' %}
+{% load humanize %}
+
+{% block reports_title %}Performance de Captadores{% endblock %}
+{% block reports_subtitle %}
+<p class="text-muted mb-0">Ranking e métricas de performance dos captadores</p>
+{% endblock %}
+
+{% block reports_content %}
+<!-- Filtros -->
+<div class="filter-bar">
+    <form method="GET" class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label for="period" class="form-label fw-bold">Período:</label>
+            <select name="period" id="period" class="form-select">
+                <option value="30">Últimos 30 dias</option>
+                <option value="90" selected>Últimos 90 dias</option>
+                <option value="365">Último ano</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="unit" class="form-label fw-bold">Unidade:</label>
+            <select name="unit" id="unit" class="form-select">
+                <option value="">Todas as unidades</option>
+                <!-- Adicionar opções dinamicamente -->
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn button-style text-white">
+                <i class="bi bi-funnel me-1"></i>
+                Filtrar
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Ranking de Captadores -->
+<div class="container-style">
+    <h5 class="fw-bold mb-3 text-color-primary">
+        <i class="bi bi-trophy me-2"></i>
+        Ranking de Captadores
+    </h5>
+    <div class="table-container">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th>Posição</th>
+                    <th>Captador</th>
+                    <th>Unidade</th>
+                    <th>Clientes Captados</th>
+                    <th>Valor Total</th>
+                    <th>Ticket Médio</th>
+                    <th>Taxa Aprovação</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for captador in captadores %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            {% if forloop.counter <= 3 %}
+                                <i class="bi bi-award-fill me-2" style="color: 
+                                    {% if forloop.counter == 1 %}#FFD700
+                                    {% elif forloop.counter == 2 %}#C0C0C0
+                                    {% else %}#CD7F32{% endif %};"></i>
+                            {% endif %}
+                            <span class="fw-bold">{{ forloop.counter }}°</span>
+                        </div>
+                    </td>
+                    <td class="fw-medium">{{ captador.name }}</td>
+                    <td>{{ captador.unit.name|default:"-" }}</td>
+                    <td>{{ captador.clients_captured|default:0 }}</td>
+                    <td>
+                        {% if captador.total_value %}
+                            R$ {{ captador.total_value|floatformat:0|intcomma }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if captador.total_value and captador.clients_captured > 0 %}
+                            R$ {% widthratio captador.total_value captador.clients_captured 1 as avg_value %}{{ avg_value|floatformat:0|intcomma }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-success">85%</span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-person-check fs-1 opacity-25"></i>
+                        <p class="mt-2">Nenhum captador encontrado</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Métricas Gerais -->
+<div class="row g-4 mt-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-people display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">{{ captadores.count }}</h3>
+                <p class="mb-0 opacity-90">Captadores Ativos</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card success h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-person-plus display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">
+                    {% if captadores %}
+                        {% with captadores|first as primeiro_captador %}
+                            {{ primeiro_captador.clients_captured|default:0 }}
+                        {% endwith %}
+                    {% else %}
+                        0
+                    {% endif %}
+                </h3>
+                <p class="mb-0 opacity-90">Melhor Captador</p>
+                <small class="opacity-75">Clientes no período</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card info h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-currency-dollar display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">R$ 2,5M</h3>
+                <p class="mb-0 opacity-90">Volume Total</p>
+                <small class="opacity-75">Gerado pelos captadores</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card warning h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-graph-up display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">R$ 125k</h3>
+                <p class="mb-0 opacity-90">Ticket Médio</p>
+                <small class="opacity-75">Por captador</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráfico de Performance -->
+<div class="row g-4 mt-4">
+    <div class="col-12">
+        <div class="chart-container">
+            <h5 class="fw-bold mb-3 text-color-primary">
+                <i class="bi bi-bar-chart me-2"></i>
+                Performance Mensal dos Top 5 Captadores
+            </h5>
+            <div style="height: 400px;">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block reports_js %}
+<script>
+// Gráfico de Performance dos Captadores
+const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+const performanceChart = new Chart(performanceCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
+        datasets: [
+            {
+                label: 'João Silva',
+                data: [12, 15, 18, 14, 20, 16],
+                backgroundColor: '{{ enterprise.primary_color }}'
+            },
+            {
+                label: 'Maria Santos',
+                data: [10, 12, 15, 13, 17, 14],
+                backgroundColor: '#198754'
+            },
+            {
+                label: 'Pedro Oliveira',
+                data: [8, 10, 12, 11, 14, 12],
+                backgroundColor: '#ffc107'
+            },
+            {
+                label: 'Ana Costa',
+                data: [6, 8, 10, 9, 12, 10],
+                backgroundColor: '#dc3545'
+            },
+            {
+                label: 'Carlos Lima',
+                data: [5, 7, 8, 7, 10, 8],
+                backgroundColor: '#6f42c1'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    font: {
+                        family: "'Inter', sans-serif"
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                }
+            },
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                },
+                title: {
+                    display: true,
+                    text: 'Clientes Captados'
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %} 

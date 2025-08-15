@@ -139,9 +139,10 @@ def register_client_view(request):
         messages.error(request, 'Você não tem permissão para cadastrar clientes.')
         return redirect('list_clients')
     
-    # Verificar se o usuário tem uma unidade associada
-    if not request.user.unit:
-        messages.error(request, "Você precisa estar vinculado a uma unidade para cadastrar clientes.")
+    # Verificar se o usuário tem unidades associadas
+    user_units = request.user.units.all()
+    if not user_units.exists():
+        messages.error(request, "Você precisa estar vinculado a pelo menos uma unidade para cadastrar clientes.")
         return redirect('list_clients')
 
     # Preparar contexto
@@ -150,8 +151,10 @@ def register_client_view(request):
         'enterprise': request.user.enterprise,
         'client_documents': [],
         'is_completed': False,
-        'user_unit': request.user.unit,
-        'status_choices': CLIENT_STATUS_CHOICES
+        'user_units': user_units,
+        'status_choices': CLIENT_STATUS_CHOICES,
+        'has_multiple_units': user_units.count() > 1,
+        'single_unit': user_units.first() if user_units.count() == 1 else None
     }
 
     if request.method == "POST":
@@ -224,9 +227,14 @@ def register_client_view(request):
                 created_by=request.user
             )
             
-            # Associar cliente à unidade do usuário (se houver)
-            if request.user.unit:
-                client.units.add(request.user.unit)
+            # Associar cliente à unidade selecionada ou todas as unidades do usuário
+            selected_unit_id = request.POST.get('unit_id')
+            if selected_unit_id and user_units.filter(id=selected_unit_id).exists():
+                # Se uma unidade específica foi selecionada, usa apenas ela
+                client.units.set([selected_unit_id])
+            elif user_units.exists():
+                # Se não selecionou unidade específica ou usuário tem apenas uma unidade
+                client.units.set(user_units)
 
             messages.success(request, f"Cliente '{client.name}' cadastrado com sucesso!")
             return redirect('list_clients')
@@ -261,10 +269,11 @@ def view_client_view(request, client_id):
             'enterprise': request.user.enterprise
         }
         
-        # Se o usuário só pode ver clientes da sua unidade
+        # Se o usuário só pode ver clientes das suas unidades
         if request.user.has_perm('users.view_unit_clients') and not request.user.has_perm('users.view_all_clients'):
-            if request.user.unit:
-                client = get_object_or_404(Client, id=client_id, enterprise=request.user.enterprise, units=request.user.unit)
+            user_units = request.user.units.all()
+            if user_units.exists():
+                client = get_object_or_404(Client, id=client_id, enterprise=request.user.enterprise, units__in=user_units)
             else:
                 messages.error(request, 'Você não está associado a nenhuma unidade.')
                 return redirect('list_clients')
@@ -435,9 +444,10 @@ def client_list_view(request):
     
     # Filtrar por permissões específicas
     if request.user.has_perm('users.view_unit_clients') and not request.user.has_perm('users.view_all_clients'):
-        # Ver apenas clientes da sua unidade
-        if request.user.unit:
-            clients = clients.filter(units=request.user.unit)
+        # Ver apenas clientes das suas unidades
+        user_units = request.user.units.all()
+        if user_units.exists():
+            clients = clients.filter(units__in=user_units)
     
     # Filtros
     status_filter = request.GET.get('status', '')
@@ -479,10 +489,11 @@ def toggle_client_status_view(request, client_id):
         'enterprise': request.user.enterprise
     }
     
-    # Se o usuário só pode alterar clientes da sua unidade
+    # Se o usuário só pode alterar clientes das suas unidades
     if request.user.has_perm('users.view_unit_clients') and not request.user.has_perm('users.view_all_clients'):
-        if request.user.unit:
-            client = get_object_or_404(Client, id=client_id, enterprise=request.user.enterprise, units=request.user.unit)
+        user_units = request.user.units.all()
+        if user_units.exists():
+            client = get_object_or_404(Client, id=client_id, enterprise=request.user.enterprise, units__in=user_units)
         else:
             messages.error(request, 'Você não está associado a nenhuma unidade.')
             return redirect('list_clients')
@@ -516,14 +527,15 @@ def list_messages_view(request):
     # Buscar mensagens baseadas nas permissões do usuário
     messages_query = InternalMessage.objects.filter(enterprise=request.user.enterprise)
     
-    # Se o usuário tem permissão limitada (só vê mensagens da sua unidade)
+    # Se o usuário tem permissão limitada (só vê mensagens das suas unidades)
     if request.user.has_perm('users.view_unit_messages') and not request.user.has_perm('users.view_all_messages'):
-        if request.user.unit:
-            # Mensagens da empresa toda + mensagens específicas da unidade do usuário
+        user_units = request.user.units.all()
+        if user_units.exists():
+            # Mensagens da empresa toda + mensagens específicas das unidades do usuário
             from django.db import models as django_models
             messages_query = messages_query.filter(
                 django_models.Q(scope='empresa') | 
-                django_models.Q(scope='unidade', unit=request.user.unit)
+                django_models.Q(scope='unidade', unit__in=user_units)
             )
         else:
             # Se não tem unidade, só vê mensagens da empresa
@@ -559,10 +571,11 @@ def edit_message_view(request, message_id):
     
     message = get_object_or_404(InternalMessage, id=message_id, enterprise=request.user.enterprise)
     
-    # Se o usuário só pode editar mensagens da sua unidade
+    # Se o usuário só pode editar mensagens das suas unidades
     if request.user.has_perm('users.view_unit_messages') and not request.user.has_perm('users.view_all_messages'):
-        if message.scope == 'unidade' and message.unit != request.user.unit:
-            messages.error(request, 'Você só pode editar mensagens da sua unidade.')
+        user_units = request.user.units.all()
+        if message.scope == 'unidade' and message.unit not in user_units:
+            messages.error(request, 'Você só pode editar mensagens das suas unidades.')
             return redirect('list_messages')
     
     if request.method == 'POST':

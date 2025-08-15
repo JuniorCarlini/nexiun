@@ -75,6 +75,10 @@ class Enterprise(models.Model):
     primary_color = models.CharField(max_length=7, default='#05677D')
     secondary_color = models.CharField(max_length=7, default='#FFB845')
     text_icons_color = models.CharField(max_length=7, default='#FFFFFF')
+    
+    # Campos de auditoria
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
 
     def __str__(self):
         return self.name

@@ -24,8 +24,8 @@ def create_bank_account_view(request):
         description = request.POST.get('description', '').strip()
         initial_balance = request.POST.get('initial_balance', '0').replace(',', '.')
 
-        # Usar a unidade do usuário logado
-        unit = request.user.unit
+        # Usar a primeira unidade do usuário logado
+        unit = request.user.units.first()
 
         # Validações
         errors = []
@@ -372,16 +372,18 @@ def unit_transactions_list_view(request, unit_id=None):
         if request.user.has_perm('users.view_all_unit_transactions'):
             unit = get_object_or_404(Unit, id=unit_id, enterprise=request.user.enterprise)
         else:
-            # Só pode ver a própria unidade
-            if not request.user.unit:
+            # Só pode ver as próprias unidades
+            user_units = request.user.units.all()
+            if not user_units.exists():
                 messages.error(request, 'Você não está associado a nenhuma unidade.')
                 return redirect('home')
-            if unit_id != request.user.unit.id:
+            if unit_id not in user_units.values_list('id', flat=True):
                 messages.error(request, 'Você não tem permissão para acessar esta unidade.')
                 return redirect('home')
             unit = get_object_or_404(Unit, id=unit_id, enterprise=request.user.enterprise)
     else:
-        unit = request.user.unit
+        # Se não especificou unit_id, usar a primeira unidade do usuário
+        unit = request.user.units.first()
         if not unit:
             messages.error(request, 'Você não está associado a nenhuma unidade.')
             return redirect('home')
@@ -442,16 +444,18 @@ def add_transaction_view(request, unit_id=None):
         if request.user.has_perm('users.view_all_unit_transactions'):
             unit = get_object_or_404(Unit, id=unit_id, enterprise=request.user.enterprise)
         else:
-            # Só pode adicionar transações para a própria unidade
-            if not request.user.unit:
+            # Só pode adicionar transações para as próprias unidades
+            user_units = request.user.units.all()
+            if not user_units.exists():
                 messages.error(request, 'Você não está associado a nenhuma unidade.')
                 return redirect('home')
-            if unit_id != request.user.unit.id:
+            if unit_id not in user_units.values_list('id', flat=True):
                 messages.error(request, 'Você não tem permissão para acessar esta unidade.')
                 return redirect('home')
             unit = get_object_or_404(Unit, id=unit_id, enterprise=request.user.enterprise)
     else:
-        unit = request.user.unit
+        # Se não especificou unit_id, usar a primeira unidade do usuário
+        unit = request.user.units.first()
         if not unit:
             messages.error(request, 'Você não está associado a nenhuma unidade.')
             return redirect('home')
@@ -547,7 +551,8 @@ def edit_transaction_view(request, transaction_id):
     if request.user.has_perm('users.view_all_unit_transactions'):
         transaction = get_object_or_404(Transaction, id=transaction_id, unit__enterprise=request.user.enterprise)
     else:
-        transaction = get_object_or_404(Transaction, id=transaction_id, unit=request.user.unit, unit__enterprise=request.user.enterprise)
+        user_units = request.user.units.all()
+        transaction = get_object_or_404(Transaction, id=transaction_id, unit__in=user_units, unit__enterprise=request.user.enterprise)
     
     if request.method == 'POST':
         transaction_type = request.POST.get('transaction_type')
@@ -634,7 +639,8 @@ def delete_transaction_view(request, transaction_id):
     if request.user.has_perm('users.view_all_unit_transactions'):
         transaction = get_object_or_404(Transaction, id=transaction_id, unit__enterprise=request.user.enterprise)
     else:
-        transaction = get_object_or_404(Transaction, id=transaction_id, unit=request.user.unit, unit__enterprise=request.user.enterprise)
+        user_units = request.user.units.all()
+        transaction = get_object_or_404(Transaction, id=transaction_id, unit__in=user_units, unit__enterprise=request.user.enterprise)
     
     if request.method == 'POST':
         transaction.is_active = False
@@ -656,15 +662,17 @@ def financial_dashboard_new_view(request, unit_id=None):
         if request.user.has_perm('users.view_all_unit_transactions'):
             unit = get_object_or_404(Unit, id=unit_id, enterprise=request.user.enterprise)
         else:
-            if not request.user.unit:
+            user_units = request.user.units.all()
+            if not user_units.exists():
                 messages.error(request, 'Você não está associado a nenhuma unidade.')
                 return redirect('home')
-            if unit_id != request.user.unit.id:
+            if unit_id not in user_units.values_list('id', flat=True):
                 messages.error(request, 'Você não tem permissão para acessar esta unidade.')
                 return redirect('home')
             unit = get_object_or_404(Unit, id=unit_id, enterprise=request.user.enterprise)
     else:
-        unit = request.user.unit
+        # Se não especificou unit_id, usar a primeira unidade do usuário
+        unit = request.user.units.first()
         if not unit:
             messages.error(request, 'Você não está associado a nenhuma unidade.')
             return redirect('home')

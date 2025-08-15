@@ -265,7 +265,7 @@ def create_user_view(request):
         email = request.POST.get('email', '')
         cpf = request.POST.get('cpf', '')
         phone = request.POST.get('phone', '')
-        unit_id = request.POST.get('unit', '')
+        unit_ids = request.POST.getlist('units')
         password1 = request.POST.get('password1', '')
         password2 = request.POST.get('password2', '')
         
@@ -278,7 +278,7 @@ def create_user_view(request):
             'email': email,
             'cpf': cpf,
             'phone': phone,
-            'unit': unit_id,
+            'units': unit_ids,
             'roles': selected_roles,
             'custom_permissions': selected_permissions,
         }
@@ -289,7 +289,7 @@ def create_user_view(request):
             'email': email,
             'cpf': cpf,
             'telefone': phone,
-            'unidade': unit_id,
+            'unidades': unit_ids,
             'senha': password1,
             'confirmação de senha': password2
         }
@@ -317,10 +317,18 @@ def create_user_view(request):
             messages.error(request, 'CPF já cadastrado.')
             return render(request, 'users/register_user.html', context)
 
+        # Validar as unidades selecionadas
+        if not unit_ids:
+            messages.error(request, 'Selecione pelo menos uma unidade.')
+            return render(request, 'users/register_user.html', context)
+            
         try:
-            unit = Unit.objects.get(id=unit_id, enterprise=enterprise)
-        except Unit.DoesNotExist:
-            messages.error(request, 'Unidade inválida.')
+            selected_units = Unit.objects.filter(id__in=unit_ids, enterprise=enterprise)
+            if selected_units.count() != len(unit_ids):
+                messages.error(request, 'Uma ou mais unidades são inválidas.')
+                return render(request, 'users/register_user.html', context)
+        except (ValueError, Unit.DoesNotExist):
+            messages.error(request, 'Unidades inválidas.')
             return render(request, 'users/register_user.html', context)
 
         profile_image = request.FILES.get('logo')
@@ -348,11 +356,13 @@ def create_user_view(request):
                 cpf=cpf_clean,
                 phone=phone_clean,
                 profile_image=profile_image,
-                enterprise=enterprise,
-                unit=unit
+                enterprise=enterprise
             )
             new_user.set_password(password1)
             new_user.save()
+            
+            # Atribuir unidades selecionadas
+            new_user.units.set(selected_units)
             
             # Atribuir roles selecionados
             if selected_roles:
@@ -427,7 +437,7 @@ def edit_user_view(request, user_id):
             email = request.POST.get('email')
             cpf = request.POST.get('cpf')
             phone = request.POST.get('phone')
-            unit_id = request.POST.get('unit')
+            unit_ids = request.POST.getlist('units')
             
             # Cargos e permissões selecionados
             selected_roles = request.POST.getlist('roles')
@@ -449,10 +459,18 @@ def edit_user_view(request, user_id):
                 messages.error(request, 'Telefone inválido.')
                 return render(request, 'users/edit_user.html', context)
 
+            # Validar as unidades selecionadas
+            if not unit_ids:
+                messages.error(request, 'Selecione pelo menos uma unidade.')
+                return render(request, 'users/edit_user.html', context)
+                
             try:
-                unit = Unit.objects.get(id=unit_id, enterprise=enterprise)
-            except Unit.DoesNotExist:
-                messages.error(request, 'Unidade inválida.')
+                selected_units = Unit.objects.filter(id__in=unit_ids, enterprise=enterprise)
+                if selected_units.count() != len(unit_ids):
+                    messages.error(request, 'Uma ou mais unidades são inválidas.')
+                    return render(request, 'users/edit_user.html', context)
+            except (ValueError, Unit.DoesNotExist):
+                messages.error(request, 'Unidades inválidas.')
                 return render(request, 'users/edit_user.html', context)
 
             # Atualiza senha se fornecida
@@ -486,8 +504,10 @@ def edit_user_view(request, user_id):
             edit_user.email = email 
             edit_user.cpf = cpf_clean
             edit_user.phone = phone_clean
-            edit_user.unit = unit
             edit_user.save()
+            
+            # Atualizar unidades
+            edit_user.units.set(selected_units)
             
             # Atualizar roles e permissões
             if selected_roles:
@@ -523,8 +543,9 @@ def list_users_view(request):
     
     # Se o usuário só pode ver usuários da sua unidade
     if request.user.has_perm('users.view_unit_users') and not request.user.has_perm('users.view_all_users'):
-        if request.user.unit:
-            users = users.filter(unit=request.user.unit)
+        user_units = request.user.units.all()
+        if user_units.exists():
+            users = users.filter(units__in=user_units)
 
     paginator = Paginator(users, 20)
     users_page = paginator.get_page(request.GET.get("page"))

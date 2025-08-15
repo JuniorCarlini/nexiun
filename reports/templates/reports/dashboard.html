@@ -1,0 +1,314 @@
+{% extends 'reports/base_reports.html' %}
+{% load humanize %}
+
+{% block reports_title %}Dashboard de Relatórios{% endblock %}
+{% block reports_subtitle %}
+<p class="text-muted mb-0">Visão geral dos principais indicadores</p>
+{% endblock %}
+
+{% block reports_content %}
+<!-- Filtros -->
+<div class="filter-bar">
+    <form method="GET" class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label for="period" class="form-label fw-bold">Período:</label>
+            <select name="period" id="period" class="form-select" onchange="this.form.submit()">
+                <option value="30" {% if period_days == 30 %}selected{% endif %}>Últimos 30 dias</option>
+                <option value="90" {% if period_days == 90 %}selected{% endif %}>Últimos 90 dias</option>
+                <option value="365" {% if period_days == 365 %}selected{% endif %}>Último ano</option>
+                <option value="730" {% if period_days == 730 %}selected{% endif %}>Últimos 2 anos</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">
+                <i class="bi bi-arrow-clockwise me-1"></i>
+                Atualizar
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Métricas Principais -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-text display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">{{ total_projects|floatformat:0 }}</h3>
+                <p class="mb-0 opacity-90">Total de Propostas</p>
+                <small class="opacity-75">Últimos {{ period_days }} dias</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card success h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">{{ approval_rate }}%</h3>
+                <p class="mb-0 opacity-90">Taxa de Aprovação</p>
+                <small class="opacity-75">{{ approved_projects }} aprovadas</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card info h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-clock display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">{{ avg_approval_time }} dias</h3>
+                <p class="mb-0 opacity-90">Tempo Médio</p>
+                <small class="opacity-75">Aprovação</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6">
+        <div class="card metric-card warning h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-arrow-repeat display-4 mb-3 opacity-75"></i>
+                <h3 class="fw-bold mb-1">{{ rework_rate }}%</h3>
+                <p class="mb-0 opacity-90">Taxa de Retrabalho</p>
+                <small class="opacity-75">Projetos devolvidos</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos e Tabelas -->
+<div class="row g-4">
+    <!-- Propostas por Status -->
+    <div class="col-lg-6">
+        <div class="chart-container">
+            <h5 class="fw-bold mb-3 text-color-primary">
+                <i class="bi bi-pie-chart me-2"></i>
+                Propostas por Status
+            </h5>
+            <div style="height: 300px;">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Evolução Mensal -->
+    <div class="col-lg-6">
+        <div class="chart-container">
+            <h5 class="fw-bold mb-3 text-color-primary">
+                <i class="bi bi-graph-up me-2"></i>
+                Evolução Mensal
+            </h5>
+            <div style="height: 300px;">
+                <canvas id="evolutionChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top 5 Bancos -->
+    <div class="col-lg-6">
+        <div class="container-style">
+            <h5 class="fw-bold mb-3 text-color-primary">
+                <i class="bi bi-bank me-2"></i>
+                Top 5 Bancos
+            </h5>
+            <div class="table-container">
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th>Banco</th>
+                            <th>Propostas</th>
+                            <th>Participação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bank in top_banks %}
+                        <tr>
+                            <td class="fw-medium">{{ bank.name }}</td>
+                            <td>{{ bank.project_count }}</td>
+                            <td>
+                                {% widthratio bank.project_count total_projects 100 as percentage %}
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1 me-2">
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar" style="width: {{ percentage }}%; background-color: {{ enterprise.primary_color }};"></div>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">{{ percentage }}%</small>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">
+                                <i class="bi bi-bank fs-1 opacity-25"></i>
+                                <p class="mt-2">Nenhum banco encontrado</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top 5 Unidades -->
+    <div class="col-lg-6">
+        <div class="container-style">
+            <h5 class="fw-bold mb-3 text-color-primary">
+                <i class="bi bi-building me-2"></i>
+                Top 5 Unidades
+            </h5>
+            <div class="table-container">
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th>Unidade</th>
+                            <th>Propostas</th>
+                            <th>Valor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for unit in top_units %}
+                        <tr>
+                            <td class="fw-medium">{{ unit.name }}</td>
+                            <td>{{ unit.project_count }}</td>
+                            <td>
+                                {% if unit.total_value %}
+                                    R$ {{ unit.total_value|floatformat:0|intcomma }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">
+                                <i class="bi bi-building fs-1 opacity-25"></i>
+                                <p class="mt-2">Nenhuma unidade encontrada</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumo de Clientes -->
+<div class="row g-4 mt-2">
+    <div class="col-12">
+        <div class="container-style">
+            <h5 class="fw-bold mb-3 text-color-primary">
+                <i class="bi bi-people me-2"></i>
+                Resumo de Clientes
+            </h5>
+            <div class="row g-0">
+                <div class="col-lg-3 col-6 p-4 border-end text-center">
+                    <h4 class="fw-bold mb-1" style="color: {{ enterprise.primary_color }};">{{ active_clients }}</h4>
+                    <p class="text-muted mb-0">Clientes Ativos</p>
+                </div>
+                <div class="col-lg-3 col-6 p-4 border-end text-center">
+                    <h4 class="fw-bold text-success mb-1">{{ approved_projects }}</h4>
+                    <p class="text-muted mb-0">Projetos Aprovados</p>
+                </div>
+                <div class="col-lg-3 col-6 p-4 border-end text-center">
+                    <h4 class="fw-bold text-info mb-1">{{ avg_approval_time }} dias</h4>
+                    <p class="text-muted mb-0">Tempo Médio</p>
+                </div>
+                <div class="col-lg-3 col-6 p-4 text-center">
+                    <h4 class="fw-bold text-warning mb-1">{{ rework_rate }}%</h4>
+                    <p class="text-muted mb-0">Taxa Retrabalho</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block reports_js %}
+<script>
+// Gráfico de Status
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+const statusChart = new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Em Acolhimento', 'Com Pendência', 'Em Análise', 'Aprovados', 'Finalizados'],
+        datasets: [{
+            data: [15, 8, 12, 35, 30], // Dados mockados - substituir por dados reais
+            backgroundColor: [
+                '#6c757d',
+                '#ffc107', 
+                '#0dcaf0',
+                '#198754',
+                '{{ enterprise.primary_color }}'
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    usePointStyle: true,
+                    font: {
+                        family: "'Inter', sans-serif"
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Gráfico de Evolução
+const evolutionCtx = document.getElementById('evolutionChart').getContext('2d');
+const evolutionChart = new Chart(evolutionCtx, {
+    type: 'line',
+    data: {
+        labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
+        datasets: [{
+            label: 'Propostas',
+            data: [65, 59, 80, 81, 56, 55],
+            borderColor: '{{ enterprise.primary_color }}',
+            backgroundColor: 'rgba({{ enterprise.primary_color|slice:"1:"|cut:"#" }}, 0.1)',
+            tension: 0.4,
+            fill: true
+        }, {
+            label: 'Aprovadas',
+            data: [45, 39, 60, 61, 36, 35],
+            borderColor: '#198754',
+            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    font: {
+                        family: "'Inter', sans-serif"
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                }
+            },
+            x: {
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %} 

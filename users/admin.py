@@ -20,10 +20,18 @@ class SystemModuleAdmin(admin.ModelAdmin):
     list_editable = ('order', 'is_active')
 
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('email', 'name', 'enterprise', 'unit', 'date_of_birth', 'is_active', 'is_staff')
+    list_display = ('email', 'name', 'enterprise', 'get_units_display', 'date_of_birth', 'is_active', 'is_staff')
     list_filter = ('is_active', 'is_staff', 'enterprise', 'theme_preference')
     search_fields = ('email', 'name', 'cpf')
-    filter_horizontal = ('roles', 'custom_permissions', 'groups', 'user_permissions')
+    filter_horizontal = ('roles', 'custom_permissions', 'groups', 'user_permissions', 'units')
+    
+    def get_units_display(self, obj):
+        """Mostra as unidades do usuário no admin"""
+        units = obj.units.all()
+        if units:
+            return ", ".join([unit.name for unit in units])
+        return "Nenhuma unidade"
+    get_units_display.short_description = 'Unidades'
     
     fieldsets = (
         ('Informações Básicas', {
@@ -33,7 +41,7 @@ class UserAdmin(admin.ModelAdmin):
             'fields': ('theme_preference',)
         }),
         ('Organização', {
-            'fields': ('enterprise', 'unit')
+            'fields': ('enterprise', 'units')
         }),
         ('Sistema de Permissões', {
             'fields': ('roles', 'custom_permissions')

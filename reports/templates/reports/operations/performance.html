@@ -1,0 +1,340 @@
+{% extends 'reports/base_reports.html' %}
+{% load humanize %}
+
+{% block reports_title %}Performance de Operações{% endblock %}
+{% block reports_subtitle %}
+<p class="text-muted mb-0">Análise detalhada do desempenho das propostas</p>
+{% endblock %}
+
+{% block reports_content %}
+<!-- Filtros -->
+<div class="filter-bar">
+    <form method="GET" class="row g-3 align-items-end">
+        <div class="col-md-2">
+            <label for="period" class="form-label fw-bold">Período:</label>
+            <select name="period" id="period" class="form-select">
+                <option value="30" {% if period_days == 30 %}selected{% endif %}>30 dias</option>
+                <option value="90" {% if period_days == 90 %}selected{% endif %}>90 dias</option>
+                <option value="365" {% if period_days == 365 %}selected{% endif %}>1 ano</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="unit" class="form-label fw-bold">Unidade:</label>
+            <select name="unit" id="unit" class="form-select">
+                <option value="">Todas as unidades</option>
+                {% for unit in units %}
+                <option value="{{ unit.id }}" {% if selected_unit == unit.id|stringformat:"s" %}selected{% endif %}>
+                    {{ unit.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="bank" class="form-label fw-bold">Banco:</label>
+            <select name="bank" id="bank" class="form-select">
+                <option value="">Todos os bancos</option>
+                {% for bank in banks %}
+                <option value="{{ bank.id }}" {% if selected_bank == bank.id|stringformat:"s" %}selected{% endif %}>
+                    {{ bank.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn button-style text-white">
+                <i class="bi bi-funnel me-1"></i>
+                Filtrar
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Métricas por Status -->
+<div class="container-style">
+    <h5 class="fw-bold mb-3 text-color-primary">
+        <i class="bi bi-graph-up me-2"></i>
+        Propostas por Status
+    </h5>
+    <div class="table-container">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>Quantidade</th>
+                    <th>Valor Total</th>
+                    <th>Participação</th>
+                    <th>Valor Médio</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for metric in status_metrics %}
+                <tr>
+                    <td>
+                        <span class="status-badge bg-primary text-white">
+                            {{ metric.status }}
+                        </span>
+                    </td>
+                    <td class="fw-medium">{{ metric.count }}</td>
+                    <td>
+                        {% if metric.total_value %}
+                            R$ {{ metric.total_value|floatformat:0|intcomma }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if metric.count > 0 %}
+                            {% with total_projects=status_metrics|length %}
+                            {% widthratio metric.count total_projects 100 as percentage %}
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1 me-2">
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar" style="width: {{ percentage }}%; background-color: {{ enterprise.primary_color }};"></div>
+                                    </div>
+                                </div>
+                                <small class="text-muted">{{ percentage }}%</small>
+                            </div>
+                            {% endwith %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if metric.total_value and metric.count > 0 %}
+                            R$ {% widthratio metric.total_value metric.count 1 as avg_value %}{{ avg_value|floatformat:0|intcomma }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        <i class="bi bi-graph-up fs-1 opacity-25"></i>
+                        <p class="mt-2">Nenhuma proposta encontrada no período selecionado</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Propostas por Linha de Crédito e Banco -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="container-style">
+            <h5 class="fw-bold mb-3 text-color-primary">
+                <i class="bi bi-credit-card me-2"></i>
+                Por Linha de Crédito
+            </h5>
+            <div class="table-container">
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th>Linha de Crédito</th>
+                            <th>Tipo</th>
+                            <th>Quantidade</th>
+                            <th>Valor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for metric in credit_line_metrics %}
+                        <tr>
+                            <td class="fw-medium">{{ metric.credit_line__name }}</td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {% if metric.credit_line__type_credit == 'CUS' %}
+                                        Custeio
+                                    {% elif metric.credit_line__type_credit == 'INV' %}
+                                        Investimento
+                                    {% else %}
+                                        Outros
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>{{ metric.count }}</td>
+                            <td>
+                                {% if metric.total_value %}
+                                    R$ {{ metric.total_value|floatformat:0|intcomma }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                <i class="bi bi-credit-card fs-1 opacity-25"></i>
+                                <p class="mt-2">Nenhuma linha de crédito encontrada</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Propostas por Banco -->
+    <div class="col-lg-6">
+        <div class="container-style">
+            <h5 class="fw-bold mb-3 text-color-primary">
+                <i class="bi bi-bank me-2"></i>
+                Por Banco
+            </h5>
+            <div class="table-container">
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th>Banco</th>
+                            <th>Quantidade</th>
+                            <th>Valor Total</th>
+                            <th>Ticket Médio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for metric in bank_metrics %}
+                        <tr>
+                            <td class="fw-medium">{{ metric.bank__name }}</td>
+                            <td>{{ metric.count }}</td>
+                            <td>
+                                {% if metric.total_value %}
+                                    R$ {{ metric.total_value|floatformat:0|intcomma }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if metric.total_value and metric.count > 0 %}
+                                    R$ {% widthratio metric.total_value metric.count 1 as avg_value %}{{ avg_value|floatformat:0|intcomma }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                <i class="bi bi-bank fs-1 opacity-25"></i>
+                                <p class="mt-2">Nenhum banco encontrado</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="chart-container">
+            <h5 class="fw-bold mb-3 text-color-primary">
+                <i class="bi bi-pie-chart me-2"></i>
+                Distribuição por Linha de Crédito
+            </h5>
+            <div style="height: 300px;">
+                <canvas id="creditLineChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="chart-container">
+            <h5 class="fw-bold mb-3 text-color-primary">
+                <i class="bi bi-bar-chart me-2"></i>
+                Performance por Banco
+            </h5>
+            <div style="height: 300px;">
+                <canvas id="bankChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block reports_js %}
+<script>
+// Gráfico de Linhas de Crédito
+const creditLineCtx = document.getElementById('creditLineChart').getContext('2d');
+const creditLineChart = new Chart(creditLineCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [
+            {% for metric in credit_line_metrics %}
+            '{{ metric.credit_line__name }}'{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        datasets: [{
+            data: [
+                {% for metric in credit_line_metrics %}
+                {{ metric.count }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            backgroundColor: [
+                '{{ enterprise.primary_color }}', '#198754', '#ffc107', '#dc3545', '#6f42c1', 
+                '#fd7e14', '#20c997', '#e83e8c', '#6c757d', '#17a2b8'
+            ]
+        }]
+    },
+    options: {
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    font: {
+                        family: "'Inter', sans-serif"
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Gráfico de Bancos
+const bankCtx = document.getElementById('bankChart').getContext('2d');
+const bankChart = new Chart(bankCtx, {
+    type: 'bar',
+    data: {
+        labels: [
+            {% for metric in bank_metrics %}
+            '{{ metric.bank__name }}'{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Quantidade',
+            data: [
+                {% for metric in bank_metrics %}
+                {{ metric.count }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            backgroundColor: '{{ enterprise.primary_color }}'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                }
+            },
+            x: {
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %} 

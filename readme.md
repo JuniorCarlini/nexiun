@@ -295,6 +295,31 @@ AWS_STORAGE_BUCKET_NAME=seu_bucket_s3
 - **Linting**: Seguindo PEP 8 e Django best practices
 - **Git Hooks**: Validação automática pre-commit
 
+### ⚠️ **Problemas Conhecidos e Soluções**
+
+#### **SQLite Limitations**
+
+⚠️ **Problema**: `NotSupportedError` ao usar agregações `Sum`, `Avg`, `StdDev`, `Variance` em campos de data/hora no SQLite.
+
+```python
+# ❌ INCORRETO - Causa erro no SQLite
+queryset.annotate(avg_approval_time=Avg('approval_date'))
+
+# ✅ CORRETO - Calcular manualmente
+def calculate_approval_time_manually(queryset):
+    total_days = 0
+    count = 0
+    for obj in queryset:
+        if obj.approval_date and obj.created_at:
+            days = (obj.approval_date - obj.created_at.date()).days
+            if days >= 0:
+                total_days += days
+                count += 1
+    return round(total_days / count, 1) if count > 0 else 0
+```
+
+**Solução**: Use PostgreSQL em produção ou implemente cálculos manuais para campos de data no SQLite.
+
 ---
 
 ## 🤝 Contribuição

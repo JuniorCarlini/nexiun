@@ -1,0 +1,163 @@
+{% extends 'reports/base_reports.html' %}
+
+{% block reports_title %}Exportar Relatórios{% endblock %}
+{% block reports_subtitle %}
+<p class="text-muted mb-0">Exporte dados em Excel ou PDF</p>
+{% endblock %}
+
+{% block reports_actions %}
+<!-- Remover ação de exportar -->
+{% endblock %}
+
+{% block reports_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="container-style">
+                <h5 class="fw-bold mb-3 text-color-primary">
+                    <i class="bi bi-download me-2"></i>
+                    Opções de Exportação
+                </h5>
+                <div class="row g-4">
+                    <!-- Tipo de Relatório -->
+                    <div class="col-12">
+                        <label for="report_type" class="form-label fw-bold">Tipo de Relatório:</label>
+                        <select name="report_type" id="report_type" class="form-select" required>
+                            <option value="">Selecione um relatório</option>
+                            <optgroup label="Operações">
+                                <option value="operations_performance">Performance de Operações</option>
+                                <option value="operations_timing">Tempo de Aprovação</option>
+                                <option value="operations_by_bank">Operações por Banco</option>
+                                <option value="operations_by_credit_line">Operações por Linha de Crédito</option>
+                            </optgroup>
+                            <optgroup label="Clientes">
+                                <option value="clients_indicators">Indicadores de Clientes</option>
+                                <option value="clients_conversion">Conversão de Clientes</option>
+                            </optgroup>
+                            <optgroup label="Desempenho">
+                                <option value="performance_captadores">Performance de Captadores</option>
+                                <option value="performance_projetistas">Performance de Projetistas</option>
+                                <option value="performance_unidades">Performance de Unidades</option>
+                                <option value="performance_bancos">Performance de Bancos</option>
+                            </optgroup>
+                            <optgroup label="Especiais">
+                                <option value="special_aniversarios">Clientes Aniversariantes</option>
+                                <option value="special_carteira_contatos">Carteira de Contatos</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    
+                    <!-- Formato de Exportação -->
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Formato:</label>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="card border-2 export-option" onclick="selectExportType('excel')" style="cursor: pointer;">
+                                    <div class="card-body text-center p-4">
+                                        <i class="bi bi-file-earmark-spreadsheet display-4 text-success mb-3"></i>
+                                        <h5 class="fw-bold">Excel (.xlsx)</h5>
+                                        <p class="text-muted mb-0">Planilha com dados detalhados para análise</p>
+                                        <input type="radio" name="export_type" value="excel" id="export_excel" class="d-none">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-2 export-option" onclick="selectExportType('pdf')" style="cursor: pointer;">
+                                    <div class="card-body text-center p-4">
+                                        <i class="bi bi-file-earmark-pdf display-4 text-danger mb-3"></i>
+                                        <h5 class="fw-bold">PDF (.pdf)</h5>
+                                        <p class="text-muted mb-0">Relatório formatado para impressão</p>
+                                        <input type="radio" name="export_type" value="pdf" id="export_pdf" class="d-none">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Informações -->
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Informações:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>Excel:</strong> Ideal para análise detalhada dos dados com filtros e fórmulas</li>
+                                <li><strong>PDF:</strong> Formato profissional para apresentações e arquivamento</li>
+                                <li>O arquivo será baixado automaticamente após a geração</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Botões -->
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{% url 'reports_dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    Voltar
+                </a>
+                <button type="submit" class="btn button-style text-white" id="exportBtn" disabled>
+                    <i class="bi bi-download me-1"></i>
+                    Exportar Relatório
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block reports_js %}
+<script>
+function selectExportType(type) {
+    // Remove seleção anterior
+    document.querySelectorAll('.export-option').forEach(el => {
+        el.classList.remove('border-primary', 'bg-light');
+        el.style.borderColor = '';
+    });
+    
+    // Adiciona seleção atual
+    const selectedCard = document.querySelector(`input[value="${type}"]`).closest('.export-option');
+    selectedCard.classList.add('border-primary', 'bg-light');
+    selectedCard.style.borderColor = '{{ enterprise.primary_color }}';
+    
+    // Marca o radio button
+    document.getElementById(`export_${type}`).checked = true;
+    
+    // Habilita o botão de exportar se ambos estão selecionados
+    checkFormComplete();
+}
+
+function checkFormComplete() {
+    const reportType = document.getElementById('report_type').value;
+    const exportType = document.querySelector('input[name="export_type"]:checked');
+    const exportBtn = document.getElementById('exportBtn');
+    
+    if (reportType && exportType) {
+        exportBtn.disabled = false;
+        exportBtn.innerHTML = `<i class="bi bi-download me-1"></i>Exportar ${exportType.value.toUpperCase()}`;
+    } else {
+        exportBtn.disabled = true;
+        exportBtn.innerHTML = '<i class="bi bi-download me-1"></i>Exportar Relatório';
+    }
+}
+
+// Event listeners
+document.getElementById('report_type').addEventListener('change', checkFormComplete);
+
+// CSS para as opções de exportação
+const style = document.createElement('style');
+style.textContent = `
+    .export-option {
+        transition: all 0.2s ease;
+    }
+    
+    .export-option:hover {
+        border-color: {{ enterprise.primary_color }} !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %} 

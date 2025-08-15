@@ -263,7 +263,7 @@
                     <label for="unit_info" class="form-label">
                         <i class="fas fa-building me-2"></i>Unidade:
                     </label>
-                    <input type="text" class="form-control" id="unit_info" value="{% if user.unit %}{{ user.unit.name }}{% else %}Nenhuma unidade atribuída{% endif %}" disabled readonly>
+                                            <input type="text" class="form-control" id="unit_info" value="{% for unit in user.units.all %}{{ unit.name }}{% if not forloop.last %}, {% endif %}{% empty %}Nenhuma unidade atribuída{% endfor %}" disabled readonly>
                     <div class="form-text">
                         <small class="text-muted">Entre em contato com o administrador para alterar a unidade</small>
                     </div>
@@ -397,7 +397,7 @@
                     <label for="enterprise_created" class="form-label">
                         <i class="fas fa-calendar me-2"></i>Empresa criada em:
                     </label>
-                    <input type="text" class="form-control" id="enterprise_created" value="{% if enterprise.id %}Informação não disponível{% else %}N/A{% endif %}" disabled readonly>
+                    <input type="text" class="form-control" id="enterprise_created" value="{% if enterprise.created_at %}{{ enterprise.created_at|date:'d/m/Y à\s H:i' }}{% else %}N/A{% endif %}" disabled readonly>
                     <div class="form-text">
                         <small class="text-muted">Data de criação da empresa no sistema</small>
                     </div>

@@ -85,12 +85,16 @@ SYSTEM_MODULES = {
     },
     'relatorios': {
         'name': 'Relatórios',
-        'icon': 'bi-bar-chart-fill',
+        'icon': 'bi-graph-up',
         'permissions': [
             ('view_reports', 'Visualizar relatórios'),
+            ('view_all_reports', 'Ver todos os relatórios da empresa'),
+            ('view_unit_reports', 'Ver relatórios da unidade'),
             ('export_reports', 'Exportar relatórios'),
-            ('view_advanced_reports', 'Visualizar relatórios avançados'),
-            ('create_custom_reports', 'Criar relatórios customizados'),
+            ('manage_report_settings', 'Gerenciar configurações de relatórios'),
+            ('schedule_reports', 'Agendar relatórios automáticos'),
+            ('view_performance_reports', 'Ver relatórios de performance'),
+            ('view_financial_reports', 'Ver relatórios financeiros'),
         ]
     },
     'configuracoes': {
