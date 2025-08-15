@@ -51,7 +51,7 @@ class Role(models.Model):
         return self.name
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email, name, phone=None, password=None, enterprise=None, unit=None, **extra_fields):
+    def create_user(self, email, name, phone=None, password=None, enterprise=None, **extra_fields):
         if not email:
             raise ValueError("O campo email é obrigatório")
         email = self.normalize_email(email)
@@ -61,17 +61,16 @@ class CustomUserManager(BaseUserManager):
             name=name,
             phone=phone,
             enterprise=enterprise,
-            unit=unit,
             **extra_fields
         )
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, name, phone=None, password=None, enterprise=None, unit=None, **extra_fields):
+    def create_superuser(self, email, name, phone=None, password=None, enterprise=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        return self.create_user(email, name, phone, password, enterprise, unit, **extra_fields)
+        return self.create_user(email, name, phone, password, enterprise, **extra_fields)
 
 class User(AbstractBaseUser, PermissionsMixin):
     THEME_CHOICES = [

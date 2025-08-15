@@ -367,7 +367,7 @@
                 <select name="project_designer" id="project_designer" class="form-control select2">
                     <option value="">Selecione um projetista (deixe vazio para ir para esteira)</option>
                     {% for projetista in projetistas %}
-                        <option value="{{ projetista.id }}">{{ projetista.name }} - {{ projetista.unit.name|default:"Sem unidade" }}</option>
+                        <option value="{{ projetista.id }}">{{ projetista.name }} - {% for unit in projetista.units.all %}{{ unit.name }}{% if not forloop.last %}, {% endif %}{% empty %}Sem unidade{% endfor %}</option>
                     {% endfor %}
                 </select>
             </div>

@@ -532,10 +532,10 @@ def conveyor_project_details_view(request, project_id):
             messages.error(request, 'Você não tem permissão para atribuir um gerente ou ser definido como projetista do projeto.')
 
     manager = project.project_manager
-    partner = User.objects.filter(unit=project.unit, roles__code__in=['socio_unidade', 'franqueado'], is_active=True).first()
+    partner = User.objects.filter(units=project.unit, roles__code__in=['socio_unidade', 'franqueado'], is_active=True).first()
     # Filtrar apenas gerentes, coordenadores e franqueados da mesma unidade do projeto
     managers_queryset = User.objects.filter(
-        unit=project.unit,
+        units=project.unit,
         roles__code__in=['gerente', 'coordenador', 'socio_unidade', 'franqueado'], 
         is_active=True
     ).distinct()
@@ -720,7 +720,7 @@ def project_details_view(request, project_id):
     manager = project.project_manager
     # Buscar sócio/franqueado da unidade (usuário com role de sócio ou franqueado)
     partner = User.objects.filter(
-        unit=project.unit, 
+        units=project.unit, 
         roles__code__in=['socio_unidade', 'franqueado']
     ).first()
     credit_lines = CreditLine.objects.filter(enterprise=project.enterprise)
