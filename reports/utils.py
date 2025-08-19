@@ -8,6 +8,7 @@ from io import BytesIO
 
 from projects.models import Project, ProjectHistory
 from enterprises.models import Client
+from units.models import Unit
 
 
 def calculate_approval_time(enterprise, start_date=None, detailed=False):
@@ -305,4 +306,87 @@ def calculate_royalties_by_unit(enterprise, period_start=None, period_end=None):
             'total_due': royalties_value + marketing_value
         })
     
-    return royalties_data 
+    return royalties_data
+
+
+def get_user_accessible_units(user):
+    """
+    Retorna as unidades que o usuário pode acessar nos relatórios
+    baseado em seu cargo e permissões
+    
+    Cargos com acesso limitado às suas unidades:
+    - socio_unidade, franqueado, gerente
+    
+    Cargos com acesso total:
+    - ceo, diretor, coordenador, financeiro
+    """
+    if not user or not user.is_authenticated:
+        return Unit.objects.none()
+    
+    # Obter códigos dos cargos do usuário
+    user_role_codes = list(user.roles.filter(is_active=True).values_list('code', flat=True))
+    
+    # Cargos com acesso restrito às suas próprias unidades
+    restricted_roles = ['socio_unidade', 'franqueado', 'gerente']
+    
+    # Cargos com acesso total
+    unrestricted_roles = ['ceo', 'diretor', 'coordenador', 'financeiro']
+    
+    # Verificar se o usuário tem algum cargo com acesso total
+    has_unrestricted_access = any(role in unrestricted_roles for role in user_role_codes)
+    
+    if has_unrestricted_access:
+        # Acesso a todas as unidades da empresa
+        return Unit.objects.filter(enterprise=user.enterprise, is_active=True)
+    else:
+        # Acesso apenas às unidades onde o usuário está vinculado
+        return user.units.filter(is_active=True)
+
+
+def filter_queryset_by_user_units(queryset, user, unit_field='unit'):
+    """
+    Filtra um queryset baseado nas unidades acessíveis ao usuário
+    
+    Args:
+        queryset: QuerySet a ser filtrado
+        user: Usuário logado
+        unit_field: Nome do campo que relaciona com Unit (ex: 'unit', 'units', 'client__units')
+    
+    Returns:
+        QuerySet filtrado pelas unidades acessíveis
+    """
+    accessible_units = get_user_accessible_units(user)
+    
+    if not accessible_units.exists():
+        # Se o usuário não tem acesso a nenhuma unidade, retorna queryset vazio
+        return queryset.none()
+    
+    # Construir filtro baseado no campo fornecido
+    if '__' in unit_field:
+        # Campo com relacionamento (ex: 'client__units')
+        filter_kwargs = {f"{unit_field}__in": accessible_units}
+    else:
+        # Campo direto (ex: 'unit')
+        filter_kwargs = {f"{unit_field}__in": accessible_units}
+    
+    return queryset.filter(**filter_kwargs)
+
+
+def get_user_accessible_projects(user, base_queryset=None):
+    """
+    Retorna projetos acessíveis ao usuário baseado em suas unidades
+    """
+    if base_queryset is None:
+        base_queryset = Project.objects.filter(enterprise=user.enterprise, is_active=True)
+    
+    return filter_queryset_by_user_units(base_queryset, user, 'unit')
+
+
+def get_user_accessible_clients(user, base_queryset=None):
+    """
+    Retorna clientes acessíveis ao usuário baseado em suas unidades
+    """
+    if base_queryset is None:
+        base_queryset = Client.objects.filter(enterprise=user.enterprise, is_active=True)
+    
+    return filter_queryset_by_user_units(base_queryset, user, 'units') 

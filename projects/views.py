@@ -146,9 +146,9 @@ def create_project_view(request):
 # Adiciona um novo banco
 @login_required
 def add_bank_view(request):
-    # Verificar se o usuário tem permissão para acessar a página
-    if not request.user.has_perm('users.add_banks'):
-        messages.error(request, 'Você não tem permissão para adicionar bancos.')
+    # Verificar se o usuário tem permissão master para gerenciar bancos
+    if not request.user.has_perm('users.manage_banks_master'):
+        messages.error(request, 'Você não tem permissão para gerenciar bancos.')
         return redirect('home')
     
     if request.method == 'POST':
@@ -175,9 +175,9 @@ def add_bank_view(request):
 # Editar o banco
 @login_required
 def bank_edit_view(request, bank_id):
-    # Verificar se o usuário tem permissão para acessar a página
-    if not request.user.has_perm('users.change_banks'):
-        messages.error(request, 'Você não tem permissão para editar bancos.')
+    # Verificar se o usuário tem permissão master para gerenciar bancos
+    if not request.user.has_perm('users.manage_banks_master'):
+        messages.error(request, 'Você não tem permissão para gerenciar bancos.')
         return redirect('home')
     
     bank = get_object_or_404(Bank, id=bank_id)
@@ -249,9 +249,9 @@ def toggle_bank_status_view(request, bank_id):
 # Adiciona uma nova Linha de Crédito
 @login_required
 def add_credit_line_view(request):
-    # Verificar se o usuário tem permissão para acessar a página
-    if not request.user.has_perm('users.add_credit_lines'):
-        messages.error(request, 'Você não tem permissão para adicionar linhas de crédito.')
+    # Verificar se o usuário tem permissão master para gerenciar linhas de crédito
+    if not request.user.has_perm('users.manage_credit_lines_master'):
+        messages.error(request, 'Você não tem permissão para gerenciar linhas de crédito.')
         return redirect('home')
     
     if request.method == 'POST':
@@ -284,9 +284,9 @@ def add_credit_line_view(request):
 # Editar a Linha de Crédito
 @login_required
 def credit_line_edit_view(request, credit_line_id):
-    # Verificar permissão do usuário
-    if not request.user.has_perm('users.change_credit_lines'):
-        messages.error(request, 'Você não tem permissão para editar linhas de crédito.')
+    # Verificar se o usuário tem permissão master para gerenciar linhas de crédito
+    if not request.user.has_perm('users.manage_credit_lines_master'):
+        messages.error(request, 'Você não tem permissão para gerenciar linhas de crédito.')
         return redirect('home')
     
     credit_line = get_object_or_404(CreditLine, id=credit_line_id)

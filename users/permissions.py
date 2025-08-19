@@ -53,6 +53,8 @@ SYSTEM_MODULES = {
             ('add_credit_lines', 'Adicionar linhas de crédito'),
             ('change_credit_lines', 'Editar linhas de crédito'),
             ('delete_credit_lines', 'Excluir linhas de crédito'),
+            ('manage_banks_master', 'Gerenciar bancos (nível master)'),
+            ('manage_credit_lines_master', 'Gerenciar linhas de crédito (nível master)'),
         ]
     },
     'clientes': {
@@ -75,6 +77,7 @@ SYSTEM_MODULES = {
             ('add_units', 'Adicionar unidades'),
             ('change_units', 'Editar unidades'),
             ('delete_units', 'Excluir unidades'),
+            ('manage_units_master', 'Gerenciar unidades (nível master)'),
             ('view_unit_transactions', 'Visualizar transações da unidade'),
             ('add_unit_transactions', 'Adicionar transações da unidade'),
             ('change_unit_transactions', 'Editar transações da unidade'),
@@ -127,6 +130,8 @@ SYSTEM_MODULES = {
             ('delete_messages', 'Excluir mensagens'),
             ('view_all_messages', 'Ver todas as mensagens da empresa'),
             ('view_unit_messages', 'Ver mensagens da unidade'),
+            ('add_unit_messages', 'Adicionar mensagens para unidade'),
+            ('add_company_messages', 'Adicionar mensagens para toda empresa'),
         ]
     }
 }
@@ -146,11 +151,11 @@ DEFAULT_ROLES = {
             'users.change_project_payments', 'users.change_project_finalize',
             'users.view_financial', 'users.add_financial', 'users.change_financial',
             'users.delete_financial', 'users.view_reports_financial', 'users.export_reports_financial',
-            'users.view_banks', 'users.add_banks', 'users.change_banks', 'users.delete_banks',
-            'users.view_credit_lines', 'users.add_credit_lines', 'users.change_credit_lines', 'users.delete_credit_lines',
+            'users.view_banks', 'users.add_banks', 'users.change_banks', 'users.delete_banks', 'users.manage_banks_master',
+            'users.view_credit_lines', 'users.add_credit_lines', 'users.change_credit_lines', 'users.delete_credit_lines', 'users.manage_credit_lines_master',
             'users.view_clients', 'users.add_clients', 'users.change_clients', 
             'users.delete_clients', 'users.view_all_clients',
-            'users.view_units', 'users.add_units', 'users.change_units', 'users.delete_units',
+            'users.view_units', 'users.add_units', 'users.change_units', 'users.delete_units', 'users.manage_units_master',
             'users.view_unit_transactions', 'users.add_unit_transactions', 'users.change_unit_transactions', 
             'users.delete_unit_transactions', 'users.view_all_unit_transactions', 'users.view_unit_financial_dashboard',
             'users.view_reports', 'users.export_reports', 'users.view_advanced_reports',
@@ -160,6 +165,7 @@ DEFAULT_ROLES = {
             'users.view_dashboard', 'users.view_company_dashboard',
             'users.view_messages', 'users.add_messages', 'users.change_messages', 
             'users.delete_messages', 'users.view_all_messages', 'users.view_unit_messages',
+            'users.add_unit_messages', 'users.add_company_messages',
         ]
     },
     'diretor': {
@@ -170,15 +176,17 @@ DEFAULT_ROLES = {
             'users.approve_projects', 'users.view_all_projects', 'users.view_project_payments',
             'users.change_project_payments', 'users.change_project_finalize',
             'users.view_financial', 'users.view_reports_financial', 'users.export_reports_financial',
-            'users.view_banks', 'users.add_banks', 'users.change_banks',
-            'users.view_credit_lines', 'users.add_credit_lines', 'users.change_credit_lines',
+            'users.view_banks', 'users.add_banks', 'users.change_banks', 'users.manage_banks_master',
+            'users.view_credit_lines', 'users.add_credit_lines', 'users.change_credit_lines', 'users.manage_credit_lines_master',
             'users.view_clients', 'users.add_clients', 'users.change_clients', 'users.view_all_clients',
-            'users.view_units', 'users.change_units',
+            'users.view_units', 'users.change_units', 'users.manage_units_master',
             'users.view_unit_transactions', 'users.add_unit_transactions', 'users.change_unit_transactions',
             'users.view_all_unit_transactions', 'users.view_unit_financial_dashboard',
             'users.view_reports', 'users.export_reports', 'users.view_advanced_reports',
             'users.view_settings',
             'users.view_dashboard', 'users.view_company_dashboard',
+            'users.view_messages', 'users.add_messages', 'users.change_messages',
+            'users.view_all_messages', 'users.add_company_messages',
         ]
     },
     'gerente': {
@@ -192,6 +200,7 @@ DEFAULT_ROLES = {
             'users.view_unit_transactions', 'users.view_all_unit_transactions', 'users.view_unit_financial_dashboard',
             'users.view_reports', 'users.export_reports',
             'users.view_dashboard', 'users.view_company_dashboard',
+            'users.view_messages', 'users.add_unit_messages', 'users.change_messages', 'users.view_unit_messages',
         ]
     },
     'socio_unidade': {
@@ -204,6 +213,7 @@ DEFAULT_ROLES = {
             'users.view_reports',
             'users.view_unit_transactions', 'users.add_unit_transactions', 'users.change_unit_transactions', 'users.view_unit_financial_dashboard',
             'users.view_dashboard', 'users.view_unit_dashboard',
+            'users.view_messages', 'users.add_unit_messages', 'users.change_messages', 'users.view_unit_messages',
         ]
     },
     'franqueado': {
@@ -216,6 +226,7 @@ DEFAULT_ROLES = {
             'users.view_reports',
             'users.view_unit_transactions', 'users.add_unit_transactions', 'users.change_unit_transactions', 'users.view_unit_financial_dashboard',
             'users.view_dashboard', 'users.view_unit_dashboard',
+            'users.view_messages', 'users.add_unit_messages', 'users.change_messages', 'users.view_unit_messages',
         ]
     },
     'financeiro': {
@@ -228,6 +239,8 @@ DEFAULT_ROLES = {
             'users.view_clients',
             'users.view_reports', 'users.export_reports',
             'users.view_dashboard',
+            'users.view_messages', 'users.add_messages', 'users.change_messages',
+            'users.view_all_messages', 'users.add_company_messages',
         ]
     },
     'coordenador': {
@@ -235,8 +248,13 @@ DEFAULT_ROLES = {
         'permissions': [
             'users.view_projects', 'users.add_projects', 'users.change_projects', 'users.view_unit_projects',
             'users.view_clients', 'users.add_clients', 'users.change_clients', 'users.view_unit_clients',
+            'users.view_banks', 'users.manage_banks_master',
+            'users.view_credit_lines', 'users.manage_credit_lines_master',
+            'users.view_units', 'users.manage_units_master',
             'users.view_reports',
             'users.view_dashboard', 'users.view_unit_dashboard',
+            'users.view_messages', 'users.add_messages', 'users.change_messages',
+            'users.view_all_messages', 'users.add_company_messages',
         ]
     },
     'projetista': {
@@ -315,30 +333,29 @@ def create_default_roles():
             }
         )
         
-        if created or not role.permissions.exists():
-            # Adiciona as permissões ao cargo
-            permissions = []
-            for perm_name in role_data['permissions']:
-                app_label, codename = perm_name.split('.')
+        # Sempre atualizar as permissões para garantir que estejam corretas
+        permissions = []
+        for perm_name in role_data['permissions']:
+            app_label, codename = perm_name.split('.')
+            try:
+                # Buscar primeiro pela app_label correto (users para as permissões customizadas)
+                permission = Permission.objects.get(
+                    codename=codename,
+                    content_type__app_label='users'
+                )
+                permissions.append(permission)
+            except Permission.DoesNotExist:
+                # Se não encontrar, tentar pela app_label original
                 try:
-                    # Buscar primeiro pela app_label correto (users para as permissões customizadas)
                     permission = Permission.objects.get(
                         codename=codename,
-                        content_type__app_label='users'
+                        content_type__app_label=app_label
                     )
                     permissions.append(permission)
                 except Permission.DoesNotExist:
-                    # Se não encontrar, tentar pela app_label original
-                    try:
-                        permission = Permission.objects.get(
-                            codename=codename,
-                            content_type__app_label=app_label
-                        )
-                        permissions.append(permission)
-                    except Permission.DoesNotExist:
-                        print(f"Permissão não encontrada: {perm_name}")
-            
-            role.permissions.set(permissions)
+                    print(f"Permissão não encontrada: {perm_name}")
+        
+        role.permissions.set(permissions)
             
         if created:
             created_roles.append(role)

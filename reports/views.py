@@ -19,7 +19,11 @@ from .utils import (
     calculate_conversion_rates,
     generate_performance_metrics,
     export_to_excel,
-    export_to_pdf
+    export_to_pdf,
+    get_user_accessible_units,
+    get_user_accessible_projects,
+    get_user_accessible_clients,
+    filter_queryset_by_user_units
 )
 
 
@@ -40,18 +44,18 @@ def reports_dashboard_view(request):
     
     start_date = timezone.now().date() - timedelta(days=period_days)
     
-    # Indicadores principais
-    total_projects = Project.objects.filter(
+    # Indicadores principais - filtrados pelas unidades acessíveis ao usuário
+    base_projects = Project.objects.filter(
         enterprise=enterprise,
         created_at__date__gte=start_date,
         is_active=True
-    ).count()
+    )
+    accessible_projects = get_user_accessible_projects(user, base_projects)
     
-    approved_projects = Project.objects.filter(
-        enterprise=enterprise,
-        status__in=['AP', 'AF', 'FM', 'LB', 'RC'],
-        created_at__date__gte=start_date,
-        is_active=True
+    total_projects = accessible_projects.count()
+    
+    approved_projects = accessible_projects.filter(
+        status__in=['AP', 'AF', 'FM', 'LB', 'RC']
     ).count()
     
     approval_rate = (approved_projects / total_projects * 100) if total_projects > 0 else 0
@@ -68,24 +72,28 @@ def reports_dashboard_view(request):
     
     rework_rate = (rework_count / total_projects * 100) if total_projects > 0 else 0
     
-    # Clientes ativos
-    active_clients = Client.objects.filter(
+    # Clientes ativos - filtrados pelas unidades acessíveis
+    base_clients = Client.objects.filter(
         enterprise=enterprise,
         status='ATIVO',
         is_active=True
-    ).count()
+    )
+    accessible_clients = get_user_accessible_clients(user, base_clients)
+    active_clients = accessible_clients.count()
     
-    # Top 5 bancos
+    # Top 5 bancos - baseado nos projetos acessíveis ao usuário
+    accessible_project_ids = list(accessible_projects.values_list('id', flat=True))
     top_banks = Bank.objects.filter(
         enterprise=enterprise,
+        projects__id__in=accessible_project_ids,
         projects__created_at__date__gte=start_date
     ).annotate(
         project_count=Count('projects')
     ).order_by('-project_count')[:5]
     
-    # Top 5 unidades
-    top_units = Unit.objects.filter(
-        enterprise=enterprise,
+    # Top 5 unidades - apenas as acessíveis ao usuário
+    accessible_units = get_user_accessible_units(user)
+    top_units = accessible_units.filter(
         projects__created_at__date__gte=start_date
     ).annotate(
         project_count=Count('projects'),
@@ -123,12 +131,13 @@ def operations_performance_view(request):
     
     start_date = timezone.now().date() - timedelta(days=period_days)
     
-    # Query base
-    projects_query = Project.objects.filter(
+    # Query base - filtrada pelas unidades acessíveis ao usuário
+    base_projects = Project.objects.filter(
         enterprise=enterprise,
         created_at__date__gte=start_date,
         is_active=True
     )
+    projects_query = get_user_accessible_projects(user, base_projects)
     
     if unit_id:
         projects_query = projects_query.filter(unit_id=unit_id)
@@ -158,8 +167,8 @@ def operations_performance_view(request):
         total_value=Sum('value')
     ).order_by('-count')
     
-    # Filtros para o template
-    units = Unit.objects.filter(enterprise=enterprise, is_active=True)
+    # Filtros para o template - apenas unidades acessíveis ao usuário
+    units = get_user_accessible_units(user)
     banks = Bank.objects.filter(enterprise=enterprise, is_active=True)
     
     context = {
@@ -234,35 +243,26 @@ def clients_indicators_view(request):
     user = request.user
     enterprise = user.enterprise
     
-    # Contadores por status
-    clients_by_status = Client.objects.filter(
-        enterprise=enterprise,
-        is_active=True
-    ).values('status').annotate(count=Count('id'))
+    # Contadores por status - filtrados pelas unidades acessíveis
+    base_clients = Client.objects.filter(enterprise=enterprise, is_active=True)
+    accessible_clients = get_user_accessible_clients(user, base_clients)
     
-    # Taxa de recompra
-    clients_with_multiple_projects = Client.objects.filter(
-        enterprise=enterprise,
-        is_active=True
-    ).annotate(
+    clients_by_status = accessible_clients.values('status').annotate(count=Count('id'))
+    
+    # Taxa de recompra - baseada nos clientes acessíveis
+    clients_with_multiple_projects = accessible_clients.annotate(
         project_count=Count('projects')
     ).filter(project_count__gt=1)
     
-    total_active_clients = Client.objects.filter(
-        enterprise=enterprise,
-        status='ATIVO',
-        is_active=True
-    ).count()
+    total_active_clients = accessible_clients.filter(status='ATIVO').count()
     
     repurchase_rate = (
         clients_with_multiple_projects.count() / total_active_clients * 100
     ) if total_active_clients > 0 else 0
     
-    # Detalhamento por unidade
-    units_metrics = Unit.objects.filter(
-        enterprise=enterprise,
-        is_active=True
-    ).annotate(
+    # Detalhamento por unidade - apenas unidades acessíveis ao usuário
+    accessible_units = get_user_accessible_units(user)
+    units_metrics = accessible_units.annotate(
         total_clients=Count('clients'),
         active_clients=Count('clients', filter=Q(clients__status='ATIVO'))
     )
@@ -334,15 +334,21 @@ def performance_captadores_view(request):
     user = request.user
     enterprise = user.enterprise
     
-    # Buscar usuários com role de captador
+    # Buscar usuários com role de captador - filtrados pelas unidades acessíveis
+    accessible_units = get_user_accessible_units(user)
+    
+    # Filtrar captadores apenas das unidades acessíveis ao usuário
     captadores = User.objects.filter(
         enterprise=enterprise,
         roles__code='captador',
-        is_active=True
+        is_active=True,
+        units__in=accessible_units
     ).annotate(
-        clients_captured=Count('prospected_projects__client', distinct=True),
-        total_value=Sum('prospected_projects__value')
-    ).order_by('-clients_captured')
+        clients_captured=Count('prospected_projects__client', distinct=True, 
+                              filter=Q(prospected_projects__unit__in=accessible_units)),
+        total_value=Sum('prospected_projects__value', 
+                       filter=Q(prospected_projects__unit__in=accessible_units))
+    ).order_by('-clients_captured').distinct()
     
     context = {
         'captadores': captadores,

@@ -163,12 +163,14 @@ def config_view(request):
     enterprise = user.enterprise
 
     if request.method == 'POST':
-        # Atualizando dados do usuário apenas se o campo foi enviado no formulário
+        # Todos os usuários podem editar seus dados pessoais
         user.name = request.POST.get('name', user.name)
         user.phone = request.POST.get('phone', user.phone)
         user.theme_preference = request.POST.get('theme_preference', user.theme_preference)
-        user.email = request.POST.get('email', user.email)
         user.cpf = request.POST.get('cpf', user.cpf)
+        
+        # Email permanece bloqueado para edição (apenas leitura)
+        # user.email = request.POST.get('email', user.email)  # Removido
         
         # Atualizar data de nascimento se fornecida
         date_of_birth = request.POST.get('date_of_birth')
@@ -186,8 +188,8 @@ def config_view(request):
 
         user.save()
         
-        # Atualizando dados da empresa se o usuário tiver permissão
-        if enterprise and user.has_perm('users.manage_enterprise_settings'):
+        # Atualizando dados da empresa apenas se o usuário for CEO
+        if enterprise and user.roles.filter(code='ceo', is_active=True).exists():
             enterprise.name = request.POST.get('enterprise_name', enterprise.name)
             enterprise.cnpj_or_cpf = request.POST.get('enterprise_cnpj_or_cpf', enterprise.cnpj_or_cpf)
             enterprise.primary_color = request.POST.get('primary_color', enterprise.primary_color)

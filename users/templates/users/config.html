@@ -215,7 +215,6 @@
     <div class="container-style">
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-
             <!-- Dados do Usuário -->
             <h6 class="text-color-secondary">Dados do Usuário</h6>
 
@@ -248,8 +247,12 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="email" class="form-label">Email:</label>
-                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" disabled
-                        readonly>
+                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" disabled readonly>
+                    <div class="form-text">
+                        <small class="text-muted">
+                            <i class="fas fa-lock me-1"></i>O email não pode ser alterado
+                        </small>
+                    </div>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="cpf" class="form-label">CPF:</label>
@@ -263,9 +266,11 @@
                     <label for="unit_info" class="form-label">
                         <i class="fas fa-building me-2"></i>Unidade:
                     </label>
-                                            <input type="text" class="form-control" id="unit_info" value="{% for unit in user.units.all %}{{ unit.name }}{% if not forloop.last %}, {% endif %}{% empty %}Nenhuma unidade atribuída{% endfor %}" disabled readonly>
+                    <input type="text" class="form-control" id="unit_info" value="{% for unit in user.units.all %}{{ unit.name }}{% if not forloop.last %}, {% endif %}{% empty %}Nenhuma unidade atribuída{% endfor %}" disabled readonly>
                     <div class="form-text">
-                        <small class="text-muted">Entre em contato com o administrador para alterar a unidade</small>
+                        <small class="text-muted">
+                            <i class="fas fa-lock me-1"></i>Entre em contato com o administrador para alterar a unidade
+                        </small>
                     </div>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -274,7 +279,9 @@
                     </label>
                     <input type="text" class="form-control" id="user_roles" value="{% for role in user.roles.all %}{{ role.name }}{% if not forloop.last %}, {% endif %}{% empty %}Nenhum cargo atribuído{% endfor %}" disabled readonly>
                     <div class="form-text">
-                        <small class="text-muted">Entre em contato com o administrador para alterar cargos</small>
+                        <small class="text-muted">
+                            <i class="fas fa-lock me-1"></i>Entre em contato com o administrador para alterar cargos
+                        </small>
                     </div>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -300,7 +307,7 @@
 
             <div class="separator"></div>
 
-            {% if user|has_perm:'users.manage_enterprise_settings' and enterprise %}
+            {% if user|has_role:'ceo' and enterprise %}
             <!-- Dados da Empresa -->
             <h6 class="mt-4 text-color-secondary">Dados da Empresa</h6>
 

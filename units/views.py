@@ -167,7 +167,7 @@ def toggle_bank_account_status_view(request, account_id):
 
 # Cria uma unidade
 @login_required
-@permission_required('users.add_units')
+@permission_required('users.manage_units_master')
 def create_unit_view(request):
     
     if request.method == 'POST':
@@ -239,7 +239,7 @@ def create_unit_view(request):
 
 # Edita uma unidade
 @login_required
-@permission_required('users.change_units')
+@permission_required('users.manage_units_master')
 def units_edit_view(request, unit_id):
     
     # Garantir que o usuário só pode editar unidades da sua própria empresa

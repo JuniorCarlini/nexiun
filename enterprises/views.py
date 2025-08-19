@@ -583,17 +583,35 @@ def edit_message_view(request, message_id):
         content = request.POST.get('content', '').strip()
         level = request.POST.get('level', 'info')
         scope = request.POST.get('scope', 'empresa')
-        unit_id = request.POST.get('unit', '')
+        unit_id = request.POST.get('unit_id', '') or request.POST.get('unit', '')
         expires_at = request.POST.get('expires_at', '')
         
         # Validações
+        error_found = False
+        
         if not title:
             messages.error(request, 'O título é obrigatório.')
+            error_found = True
         elif not content:
             messages.error(request, 'O conteúdo é obrigatório.')
+            error_found = True
         elif scope == 'unidade' and not unit_id:
             messages.error(request, 'Selecione uma unidade quando o escopo for "Unidade Específica".')
-        else:
+            error_found = True
+        elif scope == 'unidade' and unit_id:
+            # Verificar se o usuário pode editar para essa unidade
+            if not request.user.has_perm('users.view_all_messages'):
+                user_units = request.user.units.all()
+                if not user_units.filter(id=unit_id).exists():
+                    messages.error(request, 'Você só pode editar mensagens para unidades às quais está vinculado.')
+                    error_found = True
+        elif scope == 'empresa':
+            # Verificar se o usuário pode criar/editar mensagens da empresa
+            if not request.user.has_perm('users.add_company_messages'):
+                messages.error(request, 'Você não tem permissão para editar mensagens da empresa.')
+                error_found = True
+        
+        if not error_found:
             try:
                 message.title = title
                 message.content = content
@@ -621,13 +639,33 @@ def edit_message_view(request, message_id):
             except ValueError:
                 messages.error(request, 'Data de expiração inválida.')
     
-    # Buscar unidades da empresa
-    units = Unit.objects.filter(enterprise=request.user.enterprise, is_active=True)
+        # Buscar unidades acessíveis ao usuário  
+    if request.user.has_perm('users.view_all_messages'):
+        # Usuário pode ver todas as unidades
+        units = Unit.objects.filter(enterprise=request.user.enterprise, is_active=True)
+        user_units = units
+        has_multiple_units = True  # Sempre múltiplas opções para cargos superiores
+        single_unit = None
+    else:
+        # Usuário só pode ver suas próprias unidades
+        user_units = request.user.units.filter(is_active=True)
+        units = user_units
+        has_multiple_units = user_units.count() > 1
+        single_unit = user_units.first() if user_units.count() == 1 else None
+    
+    # Verificar permissões para o template
+    can_add_unit_messages = request.user.has_perm('users.add_unit_messages')
+    can_add_company_messages = request.user.has_perm('users.add_company_messages')
     
     context = {
         'enterprise': request.user.enterprise,
         'message': message,
         'units': units,
+        'user_units': user_units,
+        'has_multiple_units': has_multiple_units,
+        'single_unit': single_unit,
+        'can_add_unit_messages': can_add_unit_messages,
+        'can_add_company_messages': can_add_company_messages,
         'form_data': {
             'title': message.title,
             'content': message.content,
@@ -644,8 +682,11 @@ def new_message_view(request):
     from .models import InternalMessage
     from units.models import Unit
     
-    # Verificar permissões para criar mensagens
-    if not request.user.has_perm('users.add_messages'):
+    # Verificar permissões baseadas no escopo da mensagem
+    can_add_unit_messages = request.user.has_perm('users.add_unit_messages')
+    can_add_company_messages = request.user.has_perm('users.add_company_messages')
+    
+    if not (can_add_unit_messages or can_add_company_messages):
         messages.error(request, 'Você não tem permissão para criar mensagens.')
         return redirect('list_messages')
     
@@ -654,17 +695,36 @@ def new_message_view(request):
         content = request.POST.get('content', '').strip()
         level = request.POST.get('level', 'info')
         scope = request.POST.get('scope', 'empresa')
-        unit_id = request.POST.get('unit', '')
+        unit_id = request.POST.get('unit_id', '') or request.POST.get('unit', '')
         expires_at = request.POST.get('expires_at', '')
         
         # Validações
+        error_found = False
+        
         if not title:
             messages.error(request, 'O título é obrigatório.')
+            error_found = True
         elif not content:
             messages.error(request, 'O conteúdo é obrigatório.')
+            error_found = True
         elif scope == 'unidade' and not unit_id:
             messages.error(request, 'Selecione uma unidade quando o escopo for "Unidade Específica".')
-        else:
+            error_found = True
+        elif scope == 'empresa' and not can_add_company_messages:
+            messages.error(request, 'Você não tem permissão para criar mensagens para toda a empresa.')
+            error_found = True
+        elif scope == 'unidade' and not can_add_unit_messages:
+            messages.error(request, 'Você não tem permissão para criar mensagens para unidades.')
+            error_found = True
+        elif scope == 'unidade' and unit_id:
+            # Verificar se o usuário está vinculado à unidade selecionada (exceto para cargos superiores)
+            if not request.user.has_perm('users.view_all_messages'):
+                user_units = request.user.units.all()
+                if not user_units.filter(id=unit_id).exists():
+                    messages.error(request, 'Você só pode criar mensagens para unidades às quais está vinculado.')
+                    error_found = True
+        
+        if not error_found:
             try:
                 message = InternalMessage(
                     title=title,
@@ -674,9 +734,15 @@ def new_message_view(request):
                     enterprise=request.user.enterprise
                 )
                 
-                if scope == 'unidade' and unit_id:
-                    unit = Unit.objects.get(id=unit_id, enterprise=request.user.enterprise)
-                    message.unit = unit
+                if scope == 'unidade':
+                    if unit_id:
+                        unit = Unit.objects.get(id=unit_id, enterprise=request.user.enterprise)
+                        message.unit = unit
+                    elif not request.user.has_perm('users.view_all_messages'):
+                        # Se o usuário tem apenas uma unidade, usar automaticamente
+                        user_units = request.user.units.filter(is_active=True)
+                        if user_units.count() == 1:
+                            message.unit = user_units.first()
                 
                 if expires_at:
                     from datetime import datetime
@@ -691,8 +757,19 @@ def new_message_view(request):
             except ValueError:
                 messages.error(request, 'Data de expiração inválida.')
     
-    # Buscar unidades da empresa
-    units = Unit.objects.filter(enterprise=request.user.enterprise, is_active=True)
+        # Buscar unidades acessíveis ao usuário
+    if request.user.has_perm('users.view_all_messages'):
+        # Usuário pode ver todas as unidades
+        units = Unit.objects.filter(enterprise=request.user.enterprise, is_active=True)
+        user_units = units
+        has_multiple_units = True  # Sempre múltiplas opções para cargos superiores
+        single_unit = None
+    else:
+        # Usuário só pode ver suas próprias unidades
+        user_units = request.user.units.filter(is_active=True)
+        units = user_units
+        has_multiple_units = user_units.count() > 1
+        single_unit = user_units.first() if user_units.count() == 1 else None
     
     # Dados do formulário para manter em caso de erro
     form_data = {
@@ -707,7 +784,12 @@ def new_message_view(request):
     context = {
         'enterprise': request.user.enterprise,
         'units': units,
-        'form_data': form_data
+        'user_units': user_units,
+        'has_multiple_units': has_multiple_units,
+        'single_unit': single_unit,
+        'form_data': form_data,
+        'can_add_unit_messages': can_add_unit_messages,
+        'can_add_company_messages': can_add_company_messages
     }
     return render(request, 'enterprises/new_message.html', context)
 

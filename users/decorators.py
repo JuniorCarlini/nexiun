@@ -62,6 +62,29 @@ def role_required(role_codes, message=None, redirect_url='home'):
         return _wrapped_view
     return decorator
 
+def reports_permission_required(message=None, redirect_url='home'):
+    """
+    Decorator que verifica permissão de visualizar relatórios
+    e automaticamente filtra dados por unidades acessíveis
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        @login_required
+        def _wrapped_view(request, *args, **kwargs):
+            # Verificar permissão de relatórios
+            if not request.user.has_perm('users.view_reports'):
+                error_message = message or 'Você não tem permissão para visualizar relatórios.'
+                messages.error(request, error_message)
+                return redirect(redirect_url)
+            
+            # Adicionar unidades acessíveis ao request para uso na view
+            from reports.utils import get_user_accessible_units
+            request.accessible_units = get_user_accessible_units(request.user)
+            
+            return view_func(request, *args, **kwargs)
+        return _wrapped_view
+    return decorator
+
 def any_permission_required(permissions, message=None, redirect_url='home'):
     """
     Decorator que verifica se o usuário tem pelo menos uma das permissões especificadas

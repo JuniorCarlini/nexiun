@@ -51,44 +51,93 @@
             </div>
             
             <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="scope" class="form-label fw-bold d-flex align-items-center">
-                        <i class="bi bi-question-circle-fill me-1 small" 
-                            style="font-size: 12px;"
-                            data-bs-toggle="tooltip" 
-                            data-bs-placement="top" 
-                            title="Defina se a mensagem é para toda a empresa ou apenas uma unidade específica"
-                            data-bs-custom-class="custom-tooltip">
-                        </i>Escopo:</label>
-                    <select name="scope" id="scope" class="form-control" required>
-                        <option value="empresa" {% if form_data.scope == 'empresa' %}selected{% endif %}>Toda a Empresa</option>
-                        <option value="unidade" {% if form_data.scope == 'unidade' %}selected{% endif %}>Unidade Específica</option>
-                    </select>
-                    <div class="invalid-feedback">
-                        Por favor, selecione um escopo.
+                {% if can_add_company_messages and can_add_unit_messages %}
+                    <!-- Usuário pode escolher entre empresa e unidade -->
+                    <div class="col-md-6 mb-3">
+                        <label for="scope" class="form-label fw-bold d-flex align-items-center">
+                            <i class="bi bi-question-circle-fill me-1 small" 
+                                style="font-size: 12px;"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                title="Defina se a mensagem é para toda a empresa ou apenas uma unidade específica"
+                                data-bs-custom-class="custom-tooltip">
+                            </i>Escopo:</label>
+                        <select name="scope" id="scope" class="form-control" required>
+                            <option value="empresa" {% if form_data.scope == 'empresa' %}selected{% endif %}>Toda a Empresa</option>
+                            <option value="unidade" {% if form_data.scope == 'unidade' %}selected{% endif %}>Unidade Específica</option>
+                        </select>
+                        <div class="invalid-feedback">
+                            Por favor, selecione um escopo.
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-6 mb-3" id="unit-field" style="display: {% if form_data.scope == 'unidade' %}block{% else %}none{% endif %};">
-                    <label for="unit" class="form-label fw-bold d-flex align-items-center">
-                        <i class="bi bi-question-circle-fill me-1 small" 
-                            style="font-size: 12px;"
-                            data-bs-toggle="tooltip" 
-                            data-bs-placement="top" 
-                            title="Selecione a unidade que receberá a mensagem"
-                            data-bs-custom-class="custom-tooltip">
-                        </i>Unidade:</label>
-                    <select name="unit" id="unit" class="form-control">
-                        <option value="">Selecione uma unidade</option>
-                        {% for unit in units %}
-                        <option value="{{ unit.id }}" {% if form_data.unit == unit.id|stringformat:"s" %}selected{% endif %}>
-                            {{ unit.name }} - {{ unit.location }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <div class="invalid-feedback">
-                        Por favor, selecione uma unidade.
+                    <div class="col-md-6 mb-3" id="unit-field" style="display: {% if form_data.scope == 'unidade' %}block{% else %}none{% endif %};">
+                        <label for="unit" class="form-label fw-bold d-flex align-items-center">
+                            <i class="bi bi-question-circle-fill me-1 small" 
+                                style="font-size: 12px;"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                title="Selecione a unidade que receberá a mensagem"
+                                data-bs-custom-class="custom-tooltip">
+                            </i>Unidade:</label>
+                        <select name="unit_id" id="unit" class="form-control">
+                            <option value="">Selecione uma unidade</option>
+                            {% for unit in user_units %}
+                            <option value="{{ unit.id }}" {% if form_data.unit == unit.id|stringformat:"s" %}selected{% endif %}>
+                                {{ unit.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            Por favor, selecione uma unidade.
+                        </div>
                     </div>
-                </div>
+                {% elif can_add_company_messages %}
+                    <!-- Usuário só pode criar mensagens da empresa -->
+                    <div class="col-md-6 mb-3">
+                        <label for="scope" class="form-label fw-bold">Escopo:</label>
+                        <input type="text" class="form-control" value="Toda a Empresa" readonly disabled>
+                        <input type="hidden" name="scope" value="empresa">
+                    </div>
+                {% elif can_add_unit_messages %}
+                    <!-- Usuário só pode criar mensagens de unidade -->
+                    <div class="col-md-6 mb-3">
+                        <label for="scope" class="form-label fw-bold">Escopo:</label>
+                        <input type="text" class="form-control" value="Unidade Específica" readonly disabled>
+                        <input type="hidden" name="scope" value="unidade">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="unit" class="form-label fw-bold d-flex align-items-center">
+                            <i class="bi bi-question-circle-fill me-1 small" 
+                                style="font-size: 12px;"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                title="Selecione a unidade que receberá a mensagem"
+                                data-bs-custom-class="custom-tooltip">
+                            </i>Unidade:</label>
+                        {% if has_multiple_units %}
+                            <select name="unit_id" id="unit" class="form-control" required>
+                                <option value="">Selecione uma unidade</option>
+                                {% for unit in user_units %}
+                                                                 <option value="{{ unit.id }}" {% if form_data.unit == unit.id|stringformat:"s" %}selected{% endif %}>
+                                     {{ unit.name }}
+                                 </option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">
+                                Por favor, selecione uma unidade.
+                            </div>
+                        {% else %}
+                            {% if single_unit %}
+                                <input type="text" name="unit" id="unit" class="form-control" 
+                                    value="{{ single_unit.name }}" readonly disabled>
+                                <input type="hidden" name="unit_id" value="{{ single_unit.id }}">
+                            {% else %}
+                                <input type="text" name="unit" id="unit" class="form-control" 
+                                    value="Nenhuma unidade disponível" readonly disabled>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% endif %}
             </div>
             
             <div class="row">
