@@ -1,5 +1,6 @@
 {% extends "base/base.html" %}
 {% load static %}
+{% load l10n %}
 
 {% block title %}Cliente{% endblock %}
 
@@ -202,11 +203,28 @@
             </div>
         </div>
 
-        <!-- Contato e Localização -->
+        <!-- CPF e Telefone -->
         <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="cpf" class="form-label fw-bold">CPF:</label>
+                <input type="text" name="cpf" id="cpf" class="form-control" value="{{ client.cpf|default_if_none:'' }}" placeholder="000.000.000-00" maxlength="14">
+            </div>
             <div class="col-md-6 mb-3">
                 <label for="phone" class="form-label fw-bold">Telefone:</label>
                 <input type="tel" name="phone" id="phone" class="form-control" value="{{ client.phone }}">
+            </div>
+        </div>
+
+        <!-- Unidades -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="activity" class="form-label fw-bold">Atividade Principal:</label>
+                <select name="activity" id="activity" class="form-control">
+                    <option value="">Selecione a atividade</option>
+                    {% for value, label in activity_choices %}
+                        <option value="{{ value }}" {% if client.activity == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="col-md-6 mb-3">
                 <label for="units" class="form-label fw-bold">Unidades:</label>
@@ -227,6 +245,24 @@
             </div>
         </div>
 
+        <!-- Informações Rurais -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="producer_classification" class="form-label fw-bold">Enquadramento do Produtor:</label>
+                <select name="producer_classification" id="producer_classification" class="form-control">
+                    <option value="">Selecione o enquadramento</option>
+                    {% for value, label in producer_classification_choices %}
+                        <option value="{{ value }}" {% if client.producer_classification == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="property_area" class="form-label fw-bold">Área Total do Produtor (hectares):</label>
+                <input type="number" name="property_area" id="property_area" class="form-control" 
+                       step="0.01" min="0" placeholder="0.00" value="{% if client.property_area %}{{ client.property_area|unlocalize }}{% endif %}">
+                <small class="form-text text-muted">Área total em hectares</small>
+            </div>
+        </div>
         <!-- Retorno até -->
         <div class="row">
             <div class="col-md-6 mb-3">
@@ -255,12 +291,71 @@
         </div>
 
         <!-- Observações -->
-        <div class="row">
+        <div class="row mb-4">
             <div class="col-12">
                 <label for="observacoes" class="form-label fw-bold">Observações:</label>
                 <input id="observacoes" type="hidden" name="observations" value="{{ client.observations }}">
                 <trix-editor input="observacoes"></trix-editor>
             </div>
+        </div>
+
+        <!-- Seção de Contas Bancárias -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <label class="form-label fw-bold">Contas Bancárias:</label>
+                <div class="bank-accounts-section">
+                    {% for account in client.bank_accounts.all %}
+                        <div class="file-item">
+                            <div class="d-flex align-items-center ms-3">
+                                <i class="fas fa-university me-2" style="color: #16365f; font-size: 45px;"></i>
+                                <div class="account-info ms-1">
+                                    <div class="account-name fw-bold">
+                                        {{ account.bank.name }}
+                                        {% if not account.is_active %}
+                                            <span class="badge bg-secondary ms-2">Inativa</span>
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">• Agência: {{ account.agency }}</small><br>
+                                    <small class="text-muted">• Conta: {{ account.account_number }} ({{ account.get_account_type_display }})</small>
+                                </div>
+                            </div>
+                            <div class="file-actions d-flex me-3">
+                                <button type="button" class="btn btn-link text-primary p-0 me-2" 
+                                        onclick="editBankAccount('{{ account.id }}')" title="Editar">
+                                    <i class="fa-solid fa-edit" style="font-size: 25px; color: {{ enterprise.primary_color }};"
+                                       data-bs-toggle="tooltip" 
+                                       data-bs-placement="top" 
+                                       title="Editar conta"
+                                       data-bs-custom-class="custom-tooltip">
+                                    </i>
+                                </button>
+                                <button type="button" class="btn btn-link text-danger p-0" 
+                                        onclick="showDeleteBankAccountModal('{{ account.id }}', '{{ account.get_formatted_account }}')" 
+                                        title="Excluir">
+                                    <i class="fa-solid fa-trash" style="font-size: 25px;"
+                                       data-bs-toggle="tooltip" 
+                                       data-bs-placement="top" 
+                                       title="Apagar conta"
+                                       data-bs-custom-class="custom-tooltip">
+                                    </i>
+                                </button>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">Nenhuma conta bancária cadastrada.</p>
+                    {% endfor %}
+                </div>
+                
+                <!-- Botão para adicionar nova conta -->
+                <div class="row mt-4">
+                    <div class="col-12 text-end">
+                        <button type="button" class="btn btn-primary rounded" 
+                                style="background-color: {{ enterprise.primary_color }}; border: none;" onclick="showAddBankAccountModal()">
+                                <i class="fas fa-plus me-2"></i>Adicionar Conta
+                        </button>
+                    </div>
+                </div>
+            </div>  
         </div>
 
         <!-- Seção de Documentos -->
@@ -584,12 +679,12 @@
                     <tbody>
                         {% for history in client_history %}
                             {% for field, change in history.changes.items %}
-                                {% if 'document_' in field or 'date_of_birth' not in field and change.de != change.para or 'date_of_birth' in field and change.de|slice:":10" != change.para|slice:":10" or 'retorno_ate' in field and change.de|slice:":10" != change.para|slice:":10" %}
+                                {% if 'document_' in field or 'bank_account_' in field or 'date_of_birth' not in field and change.de != change.para or 'date_of_birth' in field and change.de|slice:":10" != change.para|slice:":10" or 'retorno_ate' in field and change.de|slice:":10" != change.para|slice:":10" %}
                                     <tr>
                                         <td>
                                             <div class="transaction-text">
                                                 <i class="fas fa-clock me-1" style="color: {{ enterprise.primary_color }};"></i>
-                                                {% if 'document_' in field %}
+                                                {% if 'document_' in field or 'bank_account_' in field %}
                                                     {{ change.data|slice:":16" }}
                                                 {% else %}
                                                     {{ history.timestamp|date:"d/m/Y H:i" }}
@@ -604,6 +699,12 @@
                                                 {% elif field == 'document_deleted' %}
                                                     <i class="fas fa-trash me-1"></i>
                                                     {{ change.usuario }} - Removeu o arquivo "{{ change.arquivo }}"
+                                                {% elif field == 'bank_account_added' %}
+                                                    <i class="fas fa-university me-1"></i>
+                                                    {{ change.usuario }} - Adicionou conta bancária: {{ change.banco }} - Ag: {{ change.agencia }} Cc: {{ change.conta }} ({{ change.tipo }})
+                                                {% elif field == 'bank_account_deleted' %}
+                                                    <i class="fas fa-university me-1"></i>
+                                                    {{ change.usuario }} - Removeu conta bancária: {{ change.banco }} - Ag: {{ change.agencia }} Cc: {{ change.conta }} ({{ change.tipo }})
                                                 {% else %}
                                                     <i class="fas fa-edit me-1"></i>
                                                     {{ change.usuario }} - Alterou {{ change.campo }} de "{{ change.de }}" para "{{ change.para }}"
@@ -645,6 +746,89 @@
                     {% csrf_token %}
                     <input type="hidden" name="delete_document" value="true">
                     <input type="hidden" name="document_id" id="documentId">
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Adicionar/Editar Conta Bancária -->
+<div class="modal fade" id="bankAccountModal" tabindex="-1" aria-labelledby="bankAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bankAccountModalLabel">Adicionar Conta Bancária</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="bankAccountForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="add_bank_account">
+                    <input type="hidden" name="account_id" id="accountId">
+                    
+                    <div class="mb-3">
+                        <label for="bank" class="form-label fw-bold">Banco:</label>
+                        <select name="bank" id="bank" class="form-control" required>
+                            <option value="">Selecione um banco</option>
+                            {% for bank in available_banks %}
+                                <option value="{{ bank.id }}">{{ bank.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="agency" class="form-label fw-bold">Agência:</label>
+                            <input type="text" name="agency" id="agency" class="form-control" 
+                                   maxlength="10" placeholder="1234" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="account_number" class="form-label fw-bold">Número da Conta:</label>
+                            <input type="text" name="account_number" id="accountNumber" class="form-control" 
+                                   maxlength="20" placeholder="12345-6" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="account_type" class="form-label fw-bold">Tipo de Conta:</label>
+                        <select name="account_type" id="accountType" class="form-control" required>
+                            <option value="CORRENTE">Conta Corrente</option>
+                            <option value="POUPANCA">Poupança</option>
+                            <option value="SALARIO">Conta Salário</option>
+                        </select>
+                    </div>
+                    
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="background-color: {{ enterprise.primary_color }}; border: none;">
+                        <i class="fas fa-save me-2"></i>Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação para Excluir Conta -->
+<div class="modal fade" id="deleteBankAccountModal" tabindex="-1" aria-labelledby="deleteBankAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteBankAccountModalLabel">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Tem certeza que deseja excluir a conta bancária "<span id="bankAccountName"></span>"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" id="deleteBankAccountForm" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_bank_account">
+                    <input type="hidden" name="account_id" id="deleteBankAccountId">
                     <button type="submit" class="btn btn-danger">Excluir</button>
                 </form>
             </div>
@@ -782,6 +966,19 @@
             validateRetornoDate();
         }
 
+        // Máscara para CPF
+        function formatCPF(cpf) {
+            cpf = cpf.replace(/\D/g, ''); // Remove tudo que não for dígito
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            return cpf;
+        }
+
+        document.getElementById('cpf').addEventListener('input', function(e) {
+            e.target.value = formatCPF(e.target.value);
+        });
+
         // Desabilitar funcionalidade de anexos do Trix Editor
         document.addEventListener('trix-file-accept', function(event) {
             event.preventDefault();
@@ -796,6 +993,51 @@
             // Mostrar aviso ao usuário
             alert('Não é possível adicionar arquivos nas observações. Use a seção "Adicionar Novos Documentos" abaixo.');
         });
+    });
+</script>
+
+<script>
+    // Funções para gerenciar contas bancárias
+    function showAddBankAccountModal() {
+        document.getElementById('bankAccountModalLabel').textContent = 'Adicionar Conta Bancária';
+        document.getElementById('bankAccountForm').reset();
+        document.getElementById('accountId').value = '';
+        document.querySelector('input[name="action"]').value = 'add_bank_account';
+        const modal = new bootstrap.Modal(document.getElementById('bankAccountModal'));
+        modal.show();
+    }
+
+    function editBankAccount(accountId) {
+        // Para edição, você pode carregar os dados via AJAX ou passar do template
+        document.getElementById('bankAccountModalLabel').textContent = 'Editar Conta Bancária';
+        document.getElementById('accountId').value = accountId;
+        document.querySelector('input[name="action"]').value = 'edit_bank_account';
+        
+        // Aqui você carregaria os dados da conta via AJAX e preencheria o formulário
+        // Por enquanto, apenas abre o modal
+        const modal = new bootstrap.Modal(document.getElementById('bankAccountModal'));
+        modal.show();
+    }
+
+    function showDeleteBankAccountModal(accountId, accountName) {
+        document.getElementById('deleteBankAccountId').value = accountId;
+        document.getElementById('bankAccountName').textContent = accountName;
+        const modal = new bootstrap.Modal(document.getElementById('deleteBankAccountModal'));
+        modal.show();
+    }
+
+    // Máscara para campo de agência (apenas números)
+    document.getElementById('agency').addEventListener('input', function(e) {
+        e.target.value = e.target.value.replace(/\D/g, '');
+    });
+
+    // Máscara para número da conta
+    document.getElementById('accountNumber').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 5) {
+            value = value.substring(0, value.length - 1) + '-' + value.substring(value.length - 1);
+        }
+        e.target.value = value;
     });
 </script>
 

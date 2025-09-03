@@ -61,13 +61,30 @@ admin.site.register(SystemModule, SystemModuleAdmin)
 admin.site.register(Unit)
 admin.site.register(Enterprise)
 admin.site.register(Project)
-admin.site.register(Client)
+# Cliente com inline de contas bancárias será registrado abaixo
 admin.site.register(ClientDocument)
 admin.site.register(ClientHistory)
 admin.site.register(ProjectHistory)
 admin.site.register(ProjectDocument)
 admin.site.register(CreditLine)
 admin.site.register(Bank)
+
+# Registro personalizado do Client com inline de contas bancárias
+from enterprises.models import ClientBankAccount
+
+class ClientBankAccountInline(admin.TabularInline):
+    model = ClientBankAccount
+    extra = 0
+    fields = ['bank', 'agency', 'account_number', 'account_type', 'is_active']
+
+@admin.register(Client)
+class ClientAdminWithBankAccounts(admin.ModelAdmin):
+    list_display = ['name', 'email', 'cpf', 'status', 'enterprise', 'is_active', 'created_at']
+    list_filter = ['status', 'enterprise', 'is_active', 'producer_classification', 'activity']
+    search_fields = ['name', 'email', 'cpf', 'phone']
+    readonly_fields = ['created_at', 'updated_at']
+    filter_horizontal = ['units']
+    inlines = [ClientBankAccountInline]
 
 # Registros de métricas removidos - será refeito
 

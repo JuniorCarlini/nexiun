@@ -1,6 +1,6 @@
 from django.utils import timezone
 from django.dispatch import receiver
-from .models import Client, ClientDocument, ClientHistory
+from .models import Client, ClientDocument, ClientHistory, ClientBankAccount
 from projects.signals import get_current_user, get_user_display_name
 from django.db.models.signals import pre_save, post_save, post_delete
 
@@ -14,6 +14,14 @@ def format_value(value, field):
     if field in ['date_of_birth', 'retorno_ate', 'created_at', 'updated_at']:
         if hasattr(value, 'strftime'):
             return value.strftime('%d/%m/%Y')
+        # Se é string, tenta converter do formato ISO para brasileiro
+        if isinstance(value, str) and len(value) == 10 and '-' in value:
+            try:
+                from datetime import datetime
+                date_obj = datetime.strptime(value, '%Y-%m-%d').date()
+                return date_obj.strftime('%d/%m/%Y')
+            except ValueError:
+                pass
         return str(value)
     
     # Formatação para campos de relacionamento
@@ -29,6 +37,30 @@ def format_value(value, field):
             'ATIVO': 'Ativo'
         }
         return status_dict.get(value, str(value))
+    
+    # Formatação para enquadramento do produtor
+    if field == 'producer_classification':
+        producer_dict = {
+            'PEQUENO': 'Pequeno Produtor',
+            'MEDIO': 'Médio Produtor',
+            'GRANDE': 'Grande Produtor'
+        }
+        return producer_dict.get(value, str(value))
+    
+    # Formatação para atividade
+    if field == 'activity':
+        activity_dict = {
+            'AGRICULTURA': 'Agricultura',
+            'PECUARIA': 'Pecuária',
+            'OUTROS': 'Outros'
+        }
+        return activity_dict.get(value, str(value))
+    
+    # Formatação para área (hectares)
+    if field == 'property_area':
+        if value and str(value).replace('.', '').replace(',', '').isdigit():
+            return f"{value} hectares"
+        return str(value)
     
     # Formatação para campos booleanos
     if isinstance(value, bool):
@@ -60,11 +92,15 @@ def track_client_changes(sender, instance, **kwargs):
         tracked_fields = {
             'name': 'Nome',
             'email': 'Email',
+            'cpf': 'CPF',
             'phone': 'Telefone',
             'address': 'Endereço',
             'city': 'Cidade',
             'observations': 'Observações',
             'date_of_birth': 'Data de Aniversário',
+            'producer_classification': 'Enquadramento do Produtor',
+            'property_area': 'Área Total do Produtor',
+            'activity': 'Atividade Principal',
             'status': 'Status',
             'retorno_ate': 'Retorno até',
             'enterprise': 'Empresa',
@@ -76,7 +112,22 @@ def track_client_changes(sender, instance, **kwargs):
             old_value = getattr(previous, field)
             new_value = getattr(instance, field)
 
-            if old_value != new_value:
+            # Comparação especial para campos de data
+            if field in ['date_of_birth', 'retorno_ate']:
+                # Converte ambos os valores para o mesmo formato para comparação
+                old_formatted = format_value(old_value, field)
+                new_formatted = format_value(new_value, field)
+                
+                # Só registra mudança se os valores formatados forem diferentes
+                if old_formatted != new_formatted:
+                    changes[field] = {
+                        'usuario': user_name,
+                        'campo': field_name,
+                        'de': old_formatted,
+                        'para': new_formatted,
+                        'data': timezone.now().strftime('%d/%m/%Y %H:%M:%S'),
+                    }
+            elif old_value != new_value:
                 changes[field] = {
                     'usuario': user_name,
                     'campo': field_name,
@@ -156,6 +207,55 @@ def track_client_document_deletion(sender, instance, **kwargs):
             'arquivo': instance.file_name,
             'tipo': instance.file_type,
             'tamanho': format_file_size(instance.file_size),
+            'data': timezone.now().strftime('%d/%m/%Y %H:%M:%S'),
+        }
+    }
+    
+    ClientHistory.objects.create(
+        client=instance.client,
+        changes=changes,
+    )
+
+
+@receiver(post_save, sender=ClientBankAccount)
+def track_client_bank_account_addition(sender, instance, created, **kwargs):
+    if created:
+        current_user = get_current_user()
+        user_name = get_user_display_name(current_user)
+        
+        changes = {
+            'bank_account_added': {
+                'usuario': user_name,
+                'campo': 'Conta Bancária',
+                'acao': 'Adicionou',
+                'banco': instance.bank.name,
+                'agencia': instance.agency,
+                'conta': instance.account_number,
+                'tipo': instance.get_account_type_display(),
+                'data': timezone.now().strftime('%d/%m/%Y %H:%M:%S'),
+            }
+        }
+        
+        ClientHistory.objects.create(
+            client=instance.client,
+            changes=changes,
+        )
+
+
+@receiver(post_delete, sender=ClientBankAccount)
+def track_client_bank_account_deletion(sender, instance, **kwargs):
+    current_user = get_current_user()
+    user_name = get_user_display_name(current_user)
+    
+    changes = {
+        'bank_account_deleted': {
+            'usuario': user_name,
+            'campo': 'Conta Bancária',
+            'acao': 'Removeu',
+            'banco': instance.bank.name,
+            'agencia': instance.agency,
+            'conta': instance.account_number,
+            'tipo': instance.get_account_type_display(),
             'data': timezone.now().strftime('%d/%m/%Y %H:%M:%S'),
         }
     }

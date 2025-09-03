@@ -146,13 +146,15 @@ def register_client_view(request):
         return redirect('list_clients')
 
     # Preparar contexto
-    from .models import CLIENT_STATUS_CHOICES
+    from .models import CLIENT_STATUS_CHOICES, PRODUCER_CLASSIFICATION_CHOICES, ACTIVITY_CHOICES
     context = {
         'enterprise': request.user.enterprise,
         'client_documents': [],
         'is_completed': False,
         'user_units': user_units,
         'status_choices': CLIENT_STATUS_CHOICES,
+        'producer_classification_choices': PRODUCER_CLASSIFICATION_CHOICES,
+        'activity_choices': ACTIVITY_CHOICES,
         'has_multiple_units': user_units.count() > 1,
         'single_unit': user_units.first() if user_units.count() == 1 else None
     }
@@ -216,11 +218,15 @@ def register_client_view(request):
             client = Client.objects.create(
                 name=name,
                 email=email,
+                cpf=request.POST.get('cpf', '').strip() or None,
                 phone=request.POST.get('phone', '').strip(),
                 address=request.POST.get('address', '').strip(),
                 city=request.POST.get('city', '').strip(),
                 date_of_birth=date_of_birth,
                 observations=request.POST.get('observations', '').strip(),
+                producer_classification=request.POST.get('producer_classification', '').strip() or None,
+                property_area=request.POST.get('property_area', '').strip() or None,
+                activity=request.POST.get('activity', '').strip() or None,
                 status=status,
                 retorno_ate=retorno_ate,
                 enterprise=request.user.enterprise,
@@ -313,15 +319,93 @@ def view_client_view(request, client_id):
                     messages.error(request, f"Erro ao excluir documento: {str(e)}")
                     return redirect('view_client', client_id=client.id)
             
+            # Lógica de gerenciamento de contas bancárias
+            elif "action" in request.POST and request.POST["action"] in ["add_bank_account", "edit_bank_account", "delete_bank_account"]:
+                try:
+                    action = request.POST.get("action")
+                    
+                    if action == "add_bank_account":
+                        from .models import ClientBankAccount
+                        from projects.models import Bank
+                        
+                        bank_id = request.POST.get("bank")
+                        agency = request.POST.get("agency", "").strip()
+                        account_number = request.POST.get("account_number", "").strip()
+                        account_type = request.POST.get("account_type", "CORRENTE")
+                        
+                        if not all([bank_id, agency, account_number]):
+                            messages.error(request, "Todos os campos obrigatórios devem ser preenchidos.")
+                            return redirect('view_client', client_id=client.id)
+                        
+                        try:
+                            bank = Bank.objects.get(id=bank_id, enterprise=request.user.enterprise)
+                        except Bank.DoesNotExist:
+                            messages.error(request, "Banco não encontrado.")
+                            return redirect('view_client', client_id=client.id)
+                        
+                        # Verificar se já existe conta igual
+                        existing_account = ClientBankAccount.objects.filter(
+                            client=client,
+                            bank=bank,
+                            agency=agency,
+                            account_number=account_number
+                        ).first()
+                        
+                        if existing_account:
+                            messages.error(request, "Esta conta bancária já está cadastrada para este cliente.")
+                            return redirect('view_client', client_id=client.id)
+                        
+                        account = ClientBankAccount.objects.create(
+                            client=client,
+                            bank=bank,
+                            agency=agency,
+                            account_number=account_number,
+                            account_type=account_type,
+                            created_by=request.user
+                        )
+                        
+                        messages.success(request, f"Conta bancária {account.get_formatted_account()} adicionada com sucesso!")
+                        return redirect('view_client', client_id=client.id)
+                    
+                    elif action == "delete_bank_account":
+                        from .models import ClientBankAccount
+                        
+                        account_id = request.POST.get("account_id")
+                        if not account_id:
+                            messages.error(request, "ID da conta não fornecido")
+                            return redirect('view_client', client_id=client.id)
+                        
+                        account = ClientBankAccount.objects.filter(
+                            id=account_id,
+                            client=client
+                        ).first()
+                        
+                        if not account:
+                            messages.error(request, "Conta bancária não encontrada")
+                            return redirect('view_client', client_id=client.id)
+                        
+                        account_name = account.get_formatted_account()
+                        account.delete()
+                        messages.success(request, f"Conta bancária '{account_name}' excluída com sucesso!")
+                        return redirect('view_client', client_id=client.id)
+                
+                except Exception as e:
+                    messages.error(request, f"Erro ao processar conta bancária: {str(e)}")
+                    return redirect('view_client', client_id=client.id)
+            
             # Lógica de atualização do cliente e upload de documentos
             else:
                 try:
                     # Atualizar dados do cliente
                     client.name = request.POST.get('name', client.name)
                     client.email = request.POST.get('email', client.email)
+                    client.cpf = request.POST.get('cpf', '').strip() or None
                     client.phone = request.POST.get('phone', client.phone)
                     client.address = request.POST.get('address', client.address)
                     client.city = request.POST.get('city', client.city)
+                    client.producer_classification = request.POST.get('producer_classification', '').strip() or None
+                    client.property_area = request.POST.get('property_area', '').strip() or None
+                    client.activity = request.POST.get('activity', '').strip() or None
                     # Validar campo "Retorno até" quando status é "EM_NEGOCIACAO"
                     new_status = request.POST.get('status', client.status)
                     retorno_ate = request.POST.get('retorno_ate')
@@ -410,10 +494,14 @@ def view_client_view(request, client_id):
                     messages.error(request, f"Erro ao atualizar cliente: {str(e)}")
                     return redirect('view_client', client_id=client.id)
 
-        from .models import CLIENT_STATUS_CHOICES
+        from .models import CLIENT_STATUS_CHOICES, PRODUCER_CLASSIFICATION_CHOICES, ACTIVITY_CHOICES
+        from projects.models import Bank
         
         # Buscar histórico do cliente
         client_history = client.history.all().order_by('-timestamp')[:20]  # Últimas 20 alterações
+        
+        # Buscar bancos disponíveis para o formulário de conta bancária
+        available_banks = Bank.objects.filter(enterprise=request.user.enterprise, is_active=True).order_by('name')
         
         context = {
             'enterprise': request.user.enterprise,
@@ -422,7 +510,10 @@ def view_client_view(request, client_id):
             'client_history': client_history,
             'projects': [],
             'today': date.today(),
-            'status_choices': CLIENT_STATUS_CHOICES
+            'status_choices': CLIENT_STATUS_CHOICES,
+            'producer_classification_choices': PRODUCER_CLASSIFICATION_CHOICES,
+            'activity_choices': ACTIVITY_CHOICES,
+            'available_banks': available_banks
         }
         return render(request, 'enterprises/view_client.html', context)
         

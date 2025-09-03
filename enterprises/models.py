@@ -220,14 +220,53 @@ CLIENT_STATUS_CHOICES = [
     ('ATIVO', 'Ativo'),
 ]
 
+# Novas opções para os campos adicionados
+PRODUCER_CLASSIFICATION_CHOICES = [
+    ('PEQUENO', 'Pequeno Produtor'),
+    ('MEDIO', 'Médio Produtor'),
+    ('GRANDE', 'Grande Produtor'),
+]
+
+ACTIVITY_CHOICES = [
+    ('AGRICULTURA', 'Agricultura'),
+    ('PECUARIA', 'Pecuária'),
+    ('OUTROS', 'Outros'),
+]
+
 class Client(models.Model):
     name = models.CharField(max_length=255, verbose_name="Name")
     email = models.EmailField(unique=True, verbose_name="Email")
+    cpf = models.CharField(max_length=14, blank=True, null=True, verbose_name="CPF", help_text="CPF do cliente (formato: XXX.XXX.XXX-XX)")
     phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Phone")
     address = models.CharField(max_length=255, blank=True, null=True, verbose_name="Address")
     city = models.CharField(max_length=100, blank=True, null=True, verbose_name="City")
     observations = models.TextField(blank=True, null=True, verbose_name="Observations")
     date_of_birth = models.DateField(blank=True, null=True, verbose_name="Date of Birth")
+    
+    # Novos campos adicionados
+    producer_classification = models.CharField(
+        max_length=10,
+        choices=PRODUCER_CLASSIFICATION_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Enquadramento do Produtor"
+    )
+    property_area = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        verbose_name="Área Total do Produtor (hectares)",
+        help_text="Área total do produtor em hectares"
+    )
+    activity = models.CharField(
+        max_length=15,
+        choices=ACTIVITY_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Atividade Principal"
+    )
+    
     status = models.CharField(
         max_length=15, 
         choices=CLIENT_STATUS_CHOICES, 
@@ -319,3 +358,54 @@ class ClientHistory(models.Model):
 
     def __str__(self):
         return f"Histórico de {self.client.name} em {self.timestamp}"
+
+
+# Conta bancária do cliente
+class ClientBankAccount(models.Model):
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='bank_accounts', verbose_name="Cliente")
+    bank = models.ForeignKey('projects.Bank', on_delete=models.CASCADE, verbose_name="Banco")
+    agency = models.CharField(max_length=10, verbose_name="Agência", help_text="Número da agência (ex: 1234)")
+    account_number = models.CharField(max_length=20, verbose_name="Número da Conta", help_text="Número da conta com dígito (ex: 12345-6)")
+    account_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('CORRENTE', 'Conta Corrente'),
+            ('POUPANCA', 'Poupança'),
+            ('SALARIO', 'Conta Salário'),
+        ],
+        default='CORRENTE',
+        verbose_name="Tipo de Conta"
+    )
+
+    is_active = models.BooleanField(default=True, verbose_name="Ativa")
+    
+    # Campos de auditoria
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
+    created_by = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='created_bank_accounts', verbose_name='Cadastrado por', null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Conta Bancária do Cliente"
+        verbose_name_plural = "Contas Bancárias dos Clientes"
+        ordering = ['bank__name']
+        unique_together = ['client', 'bank', 'agency', 'account_number']  # Evita duplicatas
+
+    def __str__(self):
+        status_text = "Ativa" if self.is_active else "Inativa"
+        return f"{self.client.name} - {self.bank.name} Ag:{self.agency} Cc:{self.account_number} ({status_text})"
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+    
+    def get_formatted_account(self):
+        """Retorna a conta formatada: Banco - Ag: XXXX Cc: XXXXX-X"""
+        return f"{self.bank.name} - Ag: {self.agency} Cc: {self.account_number}"
+    
+    def get_account_type_display_short(self):
+        """Retorna o tipo de conta de forma abreviada"""
+        type_dict = {
+            'CORRENTE': 'CC',
+            'POUPANCA': 'CP',
+            'SALARIO': 'CS',
+        }
+        return type_dict.get(self.account_type, self.account_type)
