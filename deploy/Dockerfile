@@ -15,9 +15,13 @@ RUN apt-get update \
         postgresql-client \
         build-essential \
         libpq-dev \
+        python3-dev \
+        gcc \
+        g++ \
         curl \
         netcat-openbsd \
         gettext \
+        pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Set work directory
@@ -25,8 +29,8 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir --no-build-isolation -r requirements.txt
 
 # Copy project
 COPY . .
