@@ -10,10 +10,10 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Install only essential system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-client \
-    libpq-dev \
-    netcat-openbsd \
-    gettext \
+        postgresql-client \
+        libpq-dev \
+        netcat-openbsd \
+        gettext \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
