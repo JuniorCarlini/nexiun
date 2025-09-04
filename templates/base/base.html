@@ -604,7 +604,7 @@
                         <p class="text_icons_color m-0 p-0">Olá, <span class="fw-bold">{{ first_name }}!</span></p>
                         <span class="badge badge-style-group-user m-0 p-1">{{ user.roles.first.name|default:"Usuário" }}</span>
                     </div>
-                    <img src="{% if user.profile_image %}{{ user.profile_image.url }}{% else %}{% static 'images/user_default_icon.svg' %}{% endif %}" alt="Usuário" class="rounded-circle" style="height: 40px; width: 40px;">
+                    <img src="{% if user.profile_image %}{{ user.profile_image.url }}{% else %}{% static 'images/user_default_icon.svg' %}{% endif %}" alt="Usuário" class="rounded-circle" style="height: 40px; width: 40px; object-fit: cover;">
                 </div>
             </div>
         </div>
