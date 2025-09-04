@@ -5,6 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="{% static 'images/favicon.ico' %}">
+    {% if enterprise %}
+        <link rel="shortcut icon" href="{{ enterprise.get_favicon_url }}" type="image/x-icon">
+    {% else %}
+        <link rel="shortcut icon" href="{% static 'icons/favicon.svg' %}" type="image/x-icon">
+    {% endif %}
     <title>Acesso Negado - Nexiun</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -20,20 +25,20 @@
             padding: 20px;
             box-sizing: border-box;
         }
-        
+
         .error-container {
             text-align: center;
             position: relative;
             max-width: 600px;
             width: 100%;
         }
-        
+
         .error-code {
-            font-size: 12rem;
+            font-size: 18rem;
             font-weight: 900;
             background: linear-gradient(180deg, 
-                rgba(255, 167, 38, 0.15) 0%, 
-                rgba(255, 167, 38, 0.05) 100%);
+                rgba(74, 107, 113, 0.7) 0%, 
+                #4a6b71 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -46,49 +51,52 @@
             user-select: none;
             font-family: 'Inter', sans-serif;
         }
-        
+
         .character-image {
             width: 350px;
             height: auto;
             position: relative;
             z-index: 2;
-            animation: bounce 2s ease-in-out infinite;
-            margin-bottom: 2rem;
+            animation: float 3s ease-in-out infinite;
+            margin-left: 1rem;
         }
-        
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
             50% { transform: translateY(-15px); }
         }
-        
+
         .error-message {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
+            font-size: 1.2rem;
             color: #666;
-            margin-bottom: 2.5rem;
+            margin-bottom: 1rem;
             line-height: 1.6;
             font-weight: 600;
+            margin-bottom: 1.5rem;
+            font-weight: 200;
             font-family: 'Inter', sans-serif;
         }
-        
+
         .home-button {
-            background-color: #ffa726;
+            background-color: #F36E20;
             border: none;
-            padding: 15px 35px;
-            border-radius: 50px;
+            padding: 10px 50px;
+            border-radius: 10px;
             color: white;
             font-weight: 600;
             font-size: 1.1rem;
             text-decoration: none;
             display: inline-block;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 20px rgba(255, 167, 38, 0.3);
+            box-shadow: 0 4px 20px rgba(255, 210, 64, 0.3);
             font-family: 'Inter', sans-serif;
         }
-        
+
         .home-button:hover {
-            background-color: #ff9800;
+            background-color:rgb(228, 104, 32);
             transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(255, 167, 38, 0.4);
+            box-shadow: 0 4px 20px rgba(255, 210, 64, 0.3);
             color: white;
             text-decoration: none;
         }
@@ -98,13 +106,13 @@
     <div class="error-container">
         <div class="error-code">403</div>
         <img src="{% static 'images/character_error.png' %}" alt="Personagem de Erro" class="character-image">
-        
+
         <div class="error-message">
-            Acesso negado! Você não tem permissão para acessar esta página.
+            Oops! Você não tem permissão para acessar esta página.
         </div>
-        
-        <a href="/" class="home-button">
-            🏠 Voltar para o Início
+
+        <a href="{% url 'home' %}" class="home-button">
+            Voltar para o Início
         </a>
     </div>
 </body>
