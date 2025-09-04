@@ -1,6 +1,5 @@
-# Use Python 3.13 slim image (matching local development: Python 3.13.5 Anaconda)
-# Django 5.2.5 LTS (Long Term Support) for production stability
-FROM python:3.13-slim
+# Use Python 3.12 full image (tem mais bibliotecas pré-instaladas)
+FROM python:3.12
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -9,19 +8,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PIP_NO_CACHE_DIR=1
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        postgresql-client \
-        build-essential \
-        libpq-dev \
-        python3-dev \
-        gcc \
-        g++ \
-        curl \
-        netcat-openbsd \
-        gettext \
-        pkg-config \
+# Install only essential system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    libpq-dev \
+    netcat-openbsd \
+    gettext \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Set work directory
@@ -29,8 +22,8 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir --no-build-isolation -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy project
 COPY . .
