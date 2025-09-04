@@ -549,6 +549,9 @@ def list_users_view(request):
         if user_units.exists():
             users = users.filter(units__in=user_units)
 
+    # Ordenar os usuários para evitar warning de paginação inconsistente
+    users = users.order_by('name', 'id')
+
     paginator = Paginator(users, 20)
     users_page = paginator.get_page(request.GET.get("page"))
 

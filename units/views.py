@@ -407,6 +407,9 @@ def unit_transactions_list_view(request, unit_id=None):
     if data_fim:
         transactions = transactions.filter(date__lte=data_fim)
     
+    # Ordenar transações por data (mais recentes primeiro) e depois por ID
+    transactions = transactions.order_by('-date', '-id')
+    
     # Paginação
     paginator = Paginator(transactions, 20)
     page_number = request.GET.get('page')
