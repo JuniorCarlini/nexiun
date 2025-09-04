@@ -624,95 +624,147 @@
                             </a>
                         </li>
                         <hr class="separator">
+                        
+                        <!-- PROJETOS - Mostrar apenas se tiver alguma permissão de projetos -->
+                        {% if user|has_any_perm:"users.view_projects,users.add_projects,users.change_projects" %}
                         <p class="fw-bold menu-color ms-4">PROJETOS</p>
+                            {% if user|has_perm:"users.view_projects" %}
                             <li class="li-style {% if request.path == '/projects/conveyor/' %}menu-active{% endif %}">
                                 <a href="/projects/conveyor/" class="nav-link fw-bold ms-3">
                                     <i class="fa-solid fa-chart-gantt"></i> Esteira de Projetos
                                 </a>
                             </li>
+                            {% endif %}
+                            {% if user|has_perm:"users.view_projects" %}
                             <li class="li-style {% if request.path == '/projects/projects-list/' or '/projects/project-details/' in request.path %}menu-active{% endif %}">
                                 <a href="/projects/projects-list/" class="nav-link fw-bold ms-3">
                                     <i class="fa-solid fa-folder-open"></i> Seus Projetos
                                 </a>
                             </li>
+                            {% endif %}
+                        {% if user|has_perm:"users.add_projects" %}
                         <li class="li-style {% if request.path == '/projects/create-project/' %}menu-active{% endif %}">
                             <a href="/projects/create-project/" class="nav-link fw-bold ms-3">
                                 <i class="fa-solid fa-folder-plus"></i> Criar Novo Projeto
                             </a>
                         </li>
+                        {% endif %}
+                        {% endif %}
                     </div>
+                    
+                        <!-- FINANCEIRO - Mostrar apenas se tiver alguma permissão financeira -->
+                        {% if user|has_any_perm:"users.view_project_payments,users.change_project_payments,users.view_unit_financial_dashboard,users.view_financial" %}
                         <div>
                             <hr class="separator">
                             <p class="fw-bold menu-color ms-4">FINANCEIRO</p>
+                            {% if user|has_perm:"users.view_project_payments" %}
                             <li class="li-style {% if request.path == '/projects/conveyor-payments/' %}menu-active{% endif %}">
                                 <a href="/projects/conveyor-payments/" class="nav-link menu-color fw-bold ms-3">
                                     <i class="fa-solid fa-chart-gantt"></i> Esteira de Pagamentos
                                 </a>
                             </li>
+                            {% endif %}
+                            {% if user|has_perm:"users.change_project_payments" %}
                             <li class="li-style {% if request.path == '/projects/conveyor-confirm-payments/' %}menu-active{% endif %}">
                                 <a href="/projects/conveyor-confirm-payments/" class="nav-link menu-color fw-bold ms-3">
                                     <i class="fa-solid fa-chart-gantt"></i> Confirmação de Pagamentos
                                 </a>
                             </li>
+                            {% endif %}
+                            {% if user|has_perm:"users.view_unit_financial_dashboard" %}
                             <li class="li-style {% if request.path == '/units/dashboard-financeiro/' %}menu-active{% endif %}">
                                 <a href="{% url 'dashboard_financeiro' %}" class="nav-link menu-color fw-bold ms-3">
                                     <i class="fa-solid fa-chart-pie"></i> Dashboard Financeiro
                                 </a>
                             </li>
+                            {% endif %}
                         </div>
+                        {% endif %}
+                        
+                        <!-- CLIENTES - Mostrar apenas se tiver alguma permissão de clientes -->
+                        {% if user|has_any_perm:"users.view_clients,users.add_clients,users.change_clients" %}
                         <div>
                             <hr class="separator">
                             <p class="fw-bold menu-color ms-4">CLIENTES</p>
+                            {% if user|has_perm:"users.add_clients" %}
                             <li class="li-style {% if request.path == '/enterprises/register_client/' %}menu-active{% endif %}">
                                 <a href="/enterprises/register_client/" class="nav-link fw-bold ms-3">
                                     <i class="fa-solid fa-user-plus"></i> Cadastrar Cliente
                                 </a>
                             </li>
+                            {% endif %}
+                            {% if user|has_perm:"users.view_clients" %}
                             <li class="li-style {% if request.path == '/enterprises/list_clients/' or '/enterprises/view-client/' in request.path %}menu-active{% endif %}">
                                 <a href="/enterprises/list_clients/" class="nav-link fw-bold ms-3">
                                     <i class="fa-solid fa-users"></i> Listar Clientes
                                 </a>
                             </li>
+                            {% endif %}
                         </div>
+                        {% endif %}
+                        
+                        <!-- EQUIPE - Mostrar apenas se tiver alguma permissão de usuários -->
+                        {% if user|has_any_perm:"users.view_users,users.add_users,users.change_users" %}
                         <div>
                             <hr class="separator">
                             <p class="fw-bold menu-color ms-4">EQUIPE</p>
+                            {% if user|has_perm:"users.add_users" %}
                             <li class="li-style {% if request.path == '/users/create-user/' %}menu-active{% endif %}">
                                 <a href="/users/create-user/" class="nav-link menu-color fw-bold ms-3">
                                     <i class="fa-solid fa-user-plus"></i> Cadastro de Equipe
                                 </a>
                             </li>
+                            {% endif %}
+                            {% if user|has_perm:"users.view_users" %}
                             <li class="li-style {% if '/users/list-users/' in request.path or '/users/edit-user/' in request.path %}menu-active{% endif %}">
                                 <a href="/users/list-users/" class="nav-link menu-color fw-bold ms-3">
                                     <i class="fa-solid fa-users"></i> Listar Equipe
                                 </a>
                             </li>
+                            {% endif %}
                         </div>
+                        {% endif %}
+                        
+                        <!-- CADASTROS - Mostrar apenas se tiver alguma permissão de cadastros -->
+                        {% if user|has_any_perm:"users.view_units,users.view_banks,users.view_credit_lines,users.view_messages" %}
                         <div>
                             <hr class="separator">
                             <p class="fw-bold menu-color ms-4">CADASTROS</p>
+                            {% if user|has_perm:"users.view_units" %}
                             <li class="li-style {% if request.path == '/units/units-list/' or request.path == '/units/edit-unit/' or '/units/create-unit/' in request.path %}menu-active{% endif %}">
                                 <a href="/units/units-list/" class="nav-link menu-color fw-bold ms-3">
                                     <i class="fa-solid fa-building"></i> Unidades
                                 </a>
                             </li>
+                            {% endif %}
+                            {% if user|has_perm:"users.view_banks" %}
                             <li class="li-style {% if request.path == '/projects/banks-list/' or request.path == '/projects/bank-add/' or '/projects/bank-edit/' in request.path %}menu-active{% endif %}">
                                 <a href="/projects/banks-list/" class="nav-link menu-color fw-bold ms-3">
                                     <i class="fa-solid fa-landmark"></i> Bancos
                                 </a>
                             </li>
+                            {% endif %}
+                            {% if user|has_perm:"users.view_credit_lines" %}
                             <li class="li-style {% if request.path == '/projects/credit-line-list/' or request.path == '/projects/credit-line-add/' or '/projects/credit-line-edit/' in request.path %}menu-active{% endif %}">
                                 <a href="/projects/credit-line-list/" class="nav-link menu-color fw-bold ms-3">
                                     <i class="fa-solid fa-folder-tree"></i> Linhas de Crédito
                                 </a>
                             </li>
+                            {% endif %}
+                            {% if user|has_perm:"users.view_messages" %}
                             <li class="li-style {% if request.path == '/enterprises/list-messages/' or request.path == '/enterprises/new-message/' or '/enterprises/edit-message/' in request.path %}menu-active{% endif %}">
                                 <a href="/enterprises/list-messages/" class="nav-link menu-color fw-bold ms-3">
                                     <i class="fa-solid fa-message"></i> Mensagens
                                 </a>
                             </li>
+                            {% endif %}
                         </div>
+                        {% endif %}
 
+
+
+                        <!-- RELATÓRIOS - Mostrar apenas se tiver permissão de relatórios (não para captadores) -->
+                        {% if user|has_perm:"users.view_reports" %}
                         <div>
                             <hr class="separator">
                             <p class="fw-bold menu-color ms-4">RELATÓRIOS</p>
@@ -742,6 +794,7 @@
                                 </a>
                             </li>
                         </div>
+                        {% endif %}
 
                     <div>
                         <hr class="separator">
