@@ -192,7 +192,7 @@ DEFAULT_ROLES = {
     'gerente': {
         'name': 'Gerente',
         'permissions': [
-            'users.view_users',
+            'users.view_users', 'users.add_users', 'users.change_users',
             'users.view_projects', 'users.add_projects', 'users.change_projects', 'users.view_all_projects',
             'users.view_financial', 'users.view_reports_financial',
             'users.view_clients', 'users.add_clients', 'users.change_clients', 'users.view_all_clients',
@@ -206,7 +206,7 @@ DEFAULT_ROLES = {
     'socio_unidade': {
         'name': 'Sócio Unidade',
         'permissions': [
-            'users.view_users',
+            'users.view_users', 'users.add_users', 'users.change_users',
             'users.view_projects', 'users.add_projects', 'users.change_projects', 'users.view_unit_projects',
             'users.view_financial',
             'users.view_clients', 'users.add_clients', 'users.change_clients', 'users.view_unit_clients',
@@ -219,7 +219,7 @@ DEFAULT_ROLES = {
     'franqueado': {
         'name': 'Franqueado',
         'permissions': [
-            'users.view_users',
+            'users.view_users', 'users.add_users', 'users.change_users',
             'users.view_projects', 'users.add_projects', 'users.change_projects', 'users.view_unit_projects',
             'users.view_financial',
             'users.view_clients', 'users.add_clients', 'users.change_clients', 'users.view_unit_clients',
@@ -246,6 +246,7 @@ DEFAULT_ROLES = {
     'coordenador': {
         'name': 'Coordenador',
         'permissions': [
+            'users.view_users', 'users.add_users', 'users.change_users',
             'users.view_projects', 'users.add_projects', 'users.change_projects', 'users.view_unit_projects',
             'users.view_clients', 'users.add_clients', 'users.change_clients', 'users.view_unit_clients',
             'users.view_banks', 'users.manage_banks_master',

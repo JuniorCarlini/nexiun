@@ -8,6 +8,7 @@ from enterprises.models import Enterprise
 from django.core.paginator import Paginator
 from users.decorators import permission_required
 from users.models import User, Role, SystemModule
+from users.utils import get_allowed_roles_for_user
 from django.contrib.auth.models import Permission
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login , authenticate, logout
@@ -235,8 +236,15 @@ def create_user_view(request):
     enterprise = user.enterprise
     units = Unit.objects.filter(enterprise=enterprise)
     
-    # Buscar roles disponíveis (cargos que o usuário pode atribuir)
-    available_roles = Role.objects.filter(is_active=True)
+    # Buscar roles disponíveis (cargos que o usuário pode atribuir) baseado na hierarquia
+    allowed_role_codes = get_allowed_roles_for_user(user)
+    
+    if not allowed_role_codes:
+        # Se o usuário não pode criar nenhum cargo, mostrar mensagem e redirecionar
+        messages.error(request, 'Você não tem permissão para criar usuários com qualquer cargo.')
+        return redirect('list_users')
+    
+    available_roles = Role.objects.filter(is_active=True, code__in=allowed_role_codes)
     
     # Buscar módulos do sistema e suas permissões
     system_modules = []
@@ -275,6 +283,19 @@ def create_user_view(request):
         selected_roles = request.POST.getlist('roles')
         selected_permissions = request.POST.getlist('custom_permissions')
         
+        # Validar se os roles selecionados estão permitidos para este usuário
+        if selected_roles:
+            selected_role_objects = Role.objects.filter(id__in=selected_roles, is_active=True)
+            selected_role_codes = list(selected_role_objects.values_list('code', flat=True))
+            
+            # Verificar se todos os roles selecionados estão na lista de permitidos
+            for role_code in selected_role_codes:
+                if role_code not in allowed_role_codes:
+                    role_name = selected_role_objects.filter(code=role_code).first()
+                    role_name = role_name.name if role_name else role_code
+                    messages.error(request, f'Você não tem permissão para atribuir o cargo "{role_name}".')
+                    return render(request, 'users/register_user.html', context)
+        
         form_data = {
             'name': name,
             'email': email,
@@ -292,6 +313,7 @@ def create_user_view(request):
             'cpf': cpf,
             'telefone': phone,
             'unidades': unit_ids,
+            'cargo': selected_roles,
             'senha': password1,
             'confirmação de senha': password2
         }
@@ -404,8 +426,15 @@ def edit_user_view(request, user_id):
 
         units = Unit.objects.filter(enterprise=enterprise)
         
-        # Buscar roles e módulos disponíveis (mesmo sistema da criação)
-        available_roles = Role.objects.filter(is_active=True)
+        # Buscar roles disponíveis baseado na hierarquia (mesmo sistema da criação)
+        allowed_role_codes = get_allowed_roles_for_user(user)
+        
+        if not allowed_role_codes:
+            # Se o usuário não pode atribuir nenhum cargo, mostrar mensagem e redirecionar
+            messages.error(request, 'Você não tem permissão para editar cargos de usuários.')
+            return redirect('list_users')
+        
+        available_roles = Role.objects.filter(is_active=True, code__in=allowed_role_codes)
         
         system_modules = []
         for module in SystemModule.objects.filter(is_active=True).order_by('order'):
@@ -444,6 +473,19 @@ def edit_user_view(request, user_id):
             # Cargos e permissões selecionados
             selected_roles = request.POST.getlist('roles')
             selected_permissions = request.POST.getlist('custom_permissions')
+            
+            # Validar se os roles selecionados estão permitidos para este usuário
+            if selected_roles:
+                selected_role_objects = Role.objects.filter(id__in=selected_roles, is_active=True)
+                selected_role_codes = list(selected_role_objects.values_list('code', flat=True))
+                
+                # Verificar se todos os roles selecionados estão na lista de permitidos
+                for role_code in selected_role_codes:
+                    if role_code not in allowed_role_codes:
+                        role_name = selected_role_objects.filter(code=role_code).first()
+                        role_name = role_name.name if role_name else role_code
+                        messages.error(request, f'Você não tem permissão para atribuir o cargo "{role_name}".')
+                        return render(request, 'users/edit_user.html', context)
 
             # Validação de email único
             if User.objects.filter(email=email).exclude(id=user_id).exists():
