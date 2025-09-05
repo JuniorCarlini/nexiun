@@ -70,6 +70,7 @@ class EnterpriseRequiredMiddleware:
     def __call__(self, request):
         # URLs que não precisam de verificação de empresa
         exempt_paths = [
+            '/users/login/',
             '/logout/', 
             '/enterprises/create-enterprise/', 
             '/admin/',
@@ -90,7 +91,9 @@ class EnterpriseRequiredMiddleware:
             if hasattr(request, 'current_enterprise') and request.current_enterprise:
                 # Verifica se o usuário pertence a esta empresa
                 if request.user.enterprise != request.current_enterprise:
-                    # Usuário não pertence a esta empresa - redireciona para login
+                    # Usuário não pertence a esta empresa - faz logout e redireciona para login
+                    from django.contrib.auth import logout
+                    logout(request)
                     return redirect('login')
             
             # Se não estamos em subdomínio específico e usuário não tem empresa

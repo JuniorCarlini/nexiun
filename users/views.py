@@ -91,9 +91,17 @@ def register_view(request):
 
 # Login de usuário
 def login_view(request):
-    # Se o usuário já estiver autenticado, redireciona para a home
+    # Se o usuário já estiver autenticado
     if request.user.is_authenticated:
-        return redirect("/")
+        # Verifica se está no subdomínio correto
+        current_enterprise = getattr(request, 'current_enterprise', None)
+        if current_enterprise and request.user.enterprise != current_enterprise:
+            # Está no subdomínio errado, faz logout e continua
+            from django.contrib.auth import logout
+            logout(request)
+        else:
+            # Está no subdomínio correto ou no domínio principal, redireciona para home
+            return redirect("/")
         
     if request.method == 'GET':
         return render(request, "users/login.html")
