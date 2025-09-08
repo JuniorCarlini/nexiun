@@ -248,6 +248,9 @@ LOGIN_URL = 'login'
 LOGOUT_URL = 'logout'
 LOGIN_REDIRECT_URL = 'home'
 
+# Tempo de expiração do token de recuperação de senha (em segundos)
+PASSWORD_RESET_TIMEOUT = 1800  # 30 minutos (30 * 60 = 1800 segundos)
+
 # Configurações de segurança para produção
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True

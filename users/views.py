@@ -656,40 +656,42 @@ class PasswordResetView(DjangoPasswordResetView):
             
             # Carrega os templates
             subject_template = loader.get_template(self.subject_template_name)
-            email_template = loader.get_template(self.email_template_name)
             
-            # Renderiza o assunto e conteúdo
+            # Renderiza o assunto
             subject = subject_template.render(context)
             subject = ''.join(subject.splitlines())  # Remove quebras de linha
-            body = email_template.render(context)
             
             # Define o remetente baseado na empresa
-            from_email = f"no-reply@{enterprise_for_email.get_full_domain()}" if enterprise_for_email else settings.DEFAULT_FROM_EMAIL
+            from_email = settings.DEFAULT_FROM_EMAIL  # Usar sempre o email configurado no sistema
+            # Comentado temporariamente devido a restrições SMTP:
+            # from_email = f"no-reply@{enterprise_for_email.get_full_domain()}" if enterprise_for_email else settings.DEFAULT_FROM_EMAIL
             
             # Função para envio em thread separada
             def send_email_async():
                 try:
-                    # Cria o email
-                    email_message = EmailMultiAlternatives(
+                    # Carrega template HTML
+                    html_template = loader.get_template('password_reset/password_reset_email_html.html')
+                    html_body = html_template.render(context)
+                    
+                    # Cria email apenas HTML (mais moderno)
+                    from django.core.mail import EmailMessage
+                    email_message = EmailMessage(
                         subject=subject,
-                        body=body,
+                        body=html_body,
                         from_email=from_email,
                         to=[user.email]
                     )
                     
-                    # Adiciona versão HTML se disponível
-                    try:
-                        html_template = loader.get_template('password_reset/password_reset_email_html.html')
-                        html_body = html_template.render(context)
-                        email_message.attach_alternative(html_body, "text/html")
-                    except:
-                        pass  # Se não encontrar template HTML, usa apenas texto
+                    # Define como HTML
+                    email_message.content_subtype = "html"
                     
                     # Envia o email
-                    email_message.send()
+                    result = email_message.send()
+                    print(f"✅ Email HTML enviado com sucesso para {user.email}! Resultado: {result}")
+                    
                 except Exception as e:
                     # Log do erro (em produção, usar logging adequado)
-                    print(f"Erro ao enviar email de recuperação: {e}")
+                    print(f"❌ Erro ao enviar email de recuperação para {user.email}: {e}")
             
             # Inicia thread para envio assíncrono
             email_thread = threading.Thread(target=send_email_async)
