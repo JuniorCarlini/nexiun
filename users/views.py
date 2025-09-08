@@ -405,7 +405,11 @@ def create_user_view(request):
                 permissions = Permission.objects.filter(id__in=selected_permissions)
                 new_user.custom_permissions.set(permissions)
             
-            messages.success(request, 'Usuário criado com sucesso!')
+            # Envia email de boas-vindas para o novo usuário
+            from enterprises.utils import send_new_team_member_email_async
+            send_new_team_member_email_async(new_user, enterprise, request.user, request)
+            
+            messages.success(request, f'Usuário criado com sucesso! Email de boas-vindas enviado para {new_user.email}')
             return redirect('list_users')
             
         except Exception as e:

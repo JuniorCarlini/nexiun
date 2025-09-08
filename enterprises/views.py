@@ -100,14 +100,20 @@ def create_enterprise(request):
             
             # Atribuir role CEO com todas as permissões
             from users.models import Role
+            from .utils import send_welcome_email_async
+            
             try:
                 ceo_role = Role.objects.get(code='ceo', is_active=True)
                 request.user.roles.add(ceo_role)
                 
+                # Envia email de boas-vindas de forma assíncrona
+                send_welcome_email_async(request.user, enterprise, request)
+                
                 # Mensagem de sucesso com informações do subdomínio
                 success_message = f"Empresa criada com sucesso! Você agora é CEO com todos os acessos.<br>"
                 success_message += f"<strong>Seu subdomínio:</strong> {enterprise.get_full_domain()}<br>"
-                success_message += f"<strong>URL de acesso:</strong> <a href='{enterprise.get_absolute_url()}' target='_blank'>{enterprise.get_absolute_url()}</a>"
+                success_message += f"<strong>URL de acesso:</strong> <a href='{enterprise.get_absolute_url()}' target='_blank'>{enterprise.get_absolute_url()}</a><br>"
+                success_message += f"<strong>📧 Email de boas-vindas enviado para:</strong> {request.user.email}"
                 
                 messages.success(request, success_message, extra_tags='safe')
                 

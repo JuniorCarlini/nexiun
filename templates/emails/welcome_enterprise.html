@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bem-vindo ao Nexiun</title>
+    <style type="text/css">
+        /* CSS básico para compatibilidade */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        .email-header {
+            background: {{ enterprise.primary_color|default:"#05677D" }};
+            padding: 30px 20px;
+            text-align: center;
+            color: {{ enterprise.text_icons_color|default:"#FFFFFF" }};
+        }
+        .logo {
+            max-width: 120px;
+            max-height: 60px;
+            margin-top: 4px;
+        }
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+            color: {{ enterprise.text_icons_color|default:"#FFFFFF" }};
+        }
+        .email-content {
+            padding: 30px;
+            background-color: #ffffff;
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background-color: {{ enterprise.primary_color|default:"#05677D" }};
+            color: {{ enterprise.text_icons_color|default:"#FFFFFF" }};
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666666;
+        }
+        .highlight-box {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid {{ enterprise.secondary_color|default:"#FFB845" }};
+        }
+    </style>
+</head>
+<body>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table class="email-container" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; max-width: 600px;">
+                    <!-- Header -->
+                    <tr>
+                        <td class="email-header" style="background-color: {{ enterprise.primary_color|default:'#05677D' }}; padding: 30px 20px; text-align: center; color: {{ enterprise.text_icons_color|default:'#FFFFFF' }}; border-bottom: 4px solid {{ enterprise.secondary_color|default:'#FFB845' }};">
+                            <!-- Container compacto para os logos -->
+                            <table width="300" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                                <tr>
+                                    <!-- Logo Nexiun (esquerda) -->
+                                    <td align="right" width="120" style="vertical-align: middle; padding-right: 10px;">
+                                        <img src="https://agrocapital.s3.amazonaws.com/static/icons/logo_white_mail.png" 
+                                             alt="Logo Nexiun" 
+                                             style="max-width: 80px; max-height: 40px;">
+                                    </td>
+                                    
+                                    <!-- Emoji no meio -->
+                                    <td align="center" width="60" style="vertical-align: middle;">
+                                        <span style="font-size: 28px; line-height: 1;">🤝</span>
+                                    </td>
+                                    
+                                    <!-- Logo da Empresa (direita) -->
+                                    <td align="left" width="120" style="vertical-align: middle; padding-left: 10px;">
+                                        {% if enterprise and enterprise.get_logo_dark_url %}
+                                        <img src="{{ enterprise.get_logo_dark_url }}" 
+                                             alt="Logo {{ enterprise.name }}" 
+                                             style="max-width: 80px; max-height: 40px;">
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <!-- Conteúdo -->
+                    <tr>
+                        <td class="email-content" style="padding: 30px; background-color: #ffffff;">
+                            <p style="font-size: 18px; margin-bottom: 20px; color: #333333;">
+                                Olá, <strong>{{ user.name|default:"Usuário" }}</strong>!
+                            </p>
+                            
+                            <p style="font-size: 16px; line-height: 1.6; color: #666666; margin-bottom: 20px;">
+                                <strong>Parabéns por escolher o melhor sistema de gestão de projetos bancários!</strong>
+                            </p>
+                            
+                            <p style="font-size: 16px; line-height: 1.6; color: #666666; margin-bottom: 30px;">
+                                Sua empresa <strong>{{ enterprise.name }}</strong> foi criada com sucesso no <strong>Nexiun</strong>. 
+                                Agora você tem acesso à plataforma mais completa para gerenciar seus projetos bancários.
+                            </p>
+                            
+                            <!-- Informações da empresa -->
+                            <div class="highlight-box" style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid {{ enterprise.secondary_color|default:'#FFB845' }};">
+                                <h3 style="margin: 0 0 15px 0; color: {{ enterprise.primary_color|default:'#05677D' }};">
+                                    📋 Informações da sua empresa:
+                                </h3>
+                                <p style="margin: 5px 0; font-size: 14px; color: #666666;">
+                                    <strong>Nome:</strong> {{ enterprise.name }}
+                                </p>
+                                {% if enterprise.get_full_domain %}
+                                <p style="margin: 5px 0; font-size: 14px; color: #666666;">
+                                    <strong>Seu domínio:</strong> {{ enterprise.get_full_domain }}
+                                </p>
+                                {% endif %}
+                                <p style="margin: 5px 0; font-size: 14px; color: #666666;">
+                                    <strong>Seu cargo:</strong> CEO (Todas as permissões)
+                                </p>
+                            </div>
+                            
+                            <!-- Botão de ação -->
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{ protocol }}://{{ domain }}/" 
+                                           class="btn" 
+                                           style="display: inline-block; padding: 15px 30px; background-color: {{ enterprise.primary_color|default:'#05677D' }}; color: {{ enterprise.text_icons_color|default:'#FFFFFF' }}; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                                            Acessar Minha Empresa
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Próximos passos -->
+                            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid {{ enterprise.primary_color|default:'#05677D' }};">
+                                <h3 style="margin: 0 0 15px 0; color: {{ enterprise.primary_color|default:'#05677D' }};">
+                                    ✨ Próximos passos:
+                                </h3>
+                                <ul style="margin: 0; padding-left: 20px; color: #666666;">
+                                    <li style="margin-bottom: 8px;">Configure suas unidades de negócio</li>
+                                    <li style="margin-bottom: 8px;">Cadastre seus projetos bancários</li>
+                                    <li style="margin-bottom: 8px;">Convide sua equipe para colaborar</li>
+                                    <li style="margin-bottom: 8px;">Explore os relatórios e dashboards</li>
+                                </ul>
+                            </div>
+                            
+                            <p style="font-size: 16px; line-height: 1.6; color: #666666; margin-bottom: 20px;">
+                                Nossa equipe está aqui para ajudá-lo a aproveitar ao máximo todas as funcionalidades do sistema.
+                            </p>
+                            
+                            <p style="font-size: 16px; line-height: 1.6; color: #666666;">
+                                Seja bem-vindo à família <strong>Nexiun</strong>! 🎉
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Rodapé -->
+                    <tr>
+                        <td class="footer" style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666666;">
+                            <p style="margin: 0 0 10px 0;">
+                                Atenciosamente,<br>
+                                <strong>Equipe Nexiun</strong>
+                            </p>
+                            
+                            {% if enterprise and enterprise.get_full_domain %}
+                            <p style="margin: 0 0 15px 0;">
+                                <a href="{{ protocol }}://{{ enterprise.get_full_domain }}" 
+                                   style="color: {{ enterprise.primary_color|default:'#05677D' }};">
+                                    Acesse: {{ enterprise.get_full_domain }}
+                                </a>
+                            </p>
+                            {% endif %}
+                            
+                            <p style="margin: 0; font-size: 12px; color: #999999; font-style: italic;">
+                                Este é um e-mail automático. Por favor, não responda a esta mensagem.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html> 

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bem-vindo à Equipe</title>
+    <style type="text/css">
+        /* CSS básico para compatibilidade */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        .email-header {
+            background: {{ enterprise.primary_color|default:"#05677D" }};
+            padding: 30px 20px;
+            text-align: center;
+            color: {{ enterprise.text_icons_color|default:"#FFFFFF" }};
+        }
+        .logo {
+            max-width: 120px;
+            max-height: 60px;
+            margin-top: 4px;
+        }
+        .email-content {
+            padding: 30px;
+            background-color: #ffffff;
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background-color: {{ enterprise.primary_color|default:"#05677D" }};
+            color: {{ enterprise.text_icons_color|default:"#FFFFFF" }};
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666666;
+        }
+        .highlight-box {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid {{ enterprise.secondary_color|default:"#FFB845" }};
+        }
+    </style>
+</head>
+<body>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table class="email-container" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; max-width: 600px;">
+                    <!-- Header -->
+                    <tr>
+                        <td class="email-header" style="background-color: {{ enterprise.primary_color|default:'#05677D' }}; padding: 30px 20px; text-align: center; color: {{ enterprise.text_icons_color|default:'#FFFFFF' }}; border-bottom: 4px solid {{ enterprise.secondary_color|default:'#FFB845' }};">
+                            {% if enterprise and enterprise.get_logo_dark_url %}
+                            <img src="{{ enterprise.get_logo_dark_url }}" alt="Logo {{ enterprise.name }}" class="logo" style="max-width: 120px; max-height: 60px; margin-top: 4px;">
+                            {% endif %}
+                        </td>
+                    </tr>
+                    
+                    <!-- Conteúdo -->
+                    <tr>
+                        <td class="email-content" style="padding: 30px; background-color: #ffffff;">
+                            <p style="font-size: 18px; margin-bottom: 20px; color: #333333;">
+                                Olá, <strong>{{ new_user.name|default:"Usuário" }}</strong>!
+                            </p>
+                            
+                            <p style="font-size: 16px; line-height: 1.6; color: #666666; margin-bottom: 20px;">
+                                Você foi adicionado à equipe da <strong>{{ enterprise.name }}</strong>! 🎉
+                            </p>
+                            
+                            <p style="font-size: 16px; line-height: 1.6; color: #666666; margin-bottom: 30px;">
+                                Agora você faz parte do nosso time e tem acesso ao sistema de gestão de projetos bancários mais completo do mercado.
+                            </p>
+                            
+                            <!-- Informações do usuário -->
+                            <div class="highlight-box" style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid {{ enterprise.secondary_color|default:'#FFB845' }};">
+                                <h3 style="margin: 0 0 15px 0; color: {{ enterprise.primary_color|default:'#05677D' }};">
+                                    👤 Suas informações de acesso:
+                                </h3>
+                                <p style="margin: 5px 0; font-size: 14px; color: #666666;">
+                                    <strong>Nome:</strong> {{ new_user.name }}
+                                </p>
+                                <p style="margin: 5px 0; font-size: 14px; color: #666666;">
+                                    <strong>Email:</strong> {{ new_user.email }}
+                                </p>
+                                <p style="margin: 5px 0; font-size: 14px; color: #666666;">
+                                    <strong>Empresa:</strong> {{ enterprise.name }}
+                                </p>
+                                {% if new_user.units.exists %}
+                                <p style="margin: 5px 0; font-size: 14px; color: #666666;">
+                                    <strong>Unidade(s):</strong> 
+                                    {% for unit in new_user.units.all %}
+                                        {{ unit.name }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </p>
+                                {% endif %}
+                                {% if new_user.roles.exists %}
+                                <p style="margin: 5px 0; font-size: 14px; color: #666666;">
+                                    <strong>Cargo(s):</strong> 
+                                    {% for role in new_user.roles.all %}
+                                        {{ role.name }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </p>
+                                {% endif %}
+                                {% if enterprise.get_full_domain %}
+                                <p style="margin: 5px 0; font-size: 14px; color: #666666;">
+                                    <strong>Acesso:</strong> {{ enterprise.get_full_domain }}
+                                </p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Botão de ação -->
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{ protocol }}://{{ domain }}/" 
+                                           class="btn" 
+                                           style="display: inline-block; padding: 15px 30px; background-color: {{ enterprise.primary_color|default:'#05677D' }}; color: {{ enterprise.text_icons_color|default:'#FFFFFF' }}; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                                            Acessar Sistema
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Informações importantes -->
+                            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid {{ enterprise.primary_color|default:'#05677D' }};">
+                                <h3 style="margin: 0 0 15px 0; color: {{ enterprise.primary_color|default:'#05677D' }};">
+                                    📋 Informações importantes:
+                                </h3>
+                                <ul style="margin: 0; padding-left: 20px; color: #666666;">
+                                    <li style="margin-bottom: 8px;">Use suas credenciais de email para fazer login</li>
+                                    <li style="margin-bottom: 8px;">Se ainda não tem senha, use a opção "Recuperar senha"</li>
+                                    <li style="margin-bottom: 8px;">Explore as funcionalidades do sistema gradualmente</li>
+                                    <li style="margin-bottom: 8px;">Em caso de dúvidas, entre em contato com seu gestor</li>
+                                </ul>
+                            </div>
+                            
+                            <p style="font-size: 16px; line-height: 1.6; color: #666666; margin-bottom: 20px;">
+                                {% if created_by %}
+                                Você foi adicionado por <strong>{{ created_by.name }}</strong>.
+                                {% endif %}
+                            </p>
+                            
+                            <p style="font-size: 16px; line-height: 1.6; color: #666666;">
+                                Seja bem-vindo à equipe <strong>{{ enterprise.name }}</strong>! 🚀
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Rodapé -->
+                    <tr>
+                        <td class="footer" style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666666;">
+                            <p style="margin: 0 0 10px 0;">
+                                Atenciosamente,<br>
+                                <strong>Equipe {{ enterprise.name }}</strong>
+                            </p>
+                            
+                            {% if enterprise and enterprise.get_full_domain %}
+                            <p style="margin: 0 0 15px 0;">
+                                <a href="{{ protocol }}://{{ enterprise.get_full_domain }}" 
+                                   style="color: {{ enterprise.primary_color|default:'#05677D' }};">
+                                    Acesse: {{ enterprise.get_full_domain }}
+                                </a>
+                            </p>
+                            {% endif %}
+                            
+                            <p style="margin: 0; font-size: 12px; color: #999999; font-style: italic;">
+                                Este é um e-mail interno automático. Por favor, não responda a esta mensagem.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html> 
