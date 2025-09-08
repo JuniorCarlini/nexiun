@@ -102,7 +102,6 @@ def login_view(request):
         else:
             # Está no subdomínio correto ou no domínio principal, redireciona para home
             return redirect("/")
-        
     if request.method == 'GET':
         return render(request, "users/login.html")
         
@@ -613,6 +612,91 @@ class PasswordResetView(DjangoPasswordResetView):
     email_template_name = 'password_reset/password_reset_email.html'
     subject_template_name = 'password_reset/password_reset_subject.txt'
     success_url = reverse_lazy('password_reset_done')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Adiciona empresa do subdomínio atual se existir
+        current_enterprise = getattr(self.request, 'current_enterprise', None)
+        if current_enterprise:
+            context['enterprise'] = current_enterprise
+        return context
+    
+    def form_valid(self, form):
+        """Customiza o envio do email com informações da empresa"""
+        from django.core.mail import EmailMultiAlternatives
+        from django.template import loader
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+        from django.contrib.auth.tokens import default_token_generator
+        import threading
+        
+        # Obtém o email digitado
+        email = form.cleaned_data["email"]
+        
+        # Busca usuários com este email
+        for user in form.get_users(email):
+            # Obtém a empresa do usuário
+            user_enterprise = user.enterprise
+            current_enterprise = getattr(self.request, 'current_enterprise', None)
+            
+            # Usa a empresa do usuário se existir, senão a do subdomínio atual
+            enterprise_for_email = user_enterprise or current_enterprise
+            
+            # Contexto para o email
+            context = {
+                'email': user.email,
+                'domain': self.request.get_host(),
+                'site_name': enterprise_for_email.name if enterprise_for_email else 'Nexiun',
+                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                'user': user,
+                'token': default_token_generator.make_token(user),
+                'protocol': 'https' if self.request.is_secure() else 'http',
+                'enterprise': enterprise_for_email,
+            }
+            
+            # Carrega os templates
+            subject_template = loader.get_template(self.subject_template_name)
+            email_template = loader.get_template(self.email_template_name)
+            
+            # Renderiza o assunto e conteúdo
+            subject = subject_template.render(context)
+            subject = ''.join(subject.splitlines())  # Remove quebras de linha
+            body = email_template.render(context)
+            
+            # Define o remetente baseado na empresa
+            from_email = f"no-reply@{enterprise_for_email.get_full_domain()}" if enterprise_for_email else settings.DEFAULT_FROM_EMAIL
+            
+            # Função para envio em thread separada
+            def send_email_async():
+                try:
+                    # Cria o email
+                    email_message = EmailMultiAlternatives(
+                        subject=subject,
+                        body=body,
+                        from_email=from_email,
+                        to=[user.email]
+                    )
+                    
+                    # Adiciona versão HTML se disponível
+                    try:
+                        html_template = loader.get_template('password_reset/password_reset_email_html.html')
+                        html_body = html_template.render(context)
+                        email_message.attach_alternative(html_body, "text/html")
+                    except:
+                        pass  # Se não encontrar template HTML, usa apenas texto
+                    
+                    # Envia o email
+                    email_message.send()
+                except Exception as e:
+                    # Log do erro (em produção, usar logging adequado)
+                    print(f"Erro ao enviar email de recuperação: {e}")
+            
+            # Inicia thread para envio assíncrono
+            email_thread = threading.Thread(target=send_email_async)
+            email_thread.daemon = True  # Thread será fechada quando o processo principal terminar
+            email_thread.start()
+        
+        return super().form_valid(form)
 
 class PasswordResetDoneView(DjangoPasswordResetDoneView):
     template_name = 'password_reset/password_reset_done.html'
