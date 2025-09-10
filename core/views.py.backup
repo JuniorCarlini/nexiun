@@ -39,38 +39,15 @@ def select_unit(request):
         if not unit_id:
             return JsonResponse({'success': False, 'message': 'ID da unidade é obrigatório'})
         
-        # Verificar se é seleção de "Todas as unidades"
-        if unit_id == 'all':
-            # Verificar se o usuário tem permissão para ver todas as unidades
-            if not request.user.has_perm('users.view_all_units'):
-                return JsonResponse({'success': False, 'message': 'Você não tem permissão para ver todas as unidades'})
-            
-            # Salvar "all" na sessão
-            request.session['selected_unit_id'] = 'all'
-            
-            # Adicionar mensagem de sucesso
-            messages.success(request, 'Visualização de "Todas as unidades" selecionada com sucesso!')
-            
-            return JsonResponse({'success': True})
-        
-        # Verificar acesso à unidade específica
-        can_view_all_units = request.user.has_perm('users.view_all_units')
-        
-        if can_view_all_units:
-            # Usuário com permissão total: pode selecionar qualquer unidade da empresa
-            try:
-                unit = request.user.enterprise.units.get(id=unit_id, is_active=True)
-            except:
-                return JsonResponse({'success': False, 'message': 'Unidade não encontrada ou inativa'})
-        else:
-            # Usuário normal: só pode selecionar suas unidades vinculadas
-            if not request.user.units.filter(id=unit_id, is_active=True).exists():
-                return JsonResponse({'success': False, 'message': 'Você não tem acesso a esta unidade'})
-            
-            unit = request.user.units.get(id=unit_id)
+        # Verificar se o usuário tem acesso à unidade
+        if not request.user.units.filter(id=unit_id, is_active=True).exists():
+            return JsonResponse({'success': False, 'message': 'Você não tem acesso a esta unidade'})
         
         # Salvar unidade selecionada na sessão
         request.session['selected_unit_id'] = int(unit_id)
+        
+        # Buscar dados da unidade
+        unit = request.user.units.get(id=unit_id)
         
         # Adicionar mensagem de sucesso usando o sistema Django
         messages.success(request, f'Unidade "{unit.name}" selecionada com sucesso!')

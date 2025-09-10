@@ -6,45 +6,16 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default="django-insecure--(7^#u%#4e$i62@)ck53t#llolu=7r(p(x6yj0z@rjvhssv=#y")
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', cast=bool)
 
-# Configuração de hosts permitidos com suporte a subdomínios
-if DEBUG:
-    ALLOWED_HOSTS = [
-        '*',  # Permite qualquer host em desenvolvimento
-        'localhost',
-        '127.0.0.1',
-        'nexiun.local',
-        '*.nexiun.local',
-        'nexiun.com.br',
-        'www.nexiun.com.br',
-        '.nexiun.com.br',  # Para testar produção em debug
-    ]
-    # CSRF Trusted Origins para desenvolvimento
-    CSRF_TRUSTED_ORIGINS = [
-        'http://localhost:8000',
-        'http://127.0.0.1:8000',
-        'http://nexiun.local:8000',
-        'http://*.nexiun.local:8000',
-        'https://nexiun.com.br',
-        'https://www.nexiun.com.br',
-        'https://*.nexiun.com.br',
-    ]
-else:
-    ALLOWED_HOSTS = [
-        'nexiun.com.br',
-        'www.nexiun.com.br',
-        '.nexiun.com.br',  # Permite todos os subdomínios de nexiun.com.br
-    ]
-    # CSRF Trusted Origins para produção
-    CSRF_TRUSTED_ORIGINS = [
-        'https://nexiun.com.br',
-        'https://www.nexiun.com.br',
-        'https://*.nexiun.com.br',
-    ]
+# Configuração de hosts permitidos - agora vem do .env
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.split(',')])
+
+# CSRF Trusted Origins - agora vem do .env  
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', cast=lambda v: [s.strip() for s in v.split(',')])
 
 # Application definition
 
@@ -96,6 +67,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "enterprises.context_processors.custom_context",
+                "core.context_processors.user_units_context",
             ],
         },
     },
@@ -121,8 +93,8 @@ else:
             'NAME': config('DB_NAME'),
             'USER': config('DB_USER'),
             'PASSWORD': config('DB_PASSWORD'),
-            'HOST': config('DB_HOST', default='localhost'),
-            'PORT': config('DB_PORT', default='5432'),
+                    'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT'),
             'OPTIONS': {
                 # Configuração para psycopg v3
                 'application_name': 'nexiun',
@@ -182,7 +154,7 @@ if not DEBUG:
     AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
-    AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='us-east-1')
+    AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME')
     
     # Configuração de SEGURANÇA - Sem ACLs (usar bucket policy)
     AWS_DEFAULT_ACL = None  # Não usar ACLs - configurar via bucket policy
@@ -233,12 +205,12 @@ if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = config('EMAIL_HOST', default='localhost')
-    EMAIL_PORT = config('EMAIL_PORT', default=25, cast=int)
-    EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
-    EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-    DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='no-reply@nexiun.com.br')
+    EMAIL_HOST = config('EMAIL_HOST')
+    EMAIL_PORT = config('EMAIL_PORT', cast=int)
+    EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
+    EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
     SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 MESSAGES_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'

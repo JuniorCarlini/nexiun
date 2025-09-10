@@ -117,7 +117,11 @@
 <div class="container">
     <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
         <div class="col-auto">
-            <h2 class="text-color-primary m-0">Cadastrar Cliente</h2>
+            {% if is_all_units_selected %}
+                <h2 class="text-color-primary m-0">Cadastrar Cliente <span class="fw-light">-> Todas as unidades</span></h2>
+            {% else %}
+                <h2 class="text-color-primary m-0">Cadastrar Cliente <span class="fw-light">-> {{ selected_unit.name }}</span></h2>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -126,6 +130,22 @@
     <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
         {% csrf_token %}
         
+        <!-- Alerta para seleção de unidade -->
+        {% if is_all_units_selected %}
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="alert alert-warning d-flex align-items-center justify-content-around m-0">
+                    <i class="fa-solid fa-circle-exclamation me-2 fs-3"></i>
+                    <div class="text-center">
+                        <strong>Selecione uma unidade específica</strong><br>
+                        <small>Para cadastrar um cliente, você deve selecionar uma unidade específica da empresa.</small>
+                    </div>
+                    <i class="fa-solid fa-circle-exclamation ms-2 fs-3 "></i>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Informações Básicas -->
         <div class="row">
             <div class="col-md-6 mb-3">
@@ -168,18 +188,39 @@
                 </select>
             </div>
             <div class="col-md-6 mb-3">
-                <label for="unit" class="form-label fw-bold">Unidade:</label>
-                {% if has_multiple_units %}
+                <label for="unit" class="form-label fw-bold">
+                    Unidade:
+                    <span id="unit-info" class="text-muted small"></span>
+                </label>
+                
+                {% if is_all_units_selected %}
+                    <!-- Quando "Todas as unidades" está selecionado -->
+                    <div class="input-group">
+                        <input type="text" class="form-control" value="Todas as unidades - Cadastro desabilitado" readonly disabled>
+                    </div>  
+                    
+                {% elif selected_unit %}
+                    <!-- Unidade específica selecionada na sessão -->
+                    <div class="input-group">
+                        
+                        <input type="text" class="form-control" value="{{ selected_unit.name }}" readonly disabled>
+                        <input type="hidden" name="unit_id" value="{{ selected_unit.id }}">
+                    </div>
+                    
+                {% elif has_multiple_units %}
+                    <!-- Usuário tem múltiplas unidades mas nenhuma selecionada na sessão -->
                     <select name="unit_id" id="unit" class="form-control" required>
                         <option value="">Selecione uma unidade</option>
-                        {% for unit in user_units %}
+                        {% for unit in accessible_units %}
                             <option value="{{ unit.id }}">{{ unit.name }}</option>
                         {% endfor %}
                     </select>
                     <div class="invalid-feedback">
                         Por favor, selecione uma unidade.
                     </div>
+                    
                 {% else %}
+                    <!-- Usuário tem apenas uma unidade -->
                     <input type="text" name="unit" id="unit" class="form-control" 
                         value="{{ single_unit.name }}" readonly disabled>
                     <input type="hidden" name="unit_id" value="{{ single_unit.id }}">
@@ -275,8 +316,14 @@
                     <i class="fa-solid fa-arrow-left"></i> Voltar
                 </a>
                 <button type="submit" class="btn btn-primary rounded" 
-                        style="background-color: {{ enterprise.primary_color }}; border: none;">
-                        <i class="fa-solid fa-check"></i> Cadastrar Cliente
+                        style="background-color: {{ enterprise.primary_color }}; border: none;"
+                        {% if is_all_units_selected %}disabled{% endif %}>
+                        <i class="fa-solid fa-check"></i> 
+                        {% if is_all_units_selected %}
+                            Cadastrar Cliente
+                        {% else %}
+                            Cadastrar Cliente
+                        {% endif %}
                 </button>
             </div>
         </div>

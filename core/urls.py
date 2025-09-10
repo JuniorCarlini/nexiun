@@ -4,11 +4,13 @@ from django.contrib import admin
 from users.views import logout_view
 from django.urls import path, include
 from django.conf.urls.static import static
+from core.views import select_unit
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('logout/', logout_view, name='logout'),
+    path('select-unit/', select_unit, name='select_unit'),
     path("", include("home.urls")),
     path("users/", include("users.urls")),
     path("enterprises/", include("enterprises.urls")),

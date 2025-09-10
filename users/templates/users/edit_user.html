@@ -346,13 +346,24 @@
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="units" class="form-label fw-bold">Unidades:</label>
+                    <label for="units" class="form-label fw-bold">
+                        Unidades:
+                        <span id="units-optional-label" class="text-muted small" style="display: none;">(Opcional para cargos administrativos)</span>
+                    </label>
                     <select name="units" id="units" class="form-control select2-multiple" multiple required>
                         {% for unit in units %}
                             <option value="{{ unit.id }}" {% if unit in edit_user.units.all %}selected{% endif %}>{{ unit.name }}</option>
                         {% endfor %}
                     </select>
                     <div class="invalid-feedback">Por favor, selecione pelo menos uma unidade.</div>
+                    <small class="form-text text-muted">
+                        <span id="units-required-text">Selecione as unidades onde o usuário terá acesso.</span>
+                        <span id="units-optional-text" style="display: none;">
+                            <i class="fas fa-info-circle"></i> 
+                            Usuários com cargos administrativos (CEO, Diretor) podem acessar todas as unidades automaticamente. 
+                            Deixe em branco para acesso total ou selecione unidades específicas se necessário.
+                        </span>
+                    </small>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="roles" class="form-label fw-bold">Cargo:</label>
@@ -535,6 +546,37 @@
         console.log('Cargo alterado:', roleValue);
     }
 
+    // Lista de cargos que têm permissão view_all_units
+    const rolesWithViewAllUnits = {{ roles_with_view_all_units|safe }};
+    
+    // Função para verificar se um cargo tem view_all_units
+    function roleHasViewAllUnits(roleId) {
+        return rolesWithViewAllUnits.includes(parseInt(roleId));
+    }
+    
+    // Função para atualizar a obrigatoriedade do campo unidades
+    function updateUnitsRequirement() {
+        const selectedRole = $('#roles').val();
+        const unitsField = $('#units');
+        const unitsOptionalLabel = $('#units-optional-label');
+        const unitsRequiredText = $('#units-required-text');
+        const unitsOptionalText = $('#units-optional-text');
+        
+        if (selectedRole && roleHasViewAllUnits(selectedRole)) {
+            // Cargo com view_all_units - campo opcional
+            unitsField.removeAttr('required');
+            unitsOptionalLabel.show();
+            unitsRequiredText.hide();
+            unitsOptionalText.show();
+        } else {
+            // Cargo normal - campo obrigatório
+            unitsField.attr('required', true);
+            unitsOptionalLabel.hide();
+            unitsRequiredText.show();
+            unitsOptionalText.hide();
+        }
+    }
+
     $(document).ready(function() {
         // Configuração do Select2 para unidades
         $('#units').select2({
@@ -570,6 +612,14 @@
                 }
             }
         });
+
+        // Event listener para mudança de cargo
+        $('#roles').on('change', function() {
+            updateUnitsRequirement();
+        });
+        
+        // Verificar estado inicial
+        updateUnitsRequirement();
 
         // Máscara para CPF
         $('#cpf').mask('000.000.000-00', {

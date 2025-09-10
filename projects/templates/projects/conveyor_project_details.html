@@ -356,10 +356,6 @@
                             {% endfor %}            
                         </select>
                         <div class="invalid-feedback">Por favor, selecione um responsável.</div>
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Apenas gerentes e franqueados da unidade <strong>{{ project.unit.name }}</strong>
-                        </small>
                     </div>
                     <div class="col-md-6 text-end">
                         <a href="{% url 'conveyor_projects' %}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Voltar</a>

@@ -1,6 +1,7 @@
     {% extends "base/base.html" %}
 
 {% load static %}
+{% load permission_tags %}
 
 {% block title %}Detalhes do Projeto{% endblock %}
 
@@ -424,6 +425,38 @@
         margin-bottom: 0%;
         color: #16365f;
     }
+    /* Alerta de comprovante de pagamento */
+    .payment-proof-alert {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        border-left: 4px solid #f39c12;
+        box-shadow: 0 2px 10px rgba(243, 156, 18, 0.2);
+        animation: pulseAlert 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulseAlert {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+    }
+    
+    .payment-proof-alert .fas {
+        color: #f39c12;
+        font-size: 1.2em;
+    }
+
+    /* Estilos para botão desabilitado */
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed !important;
+        background-color: #6c757d !important;
+        border-color: #6c757d !important;
+    }
+    
+    .btn:disabled:hover {
+        background-color: #6c757d !important;
+        border-color: #6c757d !important;
+        transform: none !important;
+    }
+
 </style>
 
 <div class="container">
@@ -835,7 +868,11 @@
                     </button>
                 </div>
                 <div class="col-6 col-md-3">
-                    <button type="button" style="background-color: {{ enterprise.primary_color }}; border: none;" class="btn btn-primary w-100" onclick="nextPhase()">
+                    <button type="button" 
+                            style="background-color: {{ enterprise.primary_color }}; border: none;" 
+                            class="btn btn-primary w-100" 
+                            onclick="nextPhase()"
+                            {% if project.status == 'RC' %}disabled{% endif %}>
                         <i class="bi bi-arrow-right-short"></i> Próxima Fase
                     </button>
                 </div>
@@ -848,7 +885,7 @@
                         <i class="fa-solid fa-floppy-disk"></i> Salvar Alterações
                     </button>
                 </div>
-                {% if project.status == 'RC' and request.user.access_level <= 2 or request.user.access_level == 5 %}
+                {% if project.status == 'RC' and user|has_perm:"users.complete_project" %}
                 <div class="col-12">
                     <button type="button"
                             style="background-color: #28a745; border: none;"
@@ -863,6 +900,7 @@
         </div>
     </form>
 </div>
+
 <!-- Seção de Histórico -->
 <div class="container-style mt-4">
     <div class="row mb-3">
@@ -955,7 +993,7 @@
     </div>
 </form>
 
-<!-- Modals de Confirmação -->
+<!-- Modal de Confirmação para retornar de fase-->
 <div class="modal fade" id="previousPhaseModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -973,7 +1011,8 @@
         </div>
     </div>
 </div>
-   
+
+<!-- Modal de Confirmação para avançar de fase-->
 <div class="modal fade" id="nextPhaseModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -982,7 +1021,18 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                Deseja realmente avançar para a próxima fase do projeto?
+                {% if project.status == "LB" %}
+                    <div class="alert alert-warning border-warning d-flex align-items-center justify-content-center text-center mb-3" role="alert">
+
+                        <i class="fas fa-exclamation-triangle fs-4 me-2"></i>
+                        <div>
+                            <strong>Atenção!</strong> <br> Certifique-se de que o <strong>comprovante de pagamento</strong> foi anexado antes de mover para Receita.
+                        </div>
+                        <i class="fas fa-exclamation-triangle fs-4 me-2"></i>
+
+                    </div>
+                    Deseja realmente avançar para a próxima fase do projeto?
+                {% endif %}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

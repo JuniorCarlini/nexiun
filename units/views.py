@@ -8,6 +8,10 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .models import Unit, Transaction, BankAccount, TRANSACTION_TYPES, TRANSACTION_CATEGORIES
+from django.http import JsonResponse
+from enterprises.models import Enterprise
+from decimal import Decimal
+from core.mixins import unit_filter_required, get_selected_unit_from_request, is_all_units_selected_from_request, get_accessible_units_from_request
 
 # ==================== GESTÃO DE CONTAS BANCÁRIAS ====================
 
@@ -15,7 +19,29 @@ from .models import Unit, Transaction, BankAccount, TRANSACTION_TYPES, TRANSACTI
 @login_required
 @permission_required('users.add_bank_accounts')
 def create_bank_account_view(request):
+    # Obter informações da sessão e unidades
+    accessible_units = get_accessible_units_from_request(request)
+    selected_unit = get_selected_unit_from_request(request)
+    is_all_units_selected = is_all_units_selected_from_request(request)
+    
+    # Verificar se usuário tem acesso a unidades
+    if not request.user.has_perm('users.view_all_units'):
+        if not accessible_units.exists():
+            messages.error(request, "Você precisa estar vinculado a pelo menos uma unidade para criar contas bancárias.")
+            return redirect('dashboard_financeiro')
+
     if request.method == 'POST':
+        # Verificar se está tentando criar com "Todas as unidades" selecionado
+        if is_all_units_selected:
+            messages.error(request, 'Para criar contas bancárias, você deve estar em uma unidade específica. Altere sua sessão antes de continuar.')
+            return render(request, 'units/create_bank_account.html', {
+                'form_data': request.POST,
+                'account_types': BankAccount.ACCOUNT_TYPES,
+                'accessible_units': accessible_units,
+                'selected_unit': selected_unit,
+                'is_all_units_selected': is_all_units_selected,
+            })
+            
         name = request.POST.get('name', '').strip()
         bank_name = request.POST.get('bank_name', '').strip()
         account_type = request.POST.get('account_type', 'CORRENTE')
@@ -24,8 +50,10 @@ def create_bank_account_view(request):
         description = request.POST.get('description', '').strip()
         initial_balance = request.POST.get('initial_balance', '0').replace(',', '.')
 
-        # Usar a primeira unidade do usuário logado
-        unit = request.user.units.first()
+        # Usar unidade da sessão
+        unit = selected_unit
+        if not unit:
+            unit = accessible_units.first()
 
         # Validações
         errors = []
@@ -48,6 +76,9 @@ def create_bank_account_view(request):
             return render(request, 'units/create_bank_account.html', {
                 'form_data': request.POST,
                 'account_types': BankAccount.ACCOUNT_TYPES,
+                'accessible_units': accessible_units,
+                'selected_unit': selected_unit,
+                'is_all_units_selected': is_all_units_selected,
             })
 
         try:
@@ -72,6 +103,9 @@ def create_bank_account_view(request):
     # GET request
     return render(request, 'units/create_bank_account.html', {
         'account_types': BankAccount.ACCOUNT_TYPES,
+        'accessible_units': accessible_units,
+        'selected_unit': selected_unit,
+        'is_all_units_selected': is_all_units_selected,
     })
 
 # Editar conta bancária
@@ -441,27 +475,30 @@ def unit_transactions_list_view(request, unit_id=None):
 @login_required
 @permission_required('users.add_unit_transactions')
 def add_transaction_view(request, unit_id=None):
-    # Se unit_id não for fornecido, usar a unidade do usuário
-    if unit_id:
-        # Verificar se pode adicionar transações para outras unidades
-        if request.user.has_perm('users.view_all_unit_transactions'):
-            unit = get_object_or_404(Unit, id=unit_id, enterprise=request.user.enterprise)
-        else:
-            # Só pode adicionar transações para as próprias unidades
-            user_units = request.user.units.all()
-            if not user_units.exists():
-                messages.error(request, 'Você não está associado a nenhuma unidade.')
-                return redirect('home')
-            if unit_id not in user_units.values_list('id', flat=True):
-                messages.error(request, 'Você não tem permissão para acessar esta unidade.')
-                return redirect('home')
-            unit = get_object_or_404(Unit, id=unit_id, enterprise=request.user.enterprise)
-    else:
-        # Se não especificou unit_id, usar a primeira unidade do usuário
-        unit = request.user.units.first()
-        if not unit:
-            messages.error(request, 'Você não está associado a nenhuma unidade.')
+    # Obter informações da sessão e unidades
+    accessible_units = get_accessible_units_from_request(request)
+    selected_unit = get_selected_unit_from_request(request)
+    is_all_units_selected = is_all_units_selected_from_request(request)
+    
+    # Verificar se usuário tem acesso a unidades
+    if not request.user.has_perm('users.view_all_units'):
+        if not accessible_units.exists():
+            messages.error(request, "Você precisa estar vinculado a pelo menos uma unidade para criar transações.")
             return redirect('home')
+    
+    # Se "Todas as unidades" estiver selecionado, não permitir criação de transação
+    if is_all_units_selected:
+        messages.warning(request, 'Para criar transações, você deve selecionar uma unidade específica. Altere sua sessão antes de continuar.')
+        return redirect('dashboard_financeiro')
+    
+    # Usar unidade específica selecionada na sessão
+    unit = selected_unit
+    if not unit:
+        unit = accessible_units.first()
+    
+    if not unit:
+        messages.error(request, 'Nenhuma unidade disponível para criar transações.')
+        return redirect('home')
     
     if request.method == 'POST':
         transaction_type = request.POST.get('transaction_type')
@@ -541,6 +578,8 @@ def add_transaction_view(request, unit_id=None):
         'transaction_categories': TRANSACTION_CATEGORIES,
         'bank_accounts': bank_accounts,
         'today': date.today(),
+        'selected_unit': selected_unit,
+        'is_all_units_selected': is_all_units_selected,
     }
     
     return render(request, 'units/add_transaction.html', context)
@@ -550,12 +589,16 @@ def add_transaction_view(request, unit_id=None):
 @login_required
 @permission_required('users.change_unit_transactions')
 def edit_transaction_view(request, transaction_id):
+    # Obter informações da sessão
+    accessible_units = get_accessible_units_from_request(request)
+    selected_unit = get_selected_unit_from_request(request)
+    is_all_units_selected = is_all_units_selected_from_request(request)
+    
     # Verificar se pode editar transações de outras unidades
     if request.user.has_perm('users.view_all_unit_transactions'):
         transaction = get_object_or_404(Transaction, id=transaction_id, unit__enterprise=request.user.enterprise)
     else:
-        user_units = request.user.units.all()
-        transaction = get_object_or_404(Transaction, id=transaction_id, unit__in=user_units, unit__enterprise=request.user.enterprise)
+        transaction = get_object_or_404(Transaction, id=transaction_id, unit__in=accessible_units, unit__enterprise=request.user.enterprise)
     
     if request.method == 'POST':
         transaction_type = request.POST.get('transaction_type')
@@ -629,6 +672,8 @@ def edit_transaction_view(request, transaction_id):
         'transaction_types': TRANSACTION_TYPES,
         'transaction_categories': TRANSACTION_CATEGORIES,
         'bank_accounts': bank_accounts,
+        'selected_unit': selected_unit,
+        'is_all_units_selected': is_all_units_selected,
     }
     
     return render(request, 'units/edit_transaction.html', context)
@@ -638,12 +683,14 @@ def edit_transaction_view(request, transaction_id):
 @login_required
 @permission_required('users.delete_unit_transactions')
 def delete_transaction_view(request, transaction_id):
+    # Obter informações da sessão
+    accessible_units = get_accessible_units_from_request(request)
+    
     # Verificar se pode excluir transações de outras unidades
     if request.user.has_perm('users.view_all_unit_transactions'):
         transaction = get_object_or_404(Transaction, id=transaction_id, unit__enterprise=request.user.enterprise)
     else:
-        user_units = request.user.units.all()
-        transaction = get_object_or_404(Transaction, id=transaction_id, unit__in=user_units, unit__enterprise=request.user.enterprise)
+        transaction = get_object_or_404(Transaction, id=transaction_id, unit__in=accessible_units, unit__enterprise=request.user.enterprise)
     
     if request.method == 'POST':
         transaction.is_active = False
@@ -657,27 +704,42 @@ def delete_transaction_view(request, transaction_id):
 
 # Dashboard Financeiro - Novo estilo
 @login_required
-@permission_required('users.view_unit_transactions')
+@permission_required('users.view_unit_financial_dashboard')
 def financial_dashboard_new_view(request, unit_id=None):
     """Dashboard financeiro no estilo moderno"""
-    # Se unit_id não for fornecido, usar a unidade do usuário
-    if unit_id:
-        if request.user.has_perm('users.view_all_unit_transactions'):
-            unit = get_object_or_404(Unit, id=unit_id, enterprise=request.user.enterprise)
+    
+    # Obter informações da sessão e unidades
+    accessible_units = get_accessible_units_from_request(request)
+    selected_unit = get_selected_unit_from_request(request)
+    is_all_units_selected = is_all_units_selected_from_request(request)
+    
+    # Verificar se usuário tem acesso a unidades (nova lógica)
+    # Usuários com view_unit_financial_dashboard podem acessar sem estar vinculados a unidades
+    if not request.user.has_perm('users.view_all_units') and not request.user.has_perm('users.view_unit_financial_dashboard'):
+        if not accessible_units.exists():
+            messages.error(request, "Você precisa estar vinculado a pelo menos uma unidade para acessar o dashboard financeiro.")
+            return redirect('home')
+    
+    # Se "Todas as unidades" estiver selecionado, mostrar dados consolidados ou redirecionar
+    if is_all_units_selected:
+        # Por enquanto, vamos usar a primeira unidade disponível para evitar erro
+        # Futuramente pode ser implementado um dashboard consolidado
+        if request.user.has_perm('users.view_all_units') or request.user.has_perm('users.view_unit_financial_dashboard'):
+            unit = accessible_units.first()
+            if not unit:
+                messages.error(request, 'Nenhuma unidade encontrada na empresa.')
+                return redirect('home')
         else:
-            user_units = request.user.units.all()
-            if not user_units.exists():
-                messages.error(request, 'Você não está associado a nenhuma unidade.')
-                return redirect('home')
-            if unit_id not in user_units.values_list('id', flat=True):
-                messages.error(request, 'Você não tem permissão para acessar esta unidade.')
-                return redirect('home')
-            unit = get_object_or_404(Unit, id=unit_id, enterprise=request.user.enterprise)
+            messages.warning(request, 'Selecione uma unidade específica para ver o dashboard financeiro.')
+            return redirect('home')
     else:
-        # Se não especificou unit_id, usar a primeira unidade do usuário
-        unit = request.user.units.first()
+        # Usar unidade específica selecionada na sessão
+        unit = selected_unit
         if not unit:
-            messages.error(request, 'Você não está associado a nenhuma unidade.')
+            unit = accessible_units.first()
+        
+        if not unit:
+            messages.error(request, 'Nenhuma unidade disponível para visualizar.')
             return redirect('home')
     
     # Calcular saldo atual
@@ -828,6 +890,84 @@ def financial_dashboard_new_view(request, unit_id=None):
         # Outros dados
         'contas_bancarias': contas_bancarias,
         'transacoes_recentes': transacoes_recentes,
+        
+        # Variáveis de sessão para template
+        'selected_unit': selected_unit,
+        'is_all_units_selected': is_all_units_selected,
     }
     
     return render(request, 'units/dashboard_financeiro.html', context)
+
+# EXEMPLO DE USO DO NOVO SISTEMA:
+# Lista de transações usando unidade selecionada na sessão
+@login_required
+@unit_filter_required
+@permission_required('users.view_unit_transactions')
+def unit_transactions_list_session_view(request):
+    """
+    View de exemplo usando o sistema de sessão para filtrar transações
+    """
+    # Obter unidade selecionada na sessão
+    selected_unit = get_selected_unit_from_request(request)
+    
+    if not selected_unit:
+        messages.error(request, 'Nenhuma unidade selecionada.')
+        return redirect('home')
+    
+    # Filtros
+    tipo_filtro = request.GET.get('tipo', '')
+    categoria_filtro = request.GET.get('categoria', '')
+    data_inicio = request.GET.get('data_inicio', '')
+    data_fim = request.GET.get('data_fim', '')
+    
+    # Buscar transações da unidade selecionada
+    transactions = Transaction.objects.filter(unit=selected_unit, is_active=True)
+    
+    # Aplicar filtros
+    if tipo_filtro:
+        transactions = transactions.filter(transaction_type=tipo_filtro)
+    if categoria_filtro:
+        transactions = transactions.filter(category=categoria_filtro)
+    if data_inicio:
+        try:
+            data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+            transactions = transactions.filter(date__gte=data_inicio_obj)
+        except ValueError:
+            messages.warning(request, 'Data de início inválida.')
+    if data_fim:
+        try:
+            data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d').date()
+            transactions = transactions.filter(date__lte=data_fim_obj)
+        except ValueError:
+            messages.warning(request, 'Data de fim inválida.')
+    
+    # Ordenar por data
+    transactions = transactions.order_by('-date', '-created_at')
+    
+    # Paginação
+    paginator = Paginator(transactions, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Calcular totais
+    total_entradas = transactions.filter(transaction_type='ENTRADA').aggregate(
+        total=Sum('amount'))['total'] or Decimal('0.00')
+    total_saidas = transactions.filter(transaction_type='SAIDA').aggregate(
+        total=Sum('amount'))['total'] or Decimal('0.00')
+    saldo_periodo = total_entradas - total_saidas
+    
+    context = {
+        'transactions': page_obj,
+        'selected_unit': selected_unit,
+        'transaction_types': TRANSACTION_TYPES,
+        'transaction_categories': TRANSACTION_CATEGORIES,
+        'tipo_filtro': tipo_filtro,
+        'categoria_filtro': categoria_filtro,
+        'data_inicio': data_inicio,
+        'data_fim': data_fim,
+        'total_entradas': total_entradas,
+        'total_saidas': total_saidas,
+        'saldo_periodo': saldo_periodo,
+    }
+    
+    return render(request, 'units/transactions_list.html', context)

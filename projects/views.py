@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .models import Project, Enterprise, User, CreditLine, Bank, ProjectDocument, ProjectHistory, PROJECT_STATUS_CHOICES, ACTIVITY_CHOICES, SIZE_CHOICES, TYPE_CHOICES
+from core.mixins import get_selected_unit_from_request, is_all_units_selected_from_request, get_accessible_units_from_request
 
 # Cria um novo projeto
 @login_required
@@ -16,7 +17,13 @@ def create_project_view(request):
         messages.error(request, "Você não tem permissão para criar projetos.")
         return redirect('home')
 
+    # Verificar se está tentando criar com "Todas as unidades" selecionado
+    is_all_units_selected = is_all_units_selected_from_request(request)
     if request.method == "POST":
+        if is_all_units_selected:
+            messages.error(request, 'Para criar projetos, você deve estar em uma unidade específica. Altere sua sessão antes de continuar.')
+            return redirect('create_project')
+            
         try:
             # Processar dados do formulário
             value = request.POST.get('value', '')
@@ -59,15 +66,34 @@ def create_project_view(request):
             if value:
                 project.value = Decimal(value)
             
-            # Definir a unidade do projeto
-            user_units = request.user.units.all()
+            # Associar projeto à unidade da sessão atual
             selected_unit_id = request.POST.get('unit_id')
-            if selected_unit_id and user_units.filter(id=selected_unit_id).exists():
-                # Se uma unidade específica foi selecionada, usa apenas ela
-                project.unit_id = selected_unit_id
-            elif user_units.exists():
-                # Se não selecionou unidade específica ou usuário tem apenas uma unidade
-                project.unit = user_units.first()
+            selected_unit = get_selected_unit_from_request(request)
+            accessible_units = get_accessible_units_from_request(request)
+            
+            if selected_unit_id:
+                # Unidade específica selecionada no formulário
+                if request.user.has_perm('users.view_all_units'):
+                    # Usuário com view_all_units pode selecionar qualquer unidade da empresa
+                    selected_unit_obj = request.user.enterprise.units.filter(id=selected_unit_id, is_active=True).first()
+                    if selected_unit_obj:
+                        project.unit = selected_unit_obj
+                    else:
+                        messages.error(request, 'Unidade selecionada inválida.')
+                        return redirect('create_project')
+                else:
+                    # Usuário normal: só pode selecionar suas unidades vinculadas
+                    if accessible_units.filter(id=selected_unit_id).exists():
+                        project.unit_id = selected_unit_id
+                    else:
+                        messages.error(request, 'Você não tem acesso à unidade selecionada.')
+                        return redirect('create_project')
+            elif selected_unit:
+                # Usar unidade da sessão
+                project.unit = selected_unit
+            else:
+                messages.error(request, 'Erro: Nenhuma unidade disponível para o projeto.')
+                return redirect('create_project')
             
             project.save()
 
@@ -103,17 +129,44 @@ def create_project_view(request):
             messages.error(request, f"Erro ao criar o projeto: {str(e)}")
             return redirect('create_project')
 
-    # Filtrar clientes baseado nas permissões
-    if request.user.has_perm('users.view_all_clients'):
-        # Usuários que podem ver todos os clientes da empresa
-        clients = Client.objects.filter(enterprise=request.user.enterprise)
-    else:
-        # Usuários que só podem ver clientes das suas unidades
-        user_units = request.user.units.all()
+    # Obter informações da sessão e unidades
+    accessible_units = get_accessible_units_from_request(request)
+    selected_unit = get_selected_unit_from_request(request)
+    is_all_units_selected = is_all_units_selected_from_request(request)
+    
+    # Verificar se usuário tem acesso a unidades
+    if not request.user.has_perm('users.view_all_units'):
+        if not accessible_units.exists():
+            messages.error(request, "Você precisa estar vinculado a pelo menos uma unidade para criar projetos.")
+            return redirect('projects_list')
+
+    # Filtrar clientes baseado na unidade selecionada na sessão
+    if is_all_units_selected:
+        # Se "Todas as unidades" está selecionado, mostrar todos os clientes baseado na permissão
+        if request.user.has_perm('users.view_all_clients'):
+            # Usuários que podem ver todos os clientes da empresa
+            clients = Client.objects.filter(enterprise=request.user.enterprise)
+        else:
+            # Usuários que só podem ver clientes das suas unidades
+            clients = Client.objects.filter(
+                enterprise=request.user.enterprise,
+                units__in=accessible_units
+            )
+    elif selected_unit:
+        # Se uma unidade específica está selecionada, mostrar apenas clientes dessa unidade
         clients = Client.objects.filter(
             enterprise=request.user.enterprise,
-            units__in=user_units
+            units=selected_unit
         )
+    else:
+        # Se não há unidade selecionada, usar as unidades acessíveis
+        if request.user.has_perm('users.view_all_clients'):
+            clients = Client.objects.filter(enterprise=request.user.enterprise)
+        else:
+            clients = Client.objects.filter(
+                enterprise=request.user.enterprise,
+                units__in=accessible_units
+            )
 
     credit_lines = CreditLine.objects.filter(enterprise=request.user.enterprise)
     banks = Bank.objects.filter(enterprise=request.user.enterprise)
@@ -125,9 +178,6 @@ def create_project_view(request):
         is_active=True
     ).distinct()
 
-    # Preparar contexto das unidades
-    user_units = request.user.units.all()
-
     return render(request, 'projects/create_project.html', {
         'clients': clients,
         'credit_lines': credit_lines,
@@ -138,9 +188,13 @@ def create_project_view(request):
         'is_completed': False,
         'project': None,
         'enterprise': request.user.enterprise,
-        'user_units': user_units,
-        'has_multiple_units': user_units.count() > 1,
-        'single_unit': user_units.first() if user_units.count() == 1 else None
+        'user_units': accessible_units,
+        'accessible_units': accessible_units,
+        'selected_unit': selected_unit,
+        'is_all_units_selected': is_all_units_selected,
+        'can_view_all_units': request.user.has_perm('users.view_all_units'),
+        'has_multiple_units': accessible_units.count() > 1 or request.user.has_perm('users.view_all_units'),
+        'single_unit': accessible_units.first() if accessible_units.count() == 1 and not request.user.has_perm('users.view_all_units') else None
     })
 
 # Adiciona um novo banco
@@ -363,6 +417,8 @@ def toggle_credit_line_status_view(request, credit_line_id):
 # Lista de projetos
 @login_required
 def projects_list_view(request):
+    from core.mixins import get_selected_unit_from_request, is_all_units_selected_from_request
+    
     if not request.user.has_perm('users.view_projects'):
         messages.error(request, "Você não tem permissão para visualizar projetos.")
         return redirect('home')
@@ -371,15 +427,56 @@ def projects_list_view(request):
 
     projects = Project.objects.select_related('client')
     
-    # Filtrar projetos baseado nas permissões do usuário
-    if request.user.has_perm('users.view_own_projects') and not request.user.has_perm('users.view_unit_projects'):
-        # Ver apenas próprios projetos
-        projects = projects.filter(project_designer=request.user)
-    elif request.user.has_perm('users.view_unit_projects') and not request.user.has_perm('users.view_all_projects'):
-        # Ver projetos das unidades
-        user_units = request.user.units.all()
-        projects = projects.filter(unit__in=user_units)
-    # Se tem view_all_projetos, vê todos (não filtra)
+    # Verificar se está selecionado "Todas as unidades"
+    is_all_units_selected = is_all_units_selected_from_request(request)
+    
+    if is_all_units_selected:
+        # Quando "Todas as unidades" está selecionado
+        if request.user.has_perm('users.view_all_projects'):
+            # Pode ver todos os projetos da empresa
+            projects = projects.filter(unit__enterprise=request.user.enterprise)
+        else:
+            # Aplicar lógica de permissão baseada no acesso do usuário
+            if request.user.has_perm('users.view_own_projects') and not request.user.has_perm('users.view_unit_projects'):
+                # Ver apenas próprios projetos
+                projects = projects.filter(project_designer=request.user)
+            elif request.user.has_perm('users.view_unit_projects'):
+                # Ver projetos das unidades que tem acesso
+                if request.user.has_perm('users.view_all_units'):
+                    # Tem acesso a todas as unidades da empresa
+                    projects = projects.filter(unit__enterprise=request.user.enterprise)
+                else:
+                    # Ver projetos das suas unidades vinculadas
+                    user_units = request.user.units.all()
+                    projects = projects.filter(unit__in=user_units)
+    else:
+        # Lógica normal baseada na unidade selecionada
+        selected_unit = get_selected_unit_from_request(request)
+        
+        if selected_unit:
+            # Filtrar pela unidade específica selecionada
+            if request.user.has_perm('users.view_all_projects'):
+                # Pode ver todos os projetos da unidade
+                projects = projects.filter(unit=selected_unit)
+            elif request.user.has_perm('users.view_unit_projects'):
+                # Pode ver projetos da unidade se tiver acesso a ela
+                if request.user.has_perm('users.view_all_units') or request.user.units.filter(id=selected_unit.id).exists():
+                    projects = projects.filter(unit=selected_unit)
+                else:
+                    # Não tem acesso à unidade selecionada
+                    projects = projects.none()
+            elif request.user.has_perm('users.view_own_projects'):
+                # Ver apenas próprios projetos na unidade selecionada
+                projects = projects.filter(project_designer=request.user, unit=selected_unit)
+        else:
+            # Nenhuma unidade selecionada - aplicar lógica de permissão padrão
+            if request.user.has_perm('users.view_own_projects') and not request.user.has_perm('users.view_unit_projects'):
+                # Ver apenas próprios projetos
+                projects = projects.filter(project_designer=request.user)
+            elif request.user.has_perm('users.view_unit_projects') and not request.user.has_perm('users.view_all_projects'):
+                # Ver projetos das unidades
+                user_units = request.user.units.all()
+                projects = projects.filter(unit__in=user_units)
         
     if status_filter:
         projects = projects.filter(status=status_filter)
@@ -404,11 +501,15 @@ def projects_list_view(request):
     paginator = Paginator(projects, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
 
-    return render(request, 'projects/list_projects.html', {
+    context = {
         'projects': page_obj,
         'current_status': current_status_description if status_filter else ' ',
         'project_status_choices': PROJECT_STATUS_CHOICES,
-    })
+        'is_all_units_selected': is_all_units_selected,
+        'selected_unit': get_selected_unit_from_request(request) if not is_all_units_selected else None
+    }
+
+    return render(request, 'projects/list_projects.html', context)
     
 # Esteira de Pagamentos
 @login_required
@@ -418,10 +519,61 @@ def conveyor_payments_view(request):
         messages.error(request, 'Você não tem permissão para acessar esta página.')
         return redirect('home')
     
-    # Filtrar projetos que estão em AC 
+    # Obter informações da sessão e unidades
+    accessible_units = get_accessible_units_from_request(request)
+    selected_unit = get_selected_unit_from_request(request)
+    is_all_units_selected = is_all_units_selected_from_request(request)
+    
+    # Filtrar projetos que estão em LB (Liberado)
     projects = Project.objects.filter(
         status='LB',
     )
+    
+    # Aplicar filtro de unidade baseado na sessão
+    if is_all_units_selected:
+        # Se "Todas as unidades" está selecionado
+        if request.user.has_perm('users.view_all_projects') or request.user.has_perm('users.view_project_payments'):
+            # Pode ver todos os projetos da empresa
+            projects = projects.filter(unit__enterprise=request.user.enterprise)
+        else:
+            # Aplicar lógica de permissão baseada no acesso do usuário
+            if request.user.has_perm('users.view_unit_projects'):
+                # Ver projetos das unidades que tem acesso
+                if request.user.has_perm('users.view_all_units'):
+                    # Tem acesso a todas as unidades da empresa
+                    projects = projects.filter(unit__enterprise=request.user.enterprise)
+                else:
+                    # Ver projetos das suas unidades vinculadas
+                    projects = projects.filter(unit__in=accessible_units)
+            else:
+                # Ver apenas próprios projetos
+                projects = projects.filter(project_designer=request.user)
+    elif selected_unit:
+        # Se uma unidade específica está selecionada
+        if request.user.has_perm('users.view_all_projects') or request.user.has_perm('users.view_project_payments'):
+            # Pode ver todos os projetos da unidade
+            projects = projects.filter(unit=selected_unit)
+        elif request.user.has_perm('users.view_unit_projects'):
+            # Pode ver projetos da unidade se tiver acesso a ela
+            if request.user.has_perm('users.view_all_units') or request.user.units.filter(id=selected_unit.id).exists():
+                projects = projects.filter(unit=selected_unit)
+            else:
+                # Não tem acesso à unidade selecionada
+                projects = projects.none()
+        else:
+            # Ver apenas próprios projetos na unidade selecionada
+            projects = projects.filter(project_designer=request.user, unit=selected_unit)
+    else:
+        # Nenhuma unidade selecionada - aplicar lógica de permissão padrão
+        if request.user.has_perm('users.view_project_payments'):
+            # Usuários com permissão de pagamentos podem ver todos os projetos da empresa
+            projects = projects.filter(unit__enterprise=request.user.enterprise)
+        elif request.user.has_perm('users.view_unit_projects') and not request.user.has_perm('users.view_all_projects'):
+            # Ver projetos das unidades acessíveis
+            projects = projects.filter(unit__in=accessible_units)
+        elif not request.user.has_perm('users.view_unit_projects'):
+            # Ver apenas próprios projetos
+            projects = projects.filter(project_designer=request.user)
     
     # Paginação
     paginator = Paginator(projects, 20)
@@ -430,6 +582,9 @@ def conveyor_payments_view(request):
 
     return render(request, 'projects/conveyor_payments.html', {
         'projects': page_obj,
+        'selected_unit': selected_unit,
+        'is_all_units_selected': is_all_units_selected,
+        'accessible_units': accessible_units,
     })
 
 # Esteira de Confirmacão de Pagamentos
@@ -440,11 +595,62 @@ def conveyor_confirm_payments_view(request):
         messages.error(request, 'Você não tem permissão para acessar esta página.')
         return redirect('home')
     
+    # Obter informações da sessão e unidades
+    accessible_units = get_accessible_units_from_request(request)
+    selected_unit = get_selected_unit_from_request(request)
+    is_all_units_selected = is_all_units_selected_from_request(request)
+    
     # Filtrar projetos em RC e não finalizados
     projects = Project.objects.filter(
         status='RC',
         project_finalized=False
     ).order_by('-id')  # Ordenar por data de criação
+    
+    # Aplicar filtro de unidade baseado na sessão
+    if is_all_units_selected:
+        # Se "Todas as unidades" está selecionado
+        if request.user.has_perm('users.view_all_projects') or request.user.has_perm('users.change_project_payments'):
+            # Pode ver todos os projetos da empresa
+            projects = projects.filter(unit__enterprise=request.user.enterprise)
+        else:
+            # Aplicar lógica de permissão baseada no acesso do usuário
+            if request.user.has_perm('users.view_unit_projects'):
+                # Ver projetos das unidades que tem acesso
+                if request.user.has_perm('users.view_all_units'):
+                    # Tem acesso a todas as unidades da empresa
+                    projects = projects.filter(unit__enterprise=request.user.enterprise)
+                else:
+                    # Ver projetos das suas unidades vinculadas
+                    projects = projects.filter(unit__in=accessible_units)
+            else:
+                # Ver apenas próprios projetos
+                projects = projects.filter(project_designer=request.user)
+    elif selected_unit:
+        # Se uma unidade específica está selecionada
+        if request.user.has_perm('users.view_all_projects') or request.user.has_perm('users.change_project_payments'):
+            # Pode ver todos os projetos da unidade
+            projects = projects.filter(unit=selected_unit)
+        elif request.user.has_perm('users.view_unit_projects'):
+            # Pode ver projetos da unidade se tiver acesso a ela
+            if request.user.has_perm('users.view_all_units') or request.user.units.filter(id=selected_unit.id).exists():
+                projects = projects.filter(unit=selected_unit)
+            else:
+                # Não tem acesso à unidade selecionada
+                projects = projects.none()
+        else:
+            # Ver apenas próprios projetos na unidade selecionada
+            projects = projects.filter(project_designer=request.user, unit=selected_unit)
+    else:
+        # Nenhuma unidade selecionada - aplicar lógica de permissão padrão
+        if request.user.has_perm('users.change_project_payments'):
+            # Usuários com permissão de alteração de pagamentos podem ver todos os projetos da empresa
+            projects = projects.filter(unit__enterprise=request.user.enterprise)
+        elif request.user.has_perm('users.view_unit_projects') and not request.user.has_perm('users.view_all_projects'):
+            # Ver projetos das unidades acessíveis
+            projects = projects.filter(unit__in=accessible_units)
+        elif not request.user.has_perm('users.view_unit_projects'):
+            # Ver apenas próprios projetos
+            projects = projects.filter(project_designer=request.user)
     
     # Paginação
     paginator = Paginator(projects, 20)
@@ -453,10 +659,13 @@ def conveyor_confirm_payments_view(request):
     
     context = {
         'projects': page_obj,
-        'title': 'Esteira de Confirmação de Pagamentos'
+        'title': 'Esteira de Confirmação de Pagamentos',
+        'selected_unit': selected_unit,
+        'is_all_units_selected': is_all_units_selected,
+        'accessible_units': accessible_units,
     }
     
-    return render(request, 'projects/conveyor_payments.html', context)
+    return render(request, 'projects/conveyor_confirm_payments.html', context)
 
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -485,11 +694,63 @@ def conveyor_projects_view(request):
     if not request.user.has_perm('users.view_projects'):
         messages.error(request, "Você não tem permissão para acessar a esteira de projetos.")
         return redirect('home')
-    #filtrar projetos que estão em AC e não possuem Projetista
+    
+    # Obter informações da sessão e unidades
+    accessible_units = get_accessible_units_from_request(request)
+    selected_unit = get_selected_unit_from_request(request)
+    is_all_units_selected = is_all_units_selected_from_request(request)
+    
+    # Filtrar projetos que estão em AC e não possuem Projetista
     projects = Project.objects.filter(
         status='AC',
         project_designer__isnull=True
     )
+    
+    # Aplicar filtro de unidade baseado na sessão
+    if is_all_units_selected:
+        # Se "Todas as unidades" está selecionado
+        if request.user.has_perm('users.view_all_projects'):
+            # Pode ver todos os projetos da empresa
+            projects = projects.filter(unit__enterprise=request.user.enterprise)
+        else:
+            # Aplicar lógica de permissão baseada no acesso do usuário
+            if request.user.has_perm('users.view_unit_projects'):
+                # Ver projetos das unidades que tem acesso
+                if request.user.has_perm('users.view_all_units'):
+                    # Tem acesso a todas as unidades da empresa
+                    projects = projects.filter(unit__enterprise=request.user.enterprise)
+                else:
+                    # Ver projetos das suas unidades vinculadas
+                    projects = projects.filter(unit__in=accessible_units)
+            else:
+                # Como é esteira de projetos sem projetista, não aplicar filtro adicional de usuário
+                # Já está filtrando por project_designer__isnull=True
+                pass
+    elif selected_unit:
+        # Se uma unidade específica está selecionada
+        if request.user.has_perm('users.view_all_projects'):
+            # Pode ver todos os projetos da unidade
+            projects = projects.filter(unit=selected_unit)
+        elif request.user.has_perm('users.view_unit_projects'):
+            # Pode ver projetos da unidade se tiver acesso a ela
+            if request.user.has_perm('users.view_all_units') or request.user.units.filter(id=selected_unit.id).exists():
+                projects = projects.filter(unit=selected_unit)
+            else:
+                # Não tem acesso à unidade selecionada
+                projects = projects.none()
+        else:
+            # Como é esteira de projetos sem projetista, aplicar filtro de unidade apenas
+            projects = projects.filter(unit=selected_unit)
+    else:
+        # Nenhuma unidade selecionada - aplicar lógica de permissão padrão
+        if request.user.has_perm('users.view_unit_projects') and not request.user.has_perm('users.view_all_projects'):
+            # Ver projetos das unidades acessíveis
+            projects = projects.filter(unit__in=accessible_units)
+        elif not request.user.has_perm('users.view_unit_projects'):
+            # Como é esteira de projetos sem projetista, não aplicar filtro adicional de usuário
+            # Já está filtrando por project_designer__isnull=True
+            pass
+    
     # Paginação
     paginator = Paginator(projects, 20)
     page_number = request.GET.get('page')
@@ -497,6 +758,9 @@ def conveyor_projects_view(request):
 
     return render(request, 'projects/conveyor_projects.html', {
         'projects': page_obj,
+        'selected_unit': selected_unit,
+        'is_all_units_selected': is_all_units_selected,
+        'accessible_units': accessible_units,
     })
 
 # Tela de detalhes do projeto na esteira
@@ -515,7 +779,7 @@ def conveyor_project_details_view(request, project_id):
 
             # Verificar se o manager tem o cargo apropriado e está na mesma unidade do projeto
             if manager.roles.filter(code__in=['gerente', 'coordenador', 'socio_unidade', 'franqueado'], is_active=True).exists():
-                if manager.unit == project.unit:
+                if manager.units.filter(id=project.unit.id).exists():
                     project.project_manager = manager
                     project.project_designer = request.user  # Adiciona o usuário logado como projetista
                     project.save()
@@ -603,16 +867,36 @@ def project_details_view(request, project_id):
         elif "next_phase" in request.POST:
             status_order = dict((status, index) for index, (status, _) in enumerate(PROJECT_STATUS_CHOICES))
             current_index = status_order[project.status]
+            next_status = PROJECT_STATUS_CHOICES[current_index + 1][0] if current_index < len(PROJECT_STATUS_CHOICES) - 1 else None
             
+            # Verificar se está tentando mover para a fase "Liberado" (LB)
+            is_going_to_release_phase = next_status == 'LB'
             is_going_to_last_phase = current_index == len(PROJECT_STATUS_CHOICES) - 2
-            has_permission = request.user.has_perm('users.change_project_finalize')
             
-            if is_going_to_last_phase and not has_permission:
-                messages.error(request, "Apenas usuários com permissão podem mover o projeto para a última fase.")
-                return redirect('project_details', project_id=project_id)
+            # Verificar permissões específicas
+            if is_going_to_release_phase:
+                # Para mover para "Liberado", deve ter permissão e ser da mesma unidade ou ser projetista do projeto
+                has_release_permission = request.user.has_perm('users.change_project_release')
+                is_project_designer = project.project_designer == request.user
+                is_same_unit = request.user.units.filter(id=project.unit.id).exists()
+                
+                if not has_release_permission:
+                    messages.error(request, "Você não tem permissão para liberar projetos.")
+                    return redirect('project_details', project_id=project_id)
+                
+                if not is_project_designer and not is_same_unit:
+                    messages.error(request, "Você só pode liberar projetos da sua unidade ou projetos que você é o projetista.")
+                    return redirect('project_details', project_id=project_id)
+                    
+            elif is_going_to_last_phase:
+                # Para mover para "Receita" (última fase), verificar permissão específica
+                has_revenue_permission = request.user.has_perm('users.change_project_to_revenue')
+                if not has_revenue_permission:
+                    messages.error(request, "Você não tem permissão para mover o projeto para a fase Receita.")
+                    return redirect('project_details', project_id=project_id)
             
             if current_index < len(PROJECT_STATUS_CHOICES) - 1:
-                project.status = PROJECT_STATUS_CHOICES[current_index + 1][0]
+                project.status = next_status
                 project.save()
                 messages.success(request, "Projeto avançou para próxima fase.")
             else:
@@ -704,6 +988,11 @@ def project_details_view(request, project_id):
                     messages.error(request, f"Erro ao atualizar o projeto: {str(e)}")
                     
             elif request.POST["action"] == "complete_project":
+                # Verificar se o usuário tem permissão para concluir projetos
+                if not request.user.has_perm('users.complete_project'):
+                    messages.error(request, "Você não tem permissão para concluir projetos.")
+                    return redirect('project_details', project_id=project_id)
+                
                 try:
                     if project.status == 'RC':
                         project.project_finalized = True

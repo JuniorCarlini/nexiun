@@ -100,7 +100,11 @@
 <div class="container">
     <div class="row align-items-center ms-2 me-3 mb-2 mt-3 justify-content-between">
         <div class="col-auto">
-            <h2 class="text-color-primary m-0">Seus Projetos <span class="fw-light">{{ current_status }}</span></h2>
+            {% if is_all_units_selected %}
+                <h2 class="text-color-primary m-0">Seus Projetos <span class="fw-light">-> Todas as unidades {{ current_status }} </span></h2>
+            {% else %}
+                <h2 class="text-color-primary m-0">Seus Projetos <span class="fw-light">-> {{ selected_unit.name }} {{ current_status }} </span></h2>
+            {% endif %}
         </div>
     </div>
 

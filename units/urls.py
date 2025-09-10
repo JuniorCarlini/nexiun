@@ -16,6 +16,7 @@ urlpatterns = [
     # URLs do Sistema Financeiro das Unidades
     path('dashboard-financeiro/', views.financial_dashboard_new_view, name='dashboard_financeiro'),
     path('transactions/', views.unit_transactions_list_view, name='unit_transactions_list'),
+    path('transactions/unit/<int:unit_id>/', views.unit_transactions_list_view, name='unit_transactions_list'),
     path('add-transaction/', views.add_transaction_view, name='add_transaction'),
     path('edit-transaction/<int:transaction_id>/', views.edit_transaction_view, name='edit_transaction'),
     path('delete-transaction/<int:transaction_id>/', views.delete_transaction_view, name='delete_transaction'),

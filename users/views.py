@@ -164,9 +164,8 @@ def logout_view(request):
     logout(request)
     return redirect('home')
 
-# Configurações do usuário
 @login_required
-def config_view(request):
+def user_config_view(request):
     user = request.user
     enterprise = user.enterprise
 
@@ -188,7 +187,7 @@ def config_view(request):
                 user.date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
             except ValueError:
                 messages.error(request, 'Data de nascimento inválida.')
-                return redirect('config')
+                return redirect('user_config')
 
         # Verificando se uma nova imagem de perfil foi enviada
         if request.FILES.get('profile_image'):
@@ -196,27 +195,6 @@ def config_view(request):
 
         user.save()
         
-        # Atualizando dados da empresa apenas se o usuário for CEO
-        if enterprise and user.roles.filter(code='ceo', is_active=True).exists():
-            enterprise.name = request.POST.get('enterprise_name', enterprise.name)
-            enterprise.cnpj_or_cpf = request.POST.get('enterprise_cnpj_or_cpf', enterprise.cnpj_or_cpf)
-            enterprise.primary_color = request.POST.get('primary_color', enterprise.primary_color)
-            enterprise.secondary_color = request.POST.get('secondary_color', enterprise.secondary_color)
-            enterprise.text_icons_color = request.POST.get('text_icons_color', enterprise.text_icons_color)
-
-            # Verificando se novos logotipos da empresa foram enviados
-            if request.FILES.get('logo_light'):
-                enterprise.logo_light = request.FILES['logo_light']
-            
-            if request.FILES.get('logo_dark'):
-                enterprise.logo_dark = request.FILES['logo_dark']
-            
-            # Verificando se um novo favicon da empresa foi enviado
-            if request.FILES.get('favicon'):
-                enterprise.favicon = request.FILES['favicon']
-
-            enterprise.save()
-
         # Mensagem personalizada se tema foi alterado
         old_theme = User.objects.get(id=user.id).theme_preference
         new_theme = request.POST.get('theme_preference', user.theme_preference)
@@ -227,13 +205,55 @@ def config_view(request):
         else:
             messages.success(request, 'Dados atualizados com sucesso!')
         
-        return redirect('config')
+        return redirect('user_config')
 
     context = {
         'user': user,
         'enterprise': enterprise,
     }
-    return render(request, 'users/config.html', context)
+    return render(request, 'users/user_config.html', context)
+
+@login_required
+def enterprise_config_view(request):
+    user = request.user
+    enterprise = user.enterprise
+
+    # Verificar se o usuário é CEO
+    if not (enterprise and user.roles.filter(code='ceo', is_active=True).exists()):
+        messages.error(request, "Você não tem permissão para acessar as configurações da empresa.")
+        return redirect('user_config')
+
+    if request.method == 'POST':
+        # Atualizando dados da empresa apenas se o usuário for CEO
+        enterprise.name = request.POST.get('enterprise_name', enterprise.name)
+        enterprise.cnpj_or_cpf = request.POST.get('enterprise_cnpj_or_cpf', enterprise.cnpj_or_cpf)
+        enterprise.primary_color = request.POST.get('primary_color', enterprise.primary_color)
+        enterprise.secondary_color = request.POST.get('secondary_color', enterprise.secondary_color)
+        enterprise.text_icons_color = request.POST.get('text_icons_color', enterprise.text_icons_color)
+
+        # Verificando se novos logotipos da empresa foram enviados
+        if request.FILES.get('logo_light'):
+            enterprise.logo_light = request.FILES['logo_light']
+        
+        if request.FILES.get('logo_dark'):
+            enterprise.logo_dark = request.FILES['logo_dark']
+        
+        # Verificando se um novo favicon da empresa foi enviado
+        if request.FILES.get('favicon'):
+            enterprise.favicon = request.FILES['favicon']
+
+        enterprise.save()
+        messages.success(request, 'Configurações da empresa atualizadas com sucesso!')
+        
+        return redirect('enterprise_config')
+
+    context = {
+        'user': user,
+        'enterprise': enterprise,
+    }
+    return render(request, 'users/enterprise_config.html', context)
+
+
 
 # Criação de usuário
 @login_required
@@ -252,6 +272,15 @@ def create_user_view(request):
         return redirect('list_users')
     
     available_roles = Role.objects.filter(is_active=True, code__in=allowed_role_codes)
+    
+    # Identificar quais cargos têm a permissão view_all_units
+    roles_with_view_all_units = []
+    for role in available_roles:
+        role_permissions = role.permissions.all()
+        for perm in role_permissions:
+            if perm.codename == 'view_all_units':
+                roles_with_view_all_units.append(role.id)
+                break
     
     # Buscar módulos do sistema e suas permissões
     system_modules = []
@@ -272,6 +301,7 @@ def create_user_view(request):
     context = {
         'units': units,
         'available_roles': available_roles,
+        'roles_with_view_all_units': roles_with_view_all_units,
         'system_modules': system_modules,
         'enterprise': enterprise,
         'form_data': {}
@@ -314,16 +344,34 @@ def create_user_view(request):
         }
         context['form_data'] = form_data
 
+        # Verificar se os cargos selecionados têm a permissão view_all_units
+        selected_roles_have_view_all_units = False
+        if selected_roles:
+            selected_role_objects = Role.objects.filter(id__in=selected_roles, is_active=True)
+            for role in selected_role_objects:
+                # Verificar se o cargo tem a permissão view_all_units
+                role_permissions = role.permissions.all()
+                for perm in role_permissions:
+                    if perm.codename == 'view_all_units':
+                        selected_roles_have_view_all_units = True
+                        break
+                if selected_roles_have_view_all_units:
+                    break
+
+        # Campos obrigatórios básicos
         required_fields = {
             'nome': name,
             'email': email,
             'cpf': cpf,
             'telefone': phone,
-            'unidades': unit_ids,
             'cargo': selected_roles,
             'senha': password1,
             'confirmação de senha': password2
         }
+
+        # Só exigir unidades se o cargo NÃO tiver view_all_units
+        if not selected_roles_have_view_all_units:
+            required_fields['unidades'] = unit_ids
 
         missing_fields = [field for field, value in required_fields.items() if not value]
         if missing_fields:
@@ -348,18 +396,20 @@ def create_user_view(request):
             messages.error(request, 'CPF já cadastrado.')
             return render(request, 'users/register_user.html', context)
 
-        # Validar as unidades selecionadas
-        if not unit_ids:
-            messages.error(request, 'Selecione pelo menos uma unidade.')
-            return render(request, 'users/register_user.html', context)
-            
-        try:
-            selected_units = Unit.objects.filter(id__in=unit_ids, enterprise=enterprise)
-            if selected_units.count() != len(unit_ids):
-                messages.error(request, 'Uma ou mais unidades são inválidas.')
+        # Validar as unidades selecionadas (só se necessário)
+        selected_units = []
+        if unit_ids:
+            try:
+                selected_units = Unit.objects.filter(id__in=unit_ids, enterprise=enterprise)
+                if selected_units.count() != len(unit_ids):
+                    messages.error(request, 'Uma ou mais unidades são inválidas.')
+                    return render(request, 'users/register_user.html', context)
+            except (ValueError, Unit.DoesNotExist):
+                messages.error(request, 'Unidades inválidas.')
                 return render(request, 'users/register_user.html', context)
-        except (ValueError, Unit.DoesNotExist):
-            messages.error(request, 'Unidades inválidas.')
+        elif not selected_roles_have_view_all_units:
+            # Só é obrigatório ter unidades se o cargo não tiver view_all_units
+            messages.error(request, 'Selecione pelo menos uma unidade para este cargo.')
             return render(request, 'users/register_user.html', context)
 
         profile_image = request.FILES.get('logo')
@@ -392,8 +442,9 @@ def create_user_view(request):
             new_user.set_password(password1)
             new_user.save()
             
-            # Atribuir unidades selecionadas
-            new_user.units.set(selected_units)
+            # Atribuir unidades selecionadas (se houver)
+            if selected_units:
+                new_user.units.set(selected_units)
             
             # Atribuir roles selecionados
             if selected_roles:
@@ -430,10 +481,15 @@ def edit_user_view(request, user_id):
             messages.error(request, 'Sem permissão para editar super admin.')
             return redirect('list_users')
             
-        # Verificar se pode editar apenas usuários da sua unidade
-        if not user.has_perm('users.change_all_users') and user.unit != edit_user.unit:
-            messages.error(request, 'Você só pode editar usuários da sua unidade.')
-            return redirect('list_users')
+        # Verificar se pode editar apenas usuários das suas unidades
+        # Usuários com view_all_units ou permissões financeiras podem editar qualquer usuário da empresa
+        if not user.has_perm('users.change_all_users') and not user.has_perm('users.view_all_units'):
+            # Verificar se há interseção entre as unidades do usuário logado e do usuário sendo editado
+            user_units = set(user.units.values_list('id', flat=True))
+            edit_user_units = set(edit_user.units.values_list('id', flat=True))
+            if not user_units.intersection(edit_user_units):
+                messages.error(request, 'Você só pode editar usuários da sua unidade.')
+                return redirect('list_users')
 
         units = Unit.objects.filter(enterprise=enterprise)
         
@@ -446,6 +502,15 @@ def edit_user_view(request, user_id):
             return redirect('list_users')
         
         available_roles = Role.objects.filter(is_active=True, code__in=allowed_role_codes)
+        
+        # Identificar quais cargos têm a permissão view_all_units
+        roles_with_view_all_units = []
+        for role in available_roles:
+            role_permissions = role.permissions.all()
+            for perm in role_permissions:
+                if perm.codename == 'view_all_units':
+                    roles_with_view_all_units.append(role.id)
+                    break
         
         system_modules = []
         for module in SystemModule.objects.filter(is_active=True).order_by('order'):
@@ -469,6 +534,7 @@ def edit_user_view(request, user_id):
             'edit_user': edit_user,
             'units': units,
             'available_roles': available_roles,
+            'roles_with_view_all_units': roles_with_view_all_units,
             'system_modules': system_modules,
             'user_roles': user_roles,
             'user_permissions': user_permissions,
@@ -486,6 +552,7 @@ def edit_user_view(request, user_id):
             selected_permissions = request.POST.getlist('custom_permissions')
             
             # Validar se os roles selecionados estão permitidos para este usuário
+            selected_roles_have_view_all_units = False
             if selected_roles:
                 selected_role_objects = Role.objects.filter(id__in=selected_roles, is_active=True)
                 selected_role_codes = list(selected_role_objects.values_list('code', flat=True))
@@ -497,6 +564,16 @@ def edit_user_view(request, user_id):
                         role_name = role_name.name if role_name else role_code
                         messages.error(request, f'Você não tem permissão para atribuir o cargo "{role_name}".')
                         return render(request, 'users/edit_user.html', context)
+                
+                # Verificar se algum dos cargos selecionados tem view_all_units
+                for role in selected_role_objects:
+                    role_permissions = role.permissions.all()
+                    for perm in role_permissions:
+                        if perm.codename == 'view_all_units':
+                            selected_roles_have_view_all_units = True
+                            break
+                    if selected_roles_have_view_all_units:
+                        break
 
             # Validação de email único
             if User.objects.filter(email=email).exclude(id=user_id).exists():
@@ -514,18 +591,20 @@ def edit_user_view(request, user_id):
                 messages.error(request, 'Telefone inválido.')
                 return render(request, 'users/edit_user.html', context)
 
-            # Validar as unidades selecionadas
-            if not unit_ids:
-                messages.error(request, 'Selecione pelo menos uma unidade.')
-                return render(request, 'users/edit_user.html', context)
-                
-            try:
-                selected_units = Unit.objects.filter(id__in=unit_ids, enterprise=enterprise)
-                if selected_units.count() != len(unit_ids):
-                    messages.error(request, 'Uma ou mais unidades são inválidas.')
+            # Validar as unidades selecionadas (só se necessário)
+            selected_units = []
+            if unit_ids:
+                try:
+                    selected_units = Unit.objects.filter(id__in=unit_ids, enterprise=enterprise)
+                    if selected_units.count() != len(unit_ids):
+                        messages.error(request, 'Uma ou mais unidades são inválidas.')
+                        return render(request, 'users/edit_user.html', context)
+                except (ValueError, Unit.DoesNotExist):
+                    messages.error(request, 'Unidades inválidas.')
                     return render(request, 'users/edit_user.html', context)
-            except (ValueError, Unit.DoesNotExist):
-                messages.error(request, 'Unidades inválidas.')
+            elif not selected_roles_have_view_all_units:
+                # Só é obrigatório ter unidades se o cargo não tiver view_all_units
+                messages.error(request, 'Selecione pelo menos uma unidade para este cargo.')
                 return render(request, 'users/edit_user.html', context)
 
             # Atualiza senha se fornecida
@@ -561,8 +640,13 @@ def edit_user_view(request, user_id):
             edit_user.phone = phone_clean
             edit_user.save()
             
-            # Atualizar unidades
-            edit_user.units.set(selected_units)
+            # Atualizar unidades (se houver)
+            if selected_units or not selected_roles_have_view_all_units:
+                # Se tem unidades selecionadas OU se o cargo não tem view_all_units
+                edit_user.units.set(selected_units)
+            elif selected_roles_have_view_all_units and not unit_ids:
+                # Se o cargo tem view_all_units e não selecionou nenhuma unidade, limpar todas
+                edit_user.units.clear()
             
             # Atualizar roles e permissões
             if selected_roles:
@@ -589,6 +673,8 @@ def edit_user_view(request, user_id):
 # Lista os usuários da empresa
 @permission_required('users.view_users', 'Você não tem permissão para visualizar usuários.')
 def list_users_view(request):
+    from core.mixins import get_selected_unit_from_request, is_all_units_selected_from_request
+    
     # Com o novo sistema, a filtragem pode ser mais flexível
     users = User.objects.filter(is_superuser=False)
     
@@ -596,11 +682,41 @@ def list_users_view(request):
     if not request.user.is_superuser and request.user.enterprise:
         users = users.filter(enterprise=request.user.enterprise)
     
-    # Se o usuário só pode ver usuários da sua unidade
-    if request.user.has_perm('users.view_unit_users') and not request.user.has_perm('users.view_all_users'):
-        user_units = request.user.units.all()
-        if user_units.exists():
-            users = users.filter(units__in=user_units)
+    # Verificar se está selecionado "Todas as unidades"
+    is_all_units_selected = is_all_units_selected_from_request(request)
+    
+    if is_all_units_selected:
+        # Quando "Todas as unidades" está selecionado
+        if request.user.has_perm('users.view_all_users') or request.user.has_perm('users.view_all_units'):
+            # Pode ver todos os usuários da empresa
+            pass  # Já filtrado por empresa acima
+        else:
+            # Usuário normal - filtrar pelas suas unidades vinculadas
+            user_units = request.user.units.all()
+            if user_units.exists():
+                users = users.filter(units__in=user_units)
+    else:
+        # Lógica normal baseada na unidade selecionada
+        selected_unit = get_selected_unit_from_request(request)
+        
+        if selected_unit:
+            # Filtrar pela unidade específica selecionada
+            if request.user.has_perm('users.view_all_users') or request.user.has_perm('users.view_all_units'):
+                # Pode ver todos os usuários da unidade
+                users = users.filter(units=selected_unit)
+            elif request.user.has_perm('users.view_unit_users'):
+                # Pode ver usuários da unidade se tiver acesso a ela
+                if request.user.has_perm('users.view_all_units') or request.user.units.filter(id=selected_unit.id).exists():
+                    users = users.filter(units=selected_unit)
+                else:
+                    # Não tem acesso à unidade selecionada
+                    users = users.none()
+        else:
+            # Nenhuma unidade selecionada - mostrar baseado nas permissões
+            if not request.user.has_perm('users.view_all_users') and not request.user.has_perm('users.view_all_units'):
+                user_units = request.user.units.all()
+                if user_units.exists():
+                    users = users.filter(units__in=user_units)
 
     # Ordenar os usuários para evitar warning de paginação inconsistente
     users = users.order_by('name', 'id')
@@ -608,7 +724,13 @@ def list_users_view(request):
     paginator = Paginator(users, 20)
     users_page = paginator.get_page(request.GET.get("page"))
 
-    return render(request, "users/list_users.html", {"users": users_page})
+    context = {
+        "users": users_page,
+        "is_all_units_selected": is_all_units_selected,
+        "selected_unit": get_selected_unit_from_request(request) if not is_all_units_selected else None
+    }
+
+    return render(request, "users/list_users.html", context)
 
 # Recuperação de senha
 class PasswordResetView(DjangoPasswordResetView):

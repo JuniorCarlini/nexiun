@@ -3,7 +3,7 @@
 {% load static %}
 {% load permission_tags %}
 
-{% block title %}Configuração{% endblock %}
+{% block title %}Configuração da Empresa{% endblock %}
 
 {% block content %}
 
@@ -45,7 +45,6 @@
     .cursor-pointer {
         cursor: pointer;
     }
-
 
     .color-picker-title {
         color: #495057;
@@ -166,33 +165,10 @@
         opacity: 0.7;
     }
 
-    .text-utils {
-        font-size: 0.8rem;
-        color: #9e9e9e;
-    }
-
-    .text-utils-title {
-        font-size: 0.8rem;
-        color: #ff0707;
-    }
-
-    .separator {
-        width: 100%;
-        height: 1px;
-        background-color: #e1e1e1;
-        margin: 10px 0;
-    }
-
     .form-label {
         font-size: 0.9rem;
         margin-bottom: 0%;
         color: #16365f;
-    }
-
-    .button {
-        margin-top: 7px;
-        width: 100%;
-        height: 42px;
     }
 
     .custom-btn {
@@ -211,105 +187,13 @@
 </style>
 
 <div class="container">
-    <h2 class="text-color-primary ms-4 mb-3">Configurações</h2>
+    <h2 class="text-color-primary ms-4 mb-3">Configurações da Empresa</h2>
     <div class="container-style">
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            <!-- Dados do Usuário -->
-            <h6 class="text-color-secondary">Dados do Usuário</h6>
-
-            <!-- Upload da Imagem do Usuário -->
-            <div class="text-center d-flex align-items-center justify-content-center mb-4">
-                <div class="position-relative d-inline-block profile-image-container">
-                    <label for="user_image" class="cursor-pointer m-0 p-0">
-                    {% if user.profile_image %}
-                            <img src="{{ user.profile_image.url }}" alt="Imagem de Perfil" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 150px; height: 150px; object-fit: cover;">
-                    {% else %}
-                            <img src="{% static 'images/user_default_icon.svg' %}" alt="Imagem de Perfil Padrão" class="img-fluid rounded-circle profile-image border border-2 border-light" style="width: 150px; height: 150px; object-fit: cover;">
-                    {% endif %}
-                        <div class="profile-image-overlay rounded-circle">
-                            <i class="fas fa-camera text-white" style="font-size: 30px;"></i>
-                        </div>
-                </label>
-                    <input type="file" id="user_image" name="profile_image" class="d-none" accept="image/*">
-            </div>
-            </div>
-
-            <!-- Inputs do Usuário -->
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="name" class="form-label">Nome:</label>
-                    <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}" required>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="phone" class="form-label">Telefone:</label>
-                    <input type="text" class="form-control" id="phone" name="phone" value="{{ user.phone }}" required>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="email" class="form-label">Email:</label>
-                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" disabled readonly>
-                    <div class="form-text">
-                        <small class="text-muted">
-                            <i class="fas fa-lock me-1"></i>O email não pode ser alterado
-                        </small>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="cpf" class="form-label">CPF:</label>
-                    <input type="text" class="form-control" id="cpf" name="cpf" value="{{ user.cpf }}">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="date_of_birth" class="form-label">Data de Nascimento:</label>
-                    <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="{{ user.date_of_birth|date:'Y-m-d' }}">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="unit_info" class="form-label">
-                        <i class="fas fa-building me-2"></i>Unidade:
-                    </label>
-                    <input type="text" class="form-control" id="unit_info" value="{% for unit in user.units.all %}{{ unit.name }}{% if not forloop.last %}, {% endif %}{% empty %}Nenhuma unidade atribuída{% endfor %}" disabled readonly>
-                    <div class="form-text">
-                        <small class="text-muted">
-                            <i class="fas fa-lock me-1"></i>Entre em contato com o administrador para alterar a unidade
-                        </small>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="user_roles" class="form-label">
-                        <i class="fas fa-user-tag me-2"></i>Cargos:
-                    </label>
-                    <input type="text" class="form-control" id="user_roles" value="{% for role in user.roles.all %}{{ role.name }}{% if not forloop.last %}, {% endif %}{% empty %}Nenhum cargo atribuído{% endfor %}" disabled readonly>
-                    <div class="form-text">
-                        <small class="text-muted">
-                            <i class="fas fa-lock me-1"></i>Entre em contato com o administrador para alterar cargos
-                        </small>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="theme_preference" class="form-label">
-                        <i class="fas fa-palette me-2"></i>Tema de Aparência:
-                    </label>
-                    <select class="form-select" id="theme_preference" name="theme_preference">
-                        <option value="light" {% if user.theme_preference == 'light' %}selected{% endif %}>
-                            <i class="fas fa-sun"></i> Tema Claro
-                        </option>
-                        <option value="dark" {% if user.theme_preference == 'dark' %}selected{% endif %}>
-                            <i class="fas fa-moon"></i> Tema Escuro
-                        </option>
-                        <option value="auto" {% if user.theme_preference == 'auto' %}selected{% endif %}>
-                            <i class="fas fa-adjust"></i> Automático
-                        </option>
-                    </select>
-                    <div class="form-text">
-                        <small class="text-muted">O tema será aplicado em toda a interface do sistema</small>
-                    </div>
-                </div>
-            </div>
-
-            <div class="separator"></div>
-
-            {% if user|has_role:'ceo' and enterprise %}
+            
             <!-- Dados da Empresa -->
-            <h6 class="mt-4 text-color-secondary">Dados da Empresa</h6>
+            <h6 class="text-color-secondary">Identidade Visual</h6>
 
             <!-- Upload da Logo e Favicon -->
             <div class="row mb-4">
@@ -372,6 +256,7 @@
             </div>
 
             <!-- Inputs da Empresa -->
+            <h6 class="text-color-secondary mt-4">Dados da Empresa</h6>
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="enterprise_name" class="form-label">Nome da Empresa:</label>
@@ -412,6 +297,7 @@
             </div>
 
             <!-- Seleção de Cores -->
+            <h6 class="text-color-secondary mt-4">Esquema de Cores</h6>
             <div class="color-picker-container">
                 <div class="color-inputs">
                 <div class="color-group">
@@ -437,12 +323,12 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
+
             <!-- Botões de ação -->
             <div class="row mt-4">
                 <div class="col-12 text-end">
                     <button type="submit" class="btn btn-primary w-100 rounded" style="background-color: {{ enterprise.primary_color }}; border: none;">
-                        <i class="fa-solid fa-floppy-disk"></i> Salvar Alterações
+                        <i class="fa-solid fa-floppy-disk"></i> Salvar Configurações da Empresa
                     </button>
                 </div>
             </div>
@@ -452,40 +338,8 @@
 
 <script>
     $(document).ready(function() {
-        // CPF mask
-        $('#cpf').mask('000.000.000-00', {
-            reverse: true,
-            clearIfNotMatch: true
-        });
-    
-        // Phone mask with dynamic behavior
-        var SPMaskBehavior = function(val) {
-            return val.replace(/\D/g, '').length === 11 ? '(00) 00000-0000' : '(00) 0000-00009';
-        },
-        spOptions = {
-            onKeyPress: function(val, e, field, options) {
-                field.mask(SPMaskBehavior.apply({}, arguments), options);
-            }
-        };
-    
-        $('#phone').mask(SPMaskBehavior, spOptions);
-        
         // CNPJ/CPF mask for enterprise
         $('#enterprise_cnpj_or_cpf').mask('00.000.000/0000-00');
-    
-        // Preview de imagem universal
-        function previewUserImage(event) {
-            if (event.target.files && event.target.files[0]) {
-                const reader = new FileReader();
-                const container = $(event.target).closest('.profile-image-container');
-                
-                reader.onload = function(e) {
-                    container.find('img').attr('src', e.target.result);
-                }
-                
-                reader.readAsDataURL(event.target.files[0]);
-            }
-        }
 
         function previewEnterpriseImage(event) {
             if (event.target.files && event.target.files[0]) {
@@ -593,4 +447,4 @@
         toastList.forEach(toast => toast.show());
     });
 </script>
-{% endblock %}
+{% endblock %} 

@@ -140,16 +140,25 @@ def create_enterprise(request):
 # Registrar cliente
 @login_required
 def register_client_view(request):
+    from core.mixins import get_selected_unit_from_request, is_all_units_selected_from_request, get_accessible_units_from_request
+    
     # Verificar permissão para adicionar clientes
     if not request.user.has_perm('users.add_clients'):
         messages.error(request, 'Você não tem permissão para cadastrar clientes.')
         return redirect('list_clients')
     
-    # Verificar se o usuário tem unidades associadas
-    user_units = request.user.units.all()
-    if not user_units.exists():
-        messages.error(request, "Você precisa estar vinculado a pelo menos uma unidade para cadastrar clientes.")
-        return redirect('list_clients')
+    # Obter unidades acessíveis (diferentes para usuários com view_all_units)
+    accessible_units = get_accessible_units_from_request(request)
+    
+    # Usuários com view_all_units não precisam estar vinculados a unidades específicas
+    if not request.user.has_perm('users.view_all_units'):
+        if not accessible_units.exists():
+            messages.error(request, "Você precisa estar vinculado a pelo menos uma unidade para cadastrar clientes.")
+            return redirect('list_clients')
+
+    # Obter unidade selecionada na sessão
+    selected_unit = get_selected_unit_from_request(request)
+    is_all_units_selected = is_all_units_selected_from_request(request)
 
     # Preparar contexto
     from .models import CLIENT_STATUS_CHOICES, PRODUCER_CLASSIFICATION_CHOICES, ACTIVITY_CHOICES
@@ -157,15 +166,23 @@ def register_client_view(request):
         'enterprise': request.user.enterprise,
         'client_documents': [],
         'is_completed': False,
-        'user_units': user_units,
+        'accessible_units': accessible_units,
+        'selected_unit': selected_unit,
+        'is_all_units_selected': is_all_units_selected,
         'status_choices': CLIENT_STATUS_CHOICES,
         'producer_classification_choices': PRODUCER_CLASSIFICATION_CHOICES,
         'activity_choices': ACTIVITY_CHOICES,
-        'has_multiple_units': user_units.count() > 1,
-        'single_unit': user_units.first() if user_units.count() == 1 else None
+        'can_view_all_units': request.user.has_perm('users.view_all_units'),
+        'has_multiple_units': accessible_units.count() > 1 or request.user.has_perm('users.view_all_units'),
+        'single_unit': accessible_units.first() if accessible_units.count() == 1 and not request.user.has_perm('users.view_all_units') else None
     }
 
     if request.method == "POST":
+        # Verificar se está tentando cadastrar com "Todas as unidades" selecionado
+        if is_all_units_selected:
+            messages.error(request, 'Para cadastrar clientes, você deve estar em uma unidade específica. Altere sua sessão antes de continuar.')
+            return render(request, 'enterprises/register_client.html', context)
+            
         try:
             # Validações básicas
             name = request.POST.get('name', '').strip()
@@ -239,14 +256,32 @@ def register_client_view(request):
                 created_by=request.user
             )
             
-            # Associar cliente à unidade selecionada ou todas as unidades do usuário
+            # Associar cliente à unidade da sessão atual
             selected_unit_id = request.POST.get('unit_id')
-            if selected_unit_id and user_units.filter(id=selected_unit_id).exists():
-                # Se uma unidade específica foi selecionada, usa apenas ela
-                client.units.set([selected_unit_id])
-            elif user_units.exists():
-                # Se não selecionou unidade específica ou usuário tem apenas uma unidade
-                client.units.set(user_units)
+            
+            if selected_unit_id:
+                # Unidade específica selecionada no formulário
+                if request.user.has_perm('users.view_all_units'):
+                    # Usuário com view_all_units pode selecionar qualquer unidade da empresa
+                    selected_unit_obj = request.user.enterprise.units.filter(id=selected_unit_id, is_active=True).first()
+                    if selected_unit_obj:
+                        client.units.set([selected_unit_obj])
+                    else:
+                        messages.error(request, 'Unidade selecionada inválida.')
+                        return render(request, 'enterprises/register_client.html', context)
+                else:
+                    # Usuário normal: só pode selecionar suas unidades vinculadas
+                    if accessible_units.filter(id=selected_unit_id).exists():
+                        client.units.set([selected_unit_id])
+                    else:
+                        messages.error(request, 'Você não tem acesso à unidade selecionada.')
+                        return render(request, 'enterprises/register_client.html', context)
+            elif selected_unit:
+                # Usar unidade da sessão
+                client.units.set([selected_unit])
+            else:
+                messages.error(request, 'Erro: Nenhuma unidade disponível para o cliente.')
+                return render(request, 'enterprises/register_client.html', context)
 
             messages.success(request, f"Cliente '{client.name}' cadastrado com sucesso!")
             return redirect('list_clients')
@@ -530,6 +565,8 @@ def view_client_view(request, client_id):
 # Listar clientes
 @login_required
 def client_list_view(request):
+    from core.mixins import get_selected_unit_from_request, is_all_units_selected_from_request
+    
     # Verificar permissão básica para visualizar clientes
     if not request.user.has_perm('users.view_clients'):
         messages.error(request, 'Você não tem permissão para visualizar clientes.')
@@ -539,12 +576,47 @@ def client_list_view(request):
     
     clients = Client.objects.filter(enterprise=request.user.enterprise)
     
-    # Filtrar por permissões específicas
-    if request.user.has_perm('users.view_unit_clients') and not request.user.has_perm('users.view_all_clients'):
-        # Ver apenas clientes das suas unidades
-        user_units = request.user.units.all()
-        if user_units.exists():
-            clients = clients.filter(units__in=user_units)
+    # Verificar se está selecionado "Todas as unidades"
+    is_all_units_selected = is_all_units_selected_from_request(request)
+    
+    if is_all_units_selected:
+        # Quando "Todas as unidades" está selecionado
+        if request.user.has_perm('users.view_all_clients'):
+            # Pode ver todos os clientes da empresa
+            pass  # Já filtrado por empresa acima
+        else:
+            # Só pode ver clientes das unidades que tem acesso
+            if request.user.has_perm('users.view_all_units'):
+                # Tem acesso a todas as unidades da empresa, mas não a todos os clientes
+                # Mostrar clientes de todas as unidades da empresa
+                pass  # Já filtrado por empresa acima
+            else:
+                # Usuário normal - filtrar pelas suas unidades vinculadas
+                user_units = request.user.units.all()
+                if user_units.exists():
+                    clients = clients.filter(units__in=user_units)
+    else:
+        # Lógica normal baseada na unidade selecionada
+        selected_unit = get_selected_unit_from_request(request)
+        
+        if selected_unit:
+            # Filtrar pela unidade específica selecionada
+            if request.user.has_perm('users.view_all_clients'):
+                # Pode ver todos os clientes da unidade
+                clients = clients.filter(units=selected_unit)
+            elif request.user.has_perm('users.view_unit_clients'):
+                # Pode ver clientes da unidade se tiver acesso a ela
+                if request.user.has_perm('users.view_all_units') or request.user.units.filter(id=selected_unit.id).exists():
+                    clients = clients.filter(units=selected_unit)
+                else:
+                    # Não tem acesso à unidade selecionada
+                    clients = clients.none()
+        else:
+            # Nenhuma unidade selecionada - mostrar baseado nas permissões
+            if not request.user.has_perm('users.view_all_clients'):
+                user_units = request.user.units.all()
+                if user_units.exists():
+                    clients = clients.filter(units__in=user_units)
     
     # Filtros
     status_filter = request.GET.get('status', '')
@@ -565,12 +637,16 @@ def client_list_view(request):
     except (PageNotAnInteger, EmptyPage):
         clients_page = paginator.page(1)
 
-    return render(request, 'enterprises/list_clients.html', {
+    context = {
         'clients': clients_page,
         'status_choices': CLIENT_STATUS_CHOICES,
         'current_status': status_filter,
         'current_search': search_filter,
-    })
+        'is_all_units_selected': is_all_units_selected,
+        'selected_unit': get_selected_unit_from_request(request) if not is_all_units_selected else None
+    }
+
+    return render(request, 'enterprises/list_clients.html', context)
 
 # Ativar/Desativar cliente
 @login_required
@@ -620,22 +696,68 @@ def client_project_details_view(request, project_id):
 def list_messages_view(request):
     from .models import InternalMessage
     from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+    from core.mixins import get_selected_unit_from_request, is_all_units_selected_from_request, get_accessible_units_from_request
     
-    # Buscar mensagens baseadas nas permissões do usuário
+    # Obter informações da sessão e unidades
+    accessible_units = get_accessible_units_from_request(request)
+    selected_unit = get_selected_unit_from_request(request)
+    is_all_units_selected = is_all_units_selected_from_request(request)
+    
+    # Buscar mensagens baseadas nas permissões do usuário e unidade selecionada na sessão
     messages_query = InternalMessage.objects.filter(enterprise=request.user.enterprise)
     
-    # Se o usuário tem permissão limitada (só vê mensagens das suas unidades)
-    if request.user.has_perm('users.view_unit_messages') and not request.user.has_perm('users.view_all_messages'):
-        user_units = request.user.units.all()
-        if user_units.exists():
-            # Mensagens da empresa toda + mensagens específicas das unidades do usuário
+    # Aplicar filtro baseado na sessão
+    if is_all_units_selected:
+        # Se "Todas as unidades" está selecionado, mostrar mensagens conforme permissões
+        if request.user.has_perm('users.view_all_messages'):
+            # Pode ver todas as mensagens da empresa
+            pass  # Já está filtrando por enterprise
+        else:
+            # Aplicar lógica de permissão limitada
+            if request.user.has_perm('users.view_unit_messages'):
+                # Mensagens da empresa toda + mensagens específicas das unidades acessíveis
+                from django.db import models as django_models
+                messages_query = messages_query.filter(
+                    django_models.Q(scope='empresa') | 
+                    django_models.Q(scope='unidade', unit__in=accessible_units)
+                )
+            else:
+                # Se não tem permissão para ver mensagens de unidade, só vê mensagens da empresa
+                messages_query = messages_query.filter(scope='empresa')
+    elif selected_unit:
+        # Se uma unidade específica está selecionada na sessão
+        if request.user.has_perm('users.view_all_messages'):
+            # Pode ver mensagens da empresa + mensagens da unidade selecionada
             from django.db import models as django_models
             messages_query = messages_query.filter(
                 django_models.Q(scope='empresa') | 
-                django_models.Q(scope='unidade', unit__in=user_units)
+                django_models.Q(scope='unidade', unit=selected_unit)
             )
+        elif request.user.has_perm('users.view_unit_messages'):
+            # Pode ver mensagens da unidade se tiver acesso a ela
+            if request.user.has_perm('users.view_all_units') or request.user.units.filter(id=selected_unit.id).exists():
+                from django.db import models as django_models
+                messages_query = messages_query.filter(
+                    django_models.Q(scope='empresa') | 
+                    django_models.Q(scope='unidade', unit=selected_unit)
+                )
+            else:
+                # Não tem acesso à unidade selecionada, só vê mensagens da empresa
+                messages_query = messages_query.filter(scope='empresa')
         else:
-            # Se não tem unidade, só vê mensagens da empresa
+            # Só pode ver mensagens da empresa
+            messages_query = messages_query.filter(scope='empresa')
+    else:
+        # Nenhuma unidade selecionada - aplicar lógica de permissão padrão
+        if request.user.has_perm('users.view_unit_messages') and not request.user.has_perm('users.view_all_messages'):
+            # Mensagens da empresa toda + mensagens específicas das unidades acessíveis
+            from django.db import models as django_models
+            messages_query = messages_query.filter(
+                django_models.Q(scope='empresa') | 
+                django_models.Q(scope='unidade', unit__in=accessible_units)
+            )
+        elif not request.user.has_perm('users.view_unit_messages'):
+            # Se não tem permissão para ver mensagens de unidade, só vê mensagens da empresa
             messages_query = messages_query.filter(scope='empresa')
     
     # Ordenar por data (mais recentes primeiro)
@@ -652,7 +774,10 @@ def list_messages_view(request):
     
     context = {
         'enterprise': request.user.enterprise,
-        'internal_messages': internal_messages
+        'internal_messages': internal_messages,
+        'selected_unit': selected_unit,
+        'is_all_units_selected': is_all_units_selected,
+        'accessible_units': accessible_units,
     }
     return render(request, 'enterprises/list_messages.html', context)
 
@@ -660,6 +785,7 @@ def list_messages_view(request):
 def edit_message_view(request, message_id):
     from .models import InternalMessage
     from units.models import Unit
+    from core.mixins import get_selected_unit_from_request, is_all_units_selected_from_request, get_accessible_units_from_request
     
     # Verificar permissões para editar mensagens
     if not request.user.has_perm('users.change_messages'):
@@ -667,6 +793,11 @@ def edit_message_view(request, message_id):
         return redirect('list_messages')
     
     message = get_object_or_404(InternalMessage, id=message_id, enterprise=request.user.enterprise)
+    
+    # Obter informações da sessão e unidades
+    accessible_units = get_accessible_units_from_request(request)
+    selected_unit = get_selected_unit_from_request(request)
+    is_all_units_selected = is_all_units_selected_from_request(request)
     
     # Se o usuário só pode editar mensagens das suas unidades
     if request.user.has_perm('users.view_unit_messages') and not request.user.has_perm('users.view_all_messages'):
@@ -736,17 +867,15 @@ def edit_message_view(request, message_id):
             except ValueError:
                 messages.error(request, 'Data de expiração inválida.')
     
-        # Buscar unidades acessíveis ao usuário  
+    # Definir unidades baseado no sistema de sessão
     if request.user.has_perm('users.view_all_messages'):
-        # Usuário pode ver todas as unidades
-        units = Unit.objects.filter(enterprise=request.user.enterprise, is_active=True)
-        user_units = units
-        has_multiple_units = True  # Sempre múltiplas opções para cargos superiores
+        # Usuário pode ver todas as unidades da empresa
+        user_units = Unit.objects.filter(enterprise=request.user.enterprise, is_active=True)
+        has_multiple_units = True
         single_unit = None
     else:
         # Usuário só pode ver suas próprias unidades
-        user_units = request.user.units.filter(is_active=True)
-        units = user_units
+        user_units = accessible_units
         has_multiple_units = user_units.count() > 1
         single_unit = user_units.first() if user_units.count() == 1 else None
     
@@ -757,12 +886,14 @@ def edit_message_view(request, message_id):
     context = {
         'enterprise': request.user.enterprise,
         'message': message,
-        'units': units,
         'user_units': user_units,
         'has_multiple_units': has_multiple_units,
         'single_unit': single_unit,
         'can_add_unit_messages': can_add_unit_messages,
         'can_add_company_messages': can_add_company_messages,
+        'selected_unit': selected_unit,
+        'is_all_units_selected': is_all_units_selected,
+        'accessible_units': accessible_units,
         'form_data': {
             'title': message.title,
             'content': message.content,
@@ -778,6 +909,7 @@ def edit_message_view(request, message_id):
 def new_message_view(request):
     from .models import InternalMessage
     from units.models import Unit
+    from core.mixins import get_selected_unit_from_request, is_all_units_selected_from_request, get_accessible_units_from_request
     
     # Verificar permissões baseadas no escopo da mensagem
     can_add_unit_messages = request.user.has_perm('users.add_unit_messages')
@@ -786,6 +918,11 @@ def new_message_view(request):
     if not (can_add_unit_messages or can_add_company_messages):
         messages.error(request, 'Você não tem permissão para criar mensagens.')
         return redirect('list_messages')
+    
+    # Obter informações da sessão e unidades
+    accessible_units = get_accessible_units_from_request(request)
+    selected_unit = get_selected_unit_from_request(request)
+    is_all_units_selected = is_all_units_selected_from_request(request)
     
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
@@ -854,17 +991,15 @@ def new_message_view(request):
             except ValueError:
                 messages.error(request, 'Data de expiração inválida.')
     
-        # Buscar unidades acessíveis ao usuário
+    # Definir unidades baseado no sistema de sessão
     if request.user.has_perm('users.view_all_messages'):
-        # Usuário pode ver todas as unidades
-        units = Unit.objects.filter(enterprise=request.user.enterprise, is_active=True)
-        user_units = units
-        has_multiple_units = True  # Sempre múltiplas opções para cargos superiores
+        # Usuário pode ver todas as unidades da empresa
+        user_units = Unit.objects.filter(enterprise=request.user.enterprise, is_active=True)
+        has_multiple_units = True
         single_unit = None
     else:
         # Usuário só pode ver suas próprias unidades
-        user_units = request.user.units.filter(is_active=True)
-        units = user_units
+        user_units = accessible_units
         has_multiple_units = user_units.count() > 1
         single_unit = user_units.first() if user_units.count() == 1 else None
     
@@ -880,13 +1015,15 @@ def new_message_view(request):
     
     context = {
         'enterprise': request.user.enterprise,
-        'units': units,
         'user_units': user_units,
         'has_multiple_units': has_multiple_units,
         'single_unit': single_unit,
         'form_data': form_data,
         'can_add_unit_messages': can_add_unit_messages,
-        'can_add_company_messages': can_add_company_messages
+        'can_add_company_messages': can_add_company_messages,
+        'selected_unit': selected_unit,
+        'is_all_units_selected': is_all_units_selected,
+        'accessible_units': accessible_units,
     }
     return render(request, 'enterprises/new_message.html', context)
 

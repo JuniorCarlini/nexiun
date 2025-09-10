@@ -9,12 +9,31 @@
 <div class="container">
     <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
         <div class="col-auto">
-            <h2 class="text-color-primary m-0">Cadastrar Conta Bancária</h2>
+            {% if is_all_units_selected %}
+                <h2 class="text-color-primary m-0">Cadastrar Conta Bancária <span class="fw-light">-> Todas as unidades</span></h2>
+            {% else %}
+                <h2 class="text-color-primary m-0">Cadastrar Conta Bancária <span class="fw-light">-> {{ selected_unit.name }}</span></h2>
+            {% endif %}
         </div>
     </div>
 
     <!-- Formulário de Cadastro -->
     <div class="container-style">
+        {% if is_all_units_selected %}
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="alert alert-warning d-flex align-items-center justify-content-around m-0">
+                    <i class="fa-solid fa-circle-exclamation me-2 fs-3"></i>
+                    <div class="text-center">
+                        <strong>Selecione uma unidade específica</strong><br>
+                        <small>Para cadastrar uma conta bancária, você deve selecionar uma unidade específica da empresa.</small>
+                    </div>
+                    <i class="fa-solid fa-circle-exclamation ms-2 fs-3 "></i>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
         <form method="post" class="needs-validation" novalidate>
             {% csrf_token %}
             
@@ -140,8 +159,15 @@
                     <a href="{% url 'dashboard_financeiro' %}" class="btn btn-secondary">
                         <i class="fa-solid fa-arrow-left"></i> Voltar
                     </a>
-                    <button type="submit" class="btn btn-primary rounded" style="background-color: {{ enterprise.primary_color }}; border: none;">
-                        <i class="fa-solid fa-check"></i> Salvar Conta
+                    <button type="submit" class="btn btn-primary rounded" 
+                            style="background-color: {{ enterprise.primary_color }}; border: none;"
+                            {% if is_all_units_selected %}disabled{% endif %}>
+                        <i class="fa-solid fa-check"></i> 
+                        {% if is_all_units_selected %}
+                            Cadastro Desabilitado
+                        {% else %}
+                            Salvar Conta
+                        {% endif %}
                     </button>
                 </div>
             </div>

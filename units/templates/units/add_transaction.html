@@ -9,7 +9,11 @@
 <div class="container">
     <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
         <div class="col-auto">
-            <h2 class="text-color-primary m-0">Nova Transação</h2>
+            {% if is_all_units_selected %}
+                <h2 class="text-color-primary m-0">Nova Transação <span class="fw-light">-> Todas as unidades</span></h2>
+            {% else %}
+                <h2 class="text-color-primary m-0">Nova Transação <span class="fw-light">-> {{ selected_unit.name }}</span></h2>
+            {% endif %}
         </div>
     </div>
 
@@ -69,11 +73,6 @@
                     <div class="invalid-feedback">
                         Por favor, selecione a conta bancária.
                     </div>
-                    {% if not bank_accounts %}
-                    <div class="form-text text-warning">
-                        <small><i class="fas fa-exclamation-triangle"></i> Nenhuma conta bancária encontrada. <a href="{% url 'create_bank_account' %}">Criar nova conta</a></small>
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="amount" class="form-label fw-bold d-flex align-items-center">                        

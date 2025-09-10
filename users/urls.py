@@ -8,7 +8,8 @@ urlpatterns = [
     path('register/', views.register_view, name='register'),
 
     # Configurações
-    path('config/', views.config_view, name='config'),
+    path('user-config/', views.user_config_view, name='user_config'),
+    path('enterprise-config/', views.enterprise_config_view, name='enterprise_config'),
 
     # Usuários
     path('create-user/', views.create_user_view, name='create_user'),

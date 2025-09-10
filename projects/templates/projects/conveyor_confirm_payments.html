@@ -2,7 +2,7 @@
 
 {% load static %}
 
-{% block title %}Pagamentos Unidade{% endblock %}
+{% block title %}Confirmação de Pagamentos{% endblock %}
 
 {% block content %}
 
@@ -11,11 +11,11 @@
     <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
         <div class="col-auto">
             {% if is_all_units_selected %}
-                <h2 class="text-color-primary m-0">Pagamentos Unidade <span class="fw-light">-> Todas as unidades</span></h2>
+                <h2 class="text-color-primary m-0">Confirmação de Pagamentos <span class="fw-light">-> Todas as unidades</span></h2>
             {% elif selected_unit %}
-                <h2 class="text-color-primary m-0">Pagamentos Unidade <span class="fw-light">-> {{ selected_unit.name }}</span></h2>
+                <h2 class="text-color-primary m-0">Confirmação de Pagamentos <span class="fw-light">-> {{ selected_unit.name }}</span></h2>
             {% else %}
-                <h2 class="text-color-primary m-0">Pagamentos Unidade</h2>
+                <h2 class="text-color-primary m-0">Confirmação de Pagamentos</h2>
             {% endif %}
         </div>
     </div>
