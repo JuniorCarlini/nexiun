@@ -110,10 +110,11 @@ def create_enterprise(request):
                 send_welcome_email_async(request.user, enterprise, request)
                 
                 # Mensagem de sucesso com informações do subdomínio
-                success_message = f"Empresa criada com sucesso! Você agora é CEO com todos os acessos.<br>"
-                success_message += f"<strong>Seu subdomínio:</strong> {enterprise.get_full_domain()}<br>"
-                success_message += f"<strong>URL de acesso:</strong> <a href='{enterprise.get_absolute_url()}' target='_blank'>{enterprise.get_absolute_url()}</a><br>"
-                success_message += f"<strong>📧 Email de boas-vindas enviado para:</strong> {request.user.email}"
+                success_message = f"🎉 Empresa '{enterprise.name}' criada com sucesso! "
+                success_message += f"✅ Você foi definido como CEO com acesso total ao sistema. "
+                success_message += f"🌐 Subdomínio: {enterprise.get_full_domain()} "
+                success_message += f"🔗 Acesse sua empresa: {enterprise.get_absolute_url()} "
+                success_message += f"📧 Email de boas-vindas enviado para: {request.user.email}"
                 
                 messages.success(request, success_message, extra_tags='safe')
                 
