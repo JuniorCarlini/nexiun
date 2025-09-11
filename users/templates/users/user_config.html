@@ -113,7 +113,7 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="phone" class="form-label">Telefone:</label>
-                    <input type="text" class="form-control" id="phone" name="phone" value="{{ user.phone }}" required>
+                    <input type="text" class="form-control" id="phone" name="phone" value="{% if user.phone and user.phone != 'None' %}{{ user.phone }}{% endif %}" placeholder="Digite seu telefone" required>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="email" class="form-label">Email:</label>
@@ -158,7 +158,7 @@
                     <label for="theme_preference" class="form-label">
                         <i class="fas fa-palette me-2"></i>Tema de Aparência:
                     </label>
-                    <select class="form-select" id="theme_preference" name="theme_preference">
+                    <select class="form-select" id="theme_preference" name="theme_preference" disabled readonly>
                         <option value="light" {% if user.theme_preference == 'light' %}selected{% endif %}>
                             <i class="fas fa-sun"></i> Tema Claro
                         </option>
@@ -195,17 +195,7 @@
             clearIfNotMatch: true
         });
     
-        // Phone mask with dynamic behavior
-        var SPMaskBehavior = function(val) {
-            return val.replace(/\D/g, '').length === 11 ? '(00) 00000-0000' : '(00) 0000-00009';
-        },
-        spOptions = {
-            onKeyPress: function(val, e, field, options) {
-                field.mask(SPMaskBehavior.apply({}, arguments), options);
-            }
-        };
-    
-        $('#phone').mask(SPMaskBehavior, spOptions);
+        // Máscara de telefone já aplicada globalmente no base.html
     
         // Preview de imagem universal
         function previewUserImage(event) {

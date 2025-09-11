@@ -172,7 +172,11 @@ def user_config_view(request):
     if request.method == 'POST':
         # Todos os usuários podem editar seus dados pessoais
         user.name = request.POST.get('name', user.name)
-        user.phone = request.POST.get('phone', user.phone)
+        
+        # Tratamento especial para telefone - evitar valores None/vazios
+        phone_value = request.POST.get('phone', '').strip()
+        user.phone = phone_value if phone_value else None
+        
         user.theme_preference = request.POST.get('theme_preference', user.theme_preference)
         user.cpf = request.POST.get('cpf', user.cpf)
         

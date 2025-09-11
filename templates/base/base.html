@@ -950,18 +950,22 @@
                 clearIfNotMatch: true
             });
             
-            // Telefone dinâmico 
-            var phoneMaskBehavior = function (val) {
-                return val.replace(/\D/g, '').length === 11 ? '(00) 00000-0000' : '(00) 0000-00009';
-            };
-            
-            var phoneOptions = {
-                onKeyPress: function(val, e, field, options) {
-                    field.mask(phoneMaskBehavior.apply({}, arguments), options);
+            // Telefone simples - só aplica máscara se o campo não estiver vazio
+            $('input[name="phone"], #phone, input[name="phone_number"], #phone_number').each(function() {
+                var $input = $(this);
+                var currentValue = $input.val();
+                
+                // Só aplica máscara se o campo tiver valor válido
+                if (currentValue && currentValue !== 'None' && currentValue !== 'null' && currentValue.trim() !== '') {
+                    $input.mask('(00) 00000-0000');
+                } else {
+                    // Se o campo está vazio, limpa qualquer valor inválido e aplica máscara
+                    $input.val('');
+                    $input.mask('(00) 00000-0000', {
+                        placeholder: 'Digite seu telefone'
+                    });
                 }
-            };
-            
-            $('input[name="phone"], #phone, input[name="phone_number"], #phone_number').mask(phoneMaskBehavior, phoneOptions);
+            });
             
             // Função para limpar formatação antes do envio do formulário
             function cleanPhoneBeforeSubmit() {
