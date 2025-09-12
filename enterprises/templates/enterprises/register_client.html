@@ -301,7 +301,7 @@
                 <div id="dragDropZone" class="drag-drop-zone">
                     <i class="fas fa-cloud-upload-alt mb-2" style="font-size: 36px;"></i>
                     <div class="fw-bold">Arraste e solte arquivos aqui ou clique para selecionar</div>
-                    <p class="alert-docs text-danger">PNG, JPG, PDF - 5MB tamanho máximo suportado</p>
+                    <p class="alert-docs text-danger">PNG, JPG, PDF - 20MB tamanho máximo suportado</p>
                     <input type="file" id="fileInput" multiple name="documents[]" 
                            accept=".pdf,.jpg,.jpeg,.png" style="display: none">
                 </div>
@@ -411,25 +411,33 @@
     }
 
     function addFilesToList(newFiles) {
+        console.log('addFilesToList called with', newFiles.length, 'files');
         // Adicionar novos arquivos ao array existente
         Array.from(newFiles).forEach(file => {
+            console.log('Processing file:', file.name);
             // Verificar se o arquivo já existe (por nome e tamanho)
             const fileExists = selectedFiles.some(existingFile => 
                 existingFile.name === file.name && existingFile.size === file.size
             );
             
             if (!fileExists) {
+                console.log('Adding file:', file.name);
                 selectedFiles.push(file);
+            } else {
+                console.log('File already exists:', file.name);
             }
         });
         
+        console.log('Total files after adding:', selectedFiles.length);
         updateFileDisplay();
         updateFileInput();
     }
 
     function handleFileSelect(event) {
         const files = event.target?.files || event.dataTransfer?.files;
+        console.log('Files selected:', files ? files.length : 0);
         if (files && files.length > 0) {
+            console.log('Adding files to list...');
             addFilesToList(files);
         }
     }
@@ -445,8 +453,6 @@
     // Event Listeners para drag and drop
     if (dragDropZone && fileInput) {
         dragDropZone.addEventListener('click', () => {
-            // Limpar o input antes de abrir para permitir selecionar os mesmos arquivos novamente
-            fileInput.value = '';
             fileInput.click();
         });
         fileInput.addEventListener('change', handleFileSelect);

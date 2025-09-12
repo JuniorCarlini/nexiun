@@ -196,7 +196,7 @@
             </div>
             <div class="col-md-6 mb-3">
                 <label for="email" class="form-label fw-bold">Email:</label>
-                <input type="email" name="email" id="email" class="form-control" value="{{ client.email }}" required>
+                <input type="email" name="email" id="email" class="form-control" value="{{ client.email|default:'' }}">
                 <div class="invalid-feedback">
                     Por favor, informe um email válido.
                 </div>
@@ -410,7 +410,7 @@
                 <div id="dragDropZone" class="drag-drop-zone">
                     <i class="fas fa-cloud-upload-alt mb-2" style="font-size: 36px;"></i>
                     <div class="fw-bold">Arraste e solte arquivos aqui ou clique para selecionar</div>
-                    <p class="alert-docs text-danger">PNG, JPG, PDF - 5MB tamanho máximo suportado</p>
+                    <p class="alert-docs text-danger">PNG, JPG, PDF - 20MB tamanho máximo suportado</p>
                     <input type="file" id="fileInput" multiple name="documents[]" 
                            accept=".pdf,.jpg,.jpeg,.png" style="display: none">
                 </div>

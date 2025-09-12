@@ -300,7 +300,44 @@ def register_client_view(request):
                 messages.error(request, 'Erro: Nenhuma unidade disponível para o cliente.')
                 return render(request, 'enterprises/register_client.html', context)
 
-            messages.success(request, f"Cliente '{client.name}' cadastrado com sucesso!")
+            # Processar os novos documentos
+            files = request.FILES.getlist('documents[]')
+            uploaded_count = 0
+            
+            for file in files:
+                # Validar tamanho do arquivo (20MB)
+                if file.size > 20 * 1024 * 1024:
+                    messages.warning(
+                        request, 
+                        f"O arquivo {file.name} excede o limite de 20MB e não foi salvo"
+                    )
+                    continue
+
+                # Validar tipo do arquivo
+                file_type = file.content_type
+                if file_type not in ['application/pdf', 'image/jpeg', 'image/png']:
+                    messages.warning(
+                        request, 
+                        f"O arquivo {file.name} não é um tipo permitido (PDF, JPG, PNG) e não foi salvo"
+                    )
+                    continue
+
+                # Criar o documento
+                from .models import ClientDocument
+                ClientDocument.objects.create(
+                    client=client,
+                    file=file,
+                    file_name=file.name,
+                    file_type=file_type,
+                    file_size=file.size
+                )
+                uploaded_count += 1
+
+            if uploaded_count > 0:
+                messages.success(request, f"Cliente '{client.name}' cadastrado com sucesso! {uploaded_count} documento(s) enviado(s).")
+            else:
+                messages.success(request, f"Cliente '{client.name}' cadastrado com sucesso!")
+            
             return redirect('list_clients')
             
         except ValueError as e:
@@ -456,7 +493,14 @@ def view_client_view(request, client_id):
                 try:
                     # Atualizar dados do cliente
                     client.name = request.POST.get('name', client.name)
-                    client.email = request.POST.get('email', client.email)
+                    email = request.POST.get('email', '').strip()
+                    
+                    # Verificar se email já existe (apenas se foi fornecido e é diferente do atual)
+                    if email and email != client.email and Client.objects.filter(email=email).exists():
+                        messages.error(request, f'Já existe um cliente cadastrado com o email "{email}". Por favor, use um email diferente.')
+                        return redirect('view_client', client_id=client.id)
+                    
+                    client.email = email if email else None
                     client.cpf = request.POST.get('cpf', '').strip() or None
                     client.phone = request.POST.get('phone', client.phone)
                     client.address = request.POST.get('address', client.address)
@@ -514,11 +558,11 @@ def view_client_view(request, client_id):
                     uploaded_count = 0
                     
                     for file in files:
-                        # Validar tamanho do arquivo (5MB)
-                        if file.size > 5 * 1024 * 1024:
+                        # Validar tamanho do arquivo (20MB)
+                        if file.size > 20 * 1024 * 1024:
                             messages.warning(
                                 request, 
-                                f"O arquivo {file.name} excede o limite de 5MB e não foi salvo"
+                                f"O arquivo {file.name} excede o limite de 20MB e não foi salvo"
                             )
                             continue
 
