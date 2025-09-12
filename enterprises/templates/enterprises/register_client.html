@@ -150,14 +150,14 @@
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label for="name" class="form-label fw-bold">Nome:</label>
-                <input type="text" name="name" id="name" class="form-control" required>
+                <input type="text" name="name" id="name" class="form-control" required value="{{ form_data.name|default:'' }}">
                 <div class="invalid-feedback">
                     Por favor, informe o nome do cliente.
                 </div>
             </div>
             <div class="col-md-6 mb-3">
                 <label for="email" class="form-label fw-bold">Email:</label>
-                <input type="email" name="email" id="email" class="form-control" required>
+                <input type="email" name="email" id="email" class="form-control" value="{{ form_data.email|default:'' }}">
                 <div class="invalid-feedback">
                     Por favor, informe um email válido.
                 </div>
@@ -168,11 +168,11 @@
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label for="cpf" class="form-label fw-bold">CPF:</label>
-                <input type="text" name="cpf" id="cpf" class="form-control" placeholder="000.000.000-00" maxlength="14">
+                <input type="text" name="cpf" id="cpf" class="form-control" placeholder="000.000.000-00" maxlength="14" value="{{ form_data.cpf|default:'' }}">
             </div>
             <div class="col-md-6 mb-3">
                 <label for="phone" class="form-label fw-bold">Telefone:</label>
-                <input type="tel" name="phone" id="phone" class="form-control">
+                <input type="tel" name="phone" id="phone" class="form-control" value="{{ form_data.phone|default:'' }}">
             </div>
         </div>
 
@@ -183,7 +183,7 @@
                 <select name="activity" id="activity" class="form-control">
                     <option value="">Selecione a atividade</option>
                     {% for value, label in activity_choices %}
-                        <option value="{{ value }}">{{ label }}</option>
+                        <option value="{{ value }}" {% if form_data.activity == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -212,7 +212,7 @@
                     <select name="unit_id" id="unit" class="form-control" required>
                         <option value="">Selecione uma unidade</option>
                         {% for unit in accessible_units %}
-                            <option value="{{ unit.id }}">{{ unit.name }}</option>
+                            <option value="{{ unit.id }}" {% if form_data.unit_id == unit.id|stringformat:"s" %}selected{% endif %}>{{ unit.name }}</option>
                         {% endfor %}
                     </select>
                     <div class="invalid-feedback">
@@ -232,11 +232,11 @@
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label for="address" class="form-label fw-bold">Endereço:</label>
-                <input type="text" name="address" id="address" class="form-control">
+                <input type="text" name="address" id="address" class="form-control" value="{{ form_data.address|default:'' }}">
             </div>
             <div class="col-md-6 mb-3">
                 <label for="city" class="form-label fw-bold">Cidade:</label>
-                <input type="text" name="city" id="city" class="form-control">
+                <input type="text" name="city" id="city" class="form-control" value="{{ form_data.city|default:'' }}">
             </div>
         </div>
 
@@ -247,14 +247,14 @@
                 <select name="producer_classification" id="producer_classification" class="form-control">
                     <option value="">Selecione o enquadramento</option>
                     {% for value, label in producer_classification_choices %}
-                        <option value="{{ value }}">{{ label }}</option>
+                        <option value="{{ value }}" {% if form_data.producer_classification == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="col-md-6 mb-3">
                 <label for="property_area" class="form-label fw-bold">Área Total do Produtor (hectares):</label>
                 <input type="number" name="property_area" id="property_area" class="form-control" 
-                       step="0.01" min="0" placeholder="0.00">
+                       step="0.01" min="0" placeholder="0.00" value="{{ form_data.property_area|default:'' }}">
             </div>
         </div>
 
@@ -264,7 +264,7 @@
                 <label for="status" class="form-label fw-bold">Situação:</label>
                 <select name="status" id="status" class="form-control">
                     {% for value, label in status_choices %}
-                        <option value="{{ value }}" {% if value == 'INATIVO' %}selected{% endif %}>{{ label }}</option>
+                        <option value="{{ value }}" {% if form_data.status == value %}selected{% elif not form_data.status and value == 'INATIVO' %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -272,7 +272,7 @@
                 <label for="retorno_ate" class="form-label fw-bold">
                     Retorno até <span class="text-danger">*</span>:
                 </label>
-                <input type="date" name="retorno_ate" id="retorno_ate" class="form-control" value="">
+                <input type="date" name="retorno_ate" id="retorno_ate" class="form-control" value="{{ form_data.retorno_ate|default:'' }}">
                 <small class="form-text text-muted">Obrigatório quando em negociação (até 5 dias a partir de hoje)</small>
             </div>
         </div>
@@ -281,7 +281,7 @@
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label for="date_of_birth" class="form-label fw-bold">Data de aniversario:</label>
-                <input type="date" name="date_of_birth" id="date_of_birth" class="form-control" value="{{ client.date_of_birth|date:'Y-m-d'|default_if_none:'' }}" {% if is_completed %}readonly{% endif %}>
+                <input type="date" name="date_of_birth" id="date_of_birth" class="form-control" value="{{ form_data.date_of_birth|default:'' }}" {% if is_completed %}readonly{% endif %}>
             </div>
         </div>
 
@@ -545,6 +545,14 @@
         
         // Mostrar aviso ao usuário
         alert('Não é possível adicionar arquivos nas observações. Use a seção "Adicionar Novos Documentos" abaixo.');
+    });
+
+    // Popular o Trix Editor com dados existentes
+    document.addEventListener('trix-initialize', function(event) {
+        const observations = "{{ form_data.observations|default:''|escapejs }}";
+        if (observations) {
+            event.target.editor.insertHTML(observations);
+        }
     });
 </script>
 

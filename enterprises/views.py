@@ -180,6 +180,25 @@ def register_client_view(request):
     }
 
     if request.method == "POST":
+        # Capturar dados do POST para passar de volta no context em caso de erro
+        form_data = {
+            'name': request.POST.get('name', '').strip(),
+            'email': request.POST.get('email', '').strip(),
+            'cpf': request.POST.get('cpf', '').strip(),
+            'phone': request.POST.get('phone', '').strip(),
+            'address': request.POST.get('address', '').strip(),
+            'city': request.POST.get('city', '').strip(),
+            'date_of_birth': request.POST.get('date_of_birth', ''),
+            'observations': request.POST.get('observations', '').strip(),
+            'producer_classification': request.POST.get('producer_classification', ''),
+            'property_area': request.POST.get('property_area', ''),
+            'activity': request.POST.get('activity', ''),
+            'status': request.POST.get('status', 'INATIVO'),
+            'retorno_ate': request.POST.get('retorno_ate', ''),
+            'unit_id': request.POST.get('unit_id', ''),
+        }
+        context['form_data'] = form_data
+        
         # Verificar se está tentando cadastrar com "Todas as unidades" selecionado
         if is_all_units_selected:
             messages.error(request, 'Para cadastrar clientes, você deve estar em uma unidade específica. Altere sua sessão antes de continuar.')
@@ -187,30 +206,26 @@ def register_client_view(request):
             
         try:
             # Validações básicas
-            name = request.POST.get('name', '').strip()
-            email = request.POST.get('email', '').strip()
+            name = form_data['name']
+            email = form_data['email']
             
             if not name:
                 messages.error(request, 'O nome é obrigatório.')
                 return render(request, 'enterprises/register_client.html', context)
             
-            if not email:
-                messages.error(request, 'O email é obrigatório.')
-                return render(request, 'enterprises/register_client.html', context)
-            
-            # Verificar se email já existe
-            if Client.objects.filter(email=email).exists():
+            # Verificar se email já existe (apenas se foi fornecido)
+            if email and Client.objects.filter(email=email).exists():
                 messages.error(request, f'Já existe um cliente cadastrado com o email "{email}". Por favor, use um email diferente.')
                 return render(request, 'enterprises/register_client.html', context)
             
             # Tratar campo de data de nascimento
-            date_of_birth = request.POST.get('date_of_birth')
+            date_of_birth = form_data['date_of_birth']
             if not date_of_birth or not date_of_birth.strip():
                 date_of_birth = None
                 
             # Validar campo "Retorno até" quando status é "EM_NEGOCIACAO"
-            status = request.POST.get('status', 'INATIVO')
-            retorno_ate = request.POST.get('retorno_ate')
+            status = form_data['status']
+            retorno_ate = form_data['retorno_ate']
             
             if status == 'EM_NEGOCIACAO':
                 if not retorno_ate or not retorno_ate.strip():
@@ -242,16 +257,16 @@ def register_client_view(request):
             # Cria o cliente com a unidade do usuário logado
             client = Client.objects.create(
                 name=name,
-                email=email,
-                cpf=request.POST.get('cpf', '').strip() or None,
-                phone=request.POST.get('phone', '').strip(),
-                address=request.POST.get('address', '').strip(),
-                city=request.POST.get('city', '').strip(),
+                email=email if email else None,
+                cpf=form_data['cpf'] or None,
+                phone=form_data['phone'],
+                address=form_data['address'],
+                city=form_data['city'],
                 date_of_birth=date_of_birth,
-                observations=request.POST.get('observations', '').strip(),
-                producer_classification=request.POST.get('producer_classification', '').strip() or None,
-                property_area=request.POST.get('property_area', '').strip() or None,
-                activity=request.POST.get('activity', '').strip() or None,
+                observations=form_data['observations'],
+                producer_classification=form_data['producer_classification'] or None,
+                property_area=form_data['property_area'] or None,
+                activity=form_data['activity'] or None,
                 status=status,
                 retorno_ate=retorno_ate,
                 enterprise=request.user.enterprise,
@@ -259,7 +274,7 @@ def register_client_view(request):
             )
             
             # Associar cliente à unidade da sessão atual
-            selected_unit_id = request.POST.get('unit_id')
+            selected_unit_id = form_data['unit_id']
             
             if selected_unit_id:
                 # Unidade específica selecionada no formulário

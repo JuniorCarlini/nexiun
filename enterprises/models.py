@@ -230,12 +230,13 @@ PRODUCER_CLASSIFICATION_CHOICES = [
 ACTIVITY_CHOICES = [
     ('AGRICULTURA', 'Agricultura'),
     ('PECUARIA', 'Pecuária'),
+    ('AGRICULTURA/PECUARIA', 'Agricultura/Pecuária'),
     ('OUTROS', 'Outros'),
 ]
 
 class Client(models.Model):
     name = models.CharField(max_length=255, verbose_name="Name")
-    email = models.EmailField(unique=True, verbose_name="Email")
+    email = models.EmailField(blank=True, null=True, verbose_name="Email")
     cpf = models.CharField(max_length=14, blank=True, null=True, verbose_name="CPF", help_text="CPF do cliente (formato: XXX.XXX.XXX-XX)")
     phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Phone")
     address = models.CharField(max_length=255, blank=True, null=True, verbose_name="Address")
@@ -260,7 +261,7 @@ class Client(models.Model):
         help_text="Área total do produtor em hectares"
     )
     activity = models.CharField(
-        max_length=15,
+        max_length=25,
         choices=ACTIVITY_CHOICES,
         blank=True,
         null=True,
