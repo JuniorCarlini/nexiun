@@ -205,6 +205,9 @@ def register_client_view(request):
             return render(request, 'enterprises/register_client.html', context)
             
         try:
+            # Importar funções utilitárias
+            from .utils import format_text_field, format_email_field
+            
             # Validações básicas
             name = form_data['name']
             email = form_data['email']
@@ -214,8 +217,9 @@ def register_client_view(request):
                 return render(request, 'enterprises/register_client.html', context)
             
             # Verificar se email já existe (apenas se foi fornecido)
-            if email and Client.objects.filter(email=email).exists():
-                messages.error(request, f'Já existe um cliente cadastrado com o email "{email}". Por favor, use um email diferente.')
+            formatted_email = format_email_field(email)
+            if formatted_email and Client.objects.filter(email=formatted_email).exists():
+                messages.error(request, f'Já existe um cliente cadastrado com o email "{formatted_email}". Por favor, use um email diferente.')
                 return render(request, 'enterprises/register_client.html', context)
             
             # Tratar campo de data de nascimento
@@ -256,12 +260,12 @@ def register_client_view(request):
             
             # Cria o cliente com a unidade do usuário logado
             client = Client.objects.create(
-                name=name,
-                email=email if email else None,
+                name=format_text_field(name),
+                email=format_email_field(email),
                 cpf=form_data['cpf'] or None,
                 phone=form_data['phone'],
-                address=form_data['address'],
-                city=form_data['city'],
+                address=format_text_field(form_data['address']),
+                city=format_text_field(form_data['city']),
                 date_of_birth=date_of_birth,
                 observations=form_data['observations'],
                 producer_classification=form_data['producer_classification'] or None,
@@ -491,20 +495,29 @@ def view_client_view(request, client_id):
             # Lógica de atualização do cliente e upload de documentos
             else:
                 try:
+                    # Importar funções utilitárias
+                    from .utils import format_text_field, format_email_field
+                    
                     # Atualizar dados do cliente
-                    client.name = request.POST.get('name', client.name)
-                    email = request.POST.get('email', '').strip()
+                    name = request.POST.get('name', client.name)
+                    client.name = format_text_field(name) or client.name
+                    email = request.POST.get('email', '')
+                    formatted_email = format_email_field(email)
                     
                     # Verificar se email já existe (apenas se foi fornecido e é diferente do atual)
-                    if email and email != client.email and Client.objects.filter(email=email).exists():
-                        messages.error(request, f'Já existe um cliente cadastrado com o email "{email}". Por favor, use um email diferente.')
+                    if formatted_email and formatted_email != client.email and Client.objects.filter(email=formatted_email).exists():
+                        messages.error(request, f'Já existe um cliente cadastrado com o email "{formatted_email}". Por favor, use um email diferente.')
                         return redirect('view_client', client_id=client.id)
                     
-                    client.email = email if email else None
+                    client.email = formatted_email
                     client.cpf = request.POST.get('cpf', '').strip() or None
                     client.phone = request.POST.get('phone', client.phone)
-                    client.address = request.POST.get('address', client.address)
-                    client.city = request.POST.get('city', client.city)
+                    
+                    address = request.POST.get('address', '')
+                    client.address = format_text_field(address) or client.address
+                    
+                    city = request.POST.get('city', '')
+                    client.city = format_text_field(city) or client.city
                     client.producer_classification = request.POST.get('producer_classification', '').strip() or None
                     client.property_area = request.POST.get('property_area', '').strip() or None
                     client.activity = request.POST.get('activity', '').strip() or None

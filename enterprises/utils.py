@@ -154,3 +154,29 @@ def send_new_team_member_email_async(new_user, enterprise, created_by, request):
     email_thread = threading.Thread(target=send_email)
     email_thread.daemon = True  # Thread será fechada quando o processo principal terminar
     email_thread.start()
+
+def format_text_field(text):
+    """
+    Formata campos de texto aplicando title() de forma inteligente
+    - Remove espaços extras
+    - Aplica title() para capitalizar corretamente
+    - Retorna string vazia se texto for None ou vazio
+    """
+    if not text or not text.strip():
+        return ''
+    
+    # Remove espaços extras e aplica title()
+    return text.strip().title()
+
+def format_email_field(email):
+    """
+    Formata campo de email de forma padronizada
+    - Remove espaços extras
+    - Converte para minúsculas
+    - Retorna None se email for vazio
+    """
+    if not email or not email.strip():
+        return None
+    
+    # Remove espaços extras e converte para minúsculas
+    return email.strip().lower()
