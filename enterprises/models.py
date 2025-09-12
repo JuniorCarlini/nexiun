@@ -342,8 +342,12 @@ class ClientDocument(models.Model):
 
     def delete(self, *args, **kwargs):
         if self.file:
-            if os.path.isfile(self.file.path):
-                os.remove(self.file.path)
+            try:
+                # Tentar deletar o arquivo do storage (funciona tanto local quanto S3)
+                self.file.delete(save=False)
+            except Exception:
+                # Se falhar, continua com a exclusão do registro no banco
+                pass
         super().delete(*args, **kwargs)
 
 # Histórico de alterações no cliente

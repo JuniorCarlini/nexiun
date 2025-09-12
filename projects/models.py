@@ -147,7 +147,10 @@ class ProjectDocument(models.Model):
 
     def delete(self, *args, **kwargs):
         if self.file:
-            file_path = self.file.path
-            if os.path.isfile(file_path):
-                os.remove(file_path)
+            try:
+                # Tentar deletar o arquivo do storage (funciona tanto local quanto S3)
+                self.file.delete(save=False)
+            except Exception:
+                # Se falhar, continua com a exclusão do registro no banco
+                pass
         super().delete(*args, **kwargs)
