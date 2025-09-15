@@ -100,8 +100,8 @@ def create_project_view(request):
             # Processar documentos
             files = request.FILES.getlist('documents[]')
             for file in files:
-                if file.size > 5 * 1024 * 1024:  # 5MB limit
-                    messages.error(request, f"O arquivo {file.name} excede o limite de 5MB")
+                if file.size > 20 * 1024 * 1024:  # 20MB limit
+                    messages.error(request, f"O arquivo {file.name} excede o limite de 20MB")
                     continue
                     
                 file_type = file.content_type
@@ -934,8 +934,8 @@ def project_details_view(request, project_id):
                 try:
                     files = request.FILES.getlist('documents[]')
                     for file in files:
-                        if file.size > 5 * 1024 * 1024:
-                            messages.error(request, f"O arquivo {file.name} excede o limite de 5MB")
+                        if file.size > 20 * 1024 * 1024:
+                            messages.error(request, f"O arquivo {file.name} excede o limite de 20MB")
                             continue
                             
                         file_type = file.content_type
