@@ -10,6 +10,11 @@ def user_units_context(request):
     }
     
     if request.user.is_authenticated:
+        # Verificar se o usuário tem uma empresa associada
+        if not hasattr(request.user, 'enterprise') or request.user.enterprise is None:
+            # Usuário sem empresa (ex: superuser) - retornar contexto vazio
+            return context
+            
         # Verificar se o usuário pode ver todas as unidades
         can_view_all_units = request.user.has_perm('users.view_all_units')
         context['can_view_all_units'] = can_view_all_units

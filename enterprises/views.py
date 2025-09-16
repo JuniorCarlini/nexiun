@@ -222,6 +222,14 @@ def register_client_view(request):
                 messages.error(request, f'Já existe um cliente cadastrado com o email "{formatted_email}". Por favor, use um email diferente.')
                 return render(request, 'enterprises/register_client.html', context)
             
+            # Verificar se CPF já existe (apenas se foi fornecido)
+            cpf = form_data['cpf']
+            if cpf and cpf.strip():
+                cpf_formatted = cpf.strip()
+                if Client.objects.filter(cpf=cpf_formatted, enterprise=request.user.enterprise).exists():
+                    messages.error(request, f'Já existe um cliente cadastrado com o CPF "{cpf_formatted}". Por favor, verifique os dados.')
+                    return render(request, 'enterprises/register_client.html', context)
+            
             # Tratar campo de data de nascimento
             date_of_birth = form_data['date_of_birth']
             if not date_of_birth or not date_of_birth.strip():
@@ -509,8 +517,14 @@ def view_client_view(request, client_id):
                         messages.error(request, f'Já existe um cliente cadastrado com o email "{formatted_email}". Por favor, use um email diferente.')
                         return redirect('view_client', client_id=client.id)
                     
+                    # Verificar se CPF já existe (apenas se foi fornecido e é diferente do atual)
+                    new_cpf = request.POST.get('cpf', '').strip() or None
+                    if new_cpf and new_cpf != client.cpf and Client.objects.filter(cpf=new_cpf, enterprise=client.enterprise).exists():
+                        messages.error(request, f'Já existe um cliente cadastrado com o CPF "{new_cpf}". Por favor, verifique os dados.')
+                        return redirect('view_client', client_id=client.id)
+                    
                     client.email = formatted_email
-                    client.cpf = request.POST.get('cpf', '').strip() or None
+                    client.cpf = new_cpf
                     client.phone = request.POST.get('phone', client.phone)
                     
                     address = request.POST.get('address', '')
@@ -618,12 +632,26 @@ def view_client_view(request, client_id):
         # Buscar bancos disponíveis para o formulário de conta bancária
         available_banks = Bank.objects.filter(enterprise=request.user.enterprise, is_active=True).order_by('name')
         
+        # Buscar projetos do cliente
+        from enterprises.utils import calculate_parcelas
+        projects = client.projects.filter(is_active=True).order_by('-created_at')
+        
+        # Calcular parcelas para cada projeto que tem os dados necessários
+        for project in projects:
+            if project.value and project.fees and project.payment_grace and project.installments and project.approval_date:
+                try:
+                    project.parcelas = calculate_parcelas(project)
+                except:
+                    project.parcelas = None
+            else:
+                project.parcelas = None
+        
         context = {
             'enterprise': request.user.enterprise,
             'client': client,
             'client_documents': client.documents.all(),
             'client_history': client_history,
-            'projects': [],
+            'projects': projects,
             'today': date.today(),
             'status_choices': CLIENT_STATUS_CHOICES,
             'producer_classification_choices': PRODUCER_CLASSIFICATION_CHOICES,

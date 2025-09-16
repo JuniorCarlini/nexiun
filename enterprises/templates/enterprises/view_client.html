@@ -492,7 +492,7 @@
                                     {% if project.project_finalized %}#28a745{% else %}#ffc107{% endif %};
                                     border: 1px solid rgba(0,0,0,0.1);">
                             </div>
-                            <span class="transaction-text">Status</span>
+                            <span class="transaction-text">{{ project.get_status_display }}</span>
                         </div>
                     </td>
                     <td>
@@ -519,7 +519,7 @@
                     </td>
                     <td>
                         <div class="d-flex gap-2">
-                            <a href="#" 
+                            <a href="{% url 'project_details' project.id %}" 
                                class="btn button-style btn-primary rounded text-nowrap"
                                style="background-color: {{ enterprise.primary_color }}; border: none; font-size: 0.85rem; padding: 6px 12px;">
                                 <i class="fa-solid fa-eye"></i> Ver Projeto
