@@ -828,7 +828,10 @@ class PasswordResetView(DjangoPasswordResetView):
             email_thread.daemon = True  # Thread será fechada quando o processo principal terminar
             email_thread.start()
         
-        return super().form_valid(form)
+        # Não chama super().form_valid(form) porque já enviamos o email customizado
+        # Retorna redirect direto para a página de sucesso
+        from django.http import HttpResponseRedirect
+        return HttpResponseRedirect(self.get_success_url())
 
 class PasswordResetDoneView(DjangoPasswordResetDoneView):
     template_name = 'password_reset/password_reset_done.html'
