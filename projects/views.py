@@ -477,6 +477,21 @@ def projects_list_view(request):
                 # Ver projetos das unidades
                 user_units = request.user.units.all()
                 projects = projects.filter(unit__in=user_units)
+    
+    # Calcular contagem de projetos por status de forma eficiente ANTES do filtro por status
+    from django.db.models import Count, Case, When, IntegerField
+    
+    # Contar todos os status em uma única query usando agregação
+    status_counts = projects.aggregate(
+        AC=Count(Case(When(status='AC', then=1), output_field=IntegerField())),
+        PE=Count(Case(When(status='PE', then=1), output_field=IntegerField())),
+        AN=Count(Case(When(status='AN', then=1), output_field=IntegerField())),
+        AP=Count(Case(When(status='AP', then=1), output_field=IntegerField())),
+        AF=Count(Case(When(status='AF', then=1), output_field=IntegerField())),
+        FM=Count(Case(When(status='FM', then=1), output_field=IntegerField())),
+        LB=Count(Case(When(status='LB', then=1), output_field=IntegerField())),
+        RC=Count(Case(When(status='RC', then=1), output_field=IntegerField())),
+    )
         
     if status_filter:
         projects = projects.filter(status=status_filter)
@@ -505,6 +520,7 @@ def projects_list_view(request):
         'projects': page_obj,
         'current_status': current_status_description if status_filter else ' ',
         'project_status_choices': PROJECT_STATUS_CHOICES,
+        'status_counts': status_counts,
         'is_all_units_selected': is_all_units_selected,
         'selected_unit': get_selected_unit_from_request(request) if not is_all_units_selected else None
     }

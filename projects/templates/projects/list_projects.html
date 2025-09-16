@@ -112,44 +112,68 @@
     <div class="status-container position-relative  mb-4">
         <div class="d-flex justify-content-between flex-nowrap gap-3 overflow-auto">
             <a href="?status=AC"
-                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'AC' %}active-status-ac{% endif %}">
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'AC' %}active-status-ac{% endif %}">
                 <i class="bi bi-people text-primary fs-3"></i>
                 <p class="mt-2 mb-0 text-secondary">Em Acolhimento</p>
+                <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
+                    {{ status_counts.AC|default:0 }}
+                </span>
             </a>
             <a href="?status=PE"
-                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'PE' %}active-status-pe{% endif %}">
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'PE' %}active-status-pe{% endif %}">
                 <i class="bi bi-exclamation-circle text-danger fs-3"></i>
                 <p class="mt-2 mb-0 text-secondary">Com Pendência</p>
+                <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
+                    {{ status_counts.PE|default:0 }}
+                </span>
             </a>
             <a href="?status=AN"
-                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'AN' %}active-status-an{% endif %}">
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'AN' %}active-status-an{% endif %}">
                 <i class="bi bi-search text-info fs-3"></i>
                 <p class="mt-2 mb-0 text-secondary">Em Análise</p>
+                <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
+                    {{ status_counts.AN|default:0 }}
+                </span>
             </a>
             <a href="?status=AP"
-                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'AP' %}active-status-ap{% endif %}">
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'AP' %}active-status-ap{% endif %}">
                 <i class="bi bi-check-circle text-success fs-3"></i>
                 <p class="mt-2 mb-0 text-secondary">Aprovado</p>
+                <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
+                    {{ status_counts.AP|default:0 }}
+                </span>
             </a>
             <a href="?status=AF"
-                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'AF' %}active-status-af{% endif %}">
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'AF' %}active-status-af{% endif %}">
                 <i class="bi bi-clock text-warning fs-3"></i>
                 <p class="mt-2 mb-0 text-secondary">Em Formalização</p>
+                <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
+                    {{ status_counts.AF|default:0 }}
+                </span>
             </a>
             <a href="?status=FM"
-                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'FM' %}active-status-fm{% endif %}">
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'FM' %}active-status-fm{% endif %}">
                 <i class="bi bi-file-earmark-text text-dark fs-3"></i>
                 <p class="mt-2 mb-0 text-secondary">Formalizado</p>
+                <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
+                    {{ status_counts.FM|default:0 }}
+                </span>
             </a>
             <a href="?status=LB"
-                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'LB' %}active-status-lb{% endif %}">
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'LB' %}active-status-lb{% endif %}">
                 <i class="bi bi-box-arrow-in-up-right text-success fs-3"></i>
                 <p class="mt-2 mb-0 text-secondary">Liberado</p>
+                <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
+                    {{ status_counts.LB|default:0 }}
+                </span>
             </a>
             <a href="?status=RC"
-                class="status-box text-center p-3 flex-shrink-0 text-decoration-none {% if request.GET.status == 'RC' %}active-status-rc{% endif %}">
+                class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'RC' %}active-status-rc{% endif %}">
                 <i class="bi bi-bar-chart text-danger fs-3"></i>
                 <p class="mt-2 mb-0 text-secondary">Receita</p>
+                <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
+                    {{ status_counts.RC|default:0 }}
+                </span>
             </a>
         </div>
         <div class="fade-effect"></div>
