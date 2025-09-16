@@ -325,6 +325,14 @@ class Client(models.Model):
             'ATIVO': 'fas fa-check-circle',
         }
         return status_icons.get(self.status, 'fas fa-user')
+    
+    def delete(self, *args, **kwargs):
+        """Sobrescrever delete para garantir que documentos sejam removidos corretamente"""
+        # Deletar todos os documentos associados primeiro
+        for document in self.documents.all():
+            document.delete()  # Usa o método delete customizado do ClientDocument
+        # Agora deletar o cliente
+        super().delete(*args, **kwargs)
 
 class ClientDocument(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='documents')

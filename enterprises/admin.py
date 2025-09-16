@@ -1,6 +1,8 @@
 from django.contrib import admin
 from .models import ClientBankAccount
 
+# Apenas o inline para ClientBankAccount será mantido aqui
+# Os outros modelos serão gerenciados em seus respectivos apps
 
 class ClientBankAccountInline(admin.TabularInline):
     model = ClientBankAccount

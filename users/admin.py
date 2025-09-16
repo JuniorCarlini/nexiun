@@ -70,12 +70,21 @@ admin.site.register(CreditLine)
 admin.site.register(Bank)
 
 # Registro personalizado do Client com inline de contas bancárias
-from enterprises.models import ClientBankAccount
+from enterprises.models import ClientBankAccount, ClientDocument
+
+class ClientDocumentInline(admin.TabularInline):
+    model = ClientDocument
+    extra = 0
+    fields = ['file_name', 'file_type', 'file_size', 'uploaded_at']
+    readonly_fields = ['uploaded_at', 'file_type', 'file_size']
+    can_delete = True
+
 
 class ClientBankAccountInline(admin.TabularInline):
     model = ClientBankAccount
     extra = 0
     fields = ['bank', 'agency', 'account_number', 'account_type', 'is_active']
+
 
 @admin.register(Client)
 class ClientAdminWithBankAccounts(admin.ModelAdmin):
@@ -84,7 +93,24 @@ class ClientAdminWithBankAccounts(admin.ModelAdmin):
     search_fields = ['name', 'email', 'cpf', 'phone']
     readonly_fields = ['created_at', 'updated_at']
     filter_horizontal = ['units']
-    inlines = [ClientBankAccountInline]
+    inlines = [ClientDocumentInline, ClientBankAccountInline]
+    
+    def delete_queryset(self, request, queryset):
+        """Sobrescrever para garantir que documentos sejam deletados corretamente"""
+        for client in queryset:
+            # Deletar documentos manualmente para garantir que os arquivos sejam removidos
+            for document in client.documents.all():
+                document.delete()  # Usa o método delete customizado do modelo
+        # Agora deletar os clientes
+        super().delete_queryset(request, queryset)
+    
+    def delete_model(self, request, obj):
+        """Sobrescrever para garantir que documentos sejam deletados corretamente"""
+        # Deletar documentos manualmente para garantir que os arquivos sejam removidos
+        for document in obj.documents.all():
+            document.delete()  # Usa o método delete customizado do modelo
+        # Agora deletar o cliente
+        super().delete_model(request, obj)
 
 # Registros de métricas removidos - será refeito
 
