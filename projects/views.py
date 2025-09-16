@@ -478,20 +478,51 @@ def projects_list_view(request):
                 user_units = request.user.units.all()
                 projects = projects.filter(unit__in=user_units)
     
-    # Calcular contagem de projetos por status de forma eficiente ANTES do filtro por status
-    from django.db.models import Count, Case, When, IntegerField
+    # Calcular contagem e valor total de projetos por status de forma eficiente ANTES do filtro por status
+    from django.db.models import Count, Case, When, IntegerField, Sum, DecimalField
     
-    # Contar todos os status em uma única query usando agregação
-    status_counts = projects.aggregate(
-        AC=Count(Case(When(status='AC', then=1), output_field=IntegerField())),
-        PE=Count(Case(When(status='PE', then=1), output_field=IntegerField())),
-        AN=Count(Case(When(status='AN', then=1), output_field=IntegerField())),
-        AP=Count(Case(When(status='AP', then=1), output_field=IntegerField())),
-        AF=Count(Case(When(status='AF', then=1), output_field=IntegerField())),
-        FM=Count(Case(When(status='FM', then=1), output_field=IntegerField())),
-        LB=Count(Case(When(status='LB', then=1), output_field=IntegerField())),
-        RC=Count(Case(When(status='RC', then=1), output_field=IntegerField())),
+    # Contar todos os status e somar valores em uma única query usando agregação
+    status_stats = projects.aggregate(
+        AC_count=Count(Case(When(status='AC', then=1), output_field=IntegerField())),
+        PE_count=Count(Case(When(status='PE', then=1), output_field=IntegerField())),
+        AN_count=Count(Case(When(status='AN', then=1), output_field=IntegerField())),
+        AP_count=Count(Case(When(status='AP', then=1), output_field=IntegerField())),
+        AF_count=Count(Case(When(status='AF', then=1), output_field=IntegerField())),
+        FM_count=Count(Case(When(status='FM', then=1), output_field=IntegerField())),
+        LB_count=Count(Case(When(status='LB', then=1), output_field=IntegerField())),
+        RC_count=Count(Case(When(status='RC', then=1), output_field=IntegerField())),
+        AC_value=Sum(Case(When(status='AC', then='value'), output_field=DecimalField(max_digits=12, decimal_places=2))),
+        PE_value=Sum(Case(When(status='PE', then='value'), output_field=DecimalField(max_digits=12, decimal_places=2))),
+        AN_value=Sum(Case(When(status='AN', then='value'), output_field=DecimalField(max_digits=12, decimal_places=2))),
+        AP_value=Sum(Case(When(status='AP', then='value'), output_field=DecimalField(max_digits=12, decimal_places=2))),
+        AF_value=Sum(Case(When(status='AF', then='value'), output_field=DecimalField(max_digits=12, decimal_places=2))),
+        FM_value=Sum(Case(When(status='FM', then='value'), output_field=DecimalField(max_digits=12, decimal_places=2))),
+        LB_value=Sum(Case(When(status='LB', then='value'), output_field=DecimalField(max_digits=12, decimal_places=2))),
+        RC_value=Sum(Case(When(status='RC', then='value'), output_field=DecimalField(max_digits=12, decimal_places=2))),
     )
+    
+    # Separar contagens e valores para facilitar o uso no template
+    status_counts = {
+        'AC': status_stats['AC_count'],
+        'PE': status_stats['PE_count'],
+        'AN': status_stats['AN_count'],
+        'AP': status_stats['AP_count'],
+        'AF': status_stats['AF_count'],
+        'FM': status_stats['FM_count'],
+        'LB': status_stats['LB_count'],
+        'RC': status_stats['RC_count'],
+    }
+    
+    status_values = {
+        'AC': status_stats['AC_value'] or 0,
+        'PE': status_stats['PE_value'] or 0,
+        'AN': status_stats['AN_value'] or 0,
+        'AP': status_stats['AP_value'] or 0,
+        'AF': status_stats['AF_value'] or 0,
+        'FM': status_stats['FM_value'] or 0,
+        'LB': status_stats['LB_value'] or 0,
+        'RC': status_stats['RC_value'] or 0,
+    }
         
     if status_filter:
         projects = projects.filter(status=status_filter)
@@ -521,6 +552,8 @@ def projects_list_view(request):
         'current_status': current_status_description if status_filter else ' ',
         'project_status_choices': PROJECT_STATUS_CHOICES,
         'status_counts': status_counts,
+        'status_values': status_values,
+        'current_status_filter': status_filter,
         'is_all_units_selected': is_all_units_selected,
         'selected_unit': get_selected_unit_from_request(request) if not is_all_units_selected else None
     }

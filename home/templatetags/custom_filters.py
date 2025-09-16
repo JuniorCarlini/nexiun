@@ -35,4 +35,11 @@ def whatsapp_phone(value):
         if not phone_digits.startswith('55'):
             phone_digits = '55' + phone_digits
     
-    return phone_digits 
+    return phone_digits
+
+@register.filter
+def lookup(dictionary, key):
+    """Permite fazer lookup em dicionários no template"""
+    if isinstance(dictionary, dict) and key in dictionary:
+        return dictionary[key]
+    return None 

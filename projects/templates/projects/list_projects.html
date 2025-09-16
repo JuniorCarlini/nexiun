@@ -2,6 +2,8 @@
 
 {% load static %}
 
+{% load custom_filters %}
+
 {% block title %}Seus Projetos{% endblock %}
 
 {% block content %}
@@ -256,6 +258,13 @@
                     {% endfor %}
                 </tbody>
              </table>
+             {% if current_status_filter %}
+                <div class="d-flex card-body text-center justify-content-center mt-4">
+                        <p class="card-title mb-0 " style="color: {{ enterprise.primary_color }};">
+                         Valor Total - <span class="fw-bold" style="color: {{ enterprise.primary_color }};">R$ {{ status_values|lookup:current_status_filter|default:0|floatformat:2|intcomma }}</span>
+                     </p>
+                </div>
+             {% endif %}
         </div>
 
         <!-- Paginação Moderna -->
