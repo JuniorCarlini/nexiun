@@ -35,6 +35,8 @@ SIZE_CHOICES = [
 TYPE_CHOICES = [
     ('CUS', 'Custeio'),
     ('INV', 'Investimento'),
+    ('PRO', 'Prorrogação'),
+    ('CPR', 'CPR'),
     ('OTH', 'Outros'),
 ]
 
