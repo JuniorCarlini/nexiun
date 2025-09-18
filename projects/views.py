@@ -43,7 +43,10 @@ def create_project_view(request):
                 payment_grace=request.POST.get('payment_grace'),
                 percentage_astec=request.POST.get('percentage_astec'),
                 description=request.POST.get('description'),
-                next_phase_deadline=request.POST.get('next_phase_deadline'),
+                next_phase_deadline=request.POST.get('next_phase_deadline') if request.POST.get('next_phase_deadline') else None,
+                approval_date=request.POST.get('approval_date') if request.POST.get('approval_date') else None,
+                first_installment_date=request.POST.get('first_installment_date') if request.POST.get('first_installment_date') else None,
+                last_installment_date=request.POST.get('last_installment_date') if request.POST.get('last_installment_date') else None,
                 enterprise=request.user.enterprise
             )
             
@@ -1018,7 +1021,19 @@ def project_details_view(request, project_id):
                     project.payment_grace = request.POST.get('payment_grace')
                     project.percentage_astec = request.POST.get('percentage_astec')
                     project.description = request.POST.get('description')
-                    project.next_phase_deadline = request.POST.get('next_phase_deadline')
+                    
+                    # Tratar campos de data - converter string vazia para None
+                    next_phase_deadline = request.POST.get('next_phase_deadline')
+                    project.next_phase_deadline = next_phase_deadline if next_phase_deadline else None
+                    
+                    approval_date = request.POST.get('approval_date')
+                    project.approval_date = approval_date if approval_date else None
+                    
+                    first_installment_date = request.POST.get('first_installment_date')
+                    project.first_installment_date = first_installment_date if first_installment_date else None
+                    
+                    last_installment_date = request.POST.get('last_installment_date')
+                    project.last_installment_date = last_installment_date if last_installment_date else None
                     
                     if value:
                         project.value = Decimal(value)

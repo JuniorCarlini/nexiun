@@ -110,6 +110,8 @@ class Project(models.Model):
     percentage_astec = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, verbose_name="Porcentagem ASTEC")
     approval_date = models.DateField(blank=True, null=True, verbose_name="Data de Aprovação")
     consortium_value = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="Valor do Consórcio")
+    first_installment_date = models.DateField(blank=True, null=True, verbose_name="Data Primeira Parcela")
+    last_installment_date = models.DateField(blank=True, null=True, verbose_name="Data Última Parcela")
     project_finalized = models.BooleanField(default=False, verbose_name="Projeto Finalizado")
     is_active = models.BooleanField(default=True, verbose_name="Ativo")
     created_at = models.DateTimeField(auto_now_add=True)
