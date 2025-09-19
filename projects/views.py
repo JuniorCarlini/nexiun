@@ -44,26 +44,11 @@ def create_project_view(request):
                 percentage_astec=request.POST.get('percentage_astec'),
                 description=request.POST.get('description'),
                 next_phase_deadline=None,  # Será definido após validação
-                approval_date=request.POST.get('approval_date') if request.POST.get('approval_date') else None,
                 first_installment_date=request.POST.get('first_installment_date') if request.POST.get('first_installment_date') else None,
                 last_installment_date=request.POST.get('last_installment_date') if request.POST.get('last_installment_date') else None,
                 enterprise=request.user.enterprise
             )
             
-            # Verificar se foi selecionado um projetista responsável
-            project_designer_id = request.POST.get('project_designer')
-            if project_designer_id:
-                try:
-                    project_designer = User.objects.get(
-                        id=project_designer_id, 
-                        enterprise=request.user.enterprise,
-                        roles__code='projetista'
-                    )
-                    project.project_designer = project_designer
-                    # Mantém status "Em Acolhimento" mesmo com projetista selecionado
-                    # project.status = 'AC'  # Não precisa definir pois já é o padrão
-                except User.DoesNotExist:
-                    messages.warning(request, "Projetista selecionado não encontrado.")
             # Status padrão sempre 'AC' (Em Acolhimento)
 
             if value:
@@ -118,6 +103,47 @@ def create_project_view(request):
             else:
                 messages.error(request, 'Erro: Nenhuma unidade disponível para o projeto.')
                 return redirect('create_project')
+            
+            # Verificar se foi selecionado um projetista responsável
+            project_designer_id = request.POST.get('project_designer')
+            if project_designer_id:
+                try:
+                    project_designer = User.objects.get(
+                        id=project_designer_id, 
+                        enterprise=request.user.enterprise,
+                        roles__code='projetista'
+                    )
+                    project.project_designer = project_designer
+                    # Mantém status "Em Acolhimento" mesmo com projetista selecionado
+                    # project.status = 'AC'  # Não precisa definir pois já é o padrão
+                except User.DoesNotExist:
+                    messages.warning(request, "Projetista selecionado não encontrado.")
+            
+            # Verificar se foi selecionado um gerente responsável
+            project_manager_id = request.POST.get('project_manager')
+            if project_manager_id:
+                try:
+                    project_manager = User.objects.get(
+                        id=project_manager_id, 
+                        enterprise=request.user.enterprise,
+                        roles__code__in=['gerente', 'coordenador', 'socio_unidade', 'franqueado']
+                    )
+                    project.project_manager = project_manager
+                except User.DoesNotExist:
+                    messages.warning(request, "Gerente selecionado não encontrado.")
+            else:
+                # Se não foi selecionado gerente, buscar automaticamente o franqueado/sócio da unidade
+                try:
+                    auto_manager = User.objects.filter(
+                        enterprise=request.user.enterprise,
+                        units=project.unit,
+                        roles__code__in=['socio_unidade', 'franqueado'],
+                        is_active=True
+                    ).first()
+                    if auto_manager:
+                        project.project_manager = auto_manager
+                except:
+                    pass  # Se não encontrar, continua sem gerente
             
             project.save()
 
@@ -201,12 +227,20 @@ def create_project_view(request):
         roles__code='projetista',
         is_active=True
     ).distinct()
+    
+    # Buscar apenas gerentes e coordenadores para o dropdown (não sócios/franqueados)
+    gerentes = User.objects.filter(
+        enterprise=request.user.enterprise,
+        roles__code__in=['gerente', 'coordenador'],
+        is_active=True
+    ).distinct()
 
     return render(request, 'projects/create_project.html', {
         'clients': clients,
         'credit_lines': credit_lines,
         'banks': banks,
         'projetistas': projetistas,
+        'gerentes': gerentes,
         'size_choices': SIZE_CHOICES,
         'activity_choices': ACTIVITY_CHOICES,
         'is_completed': False,
@@ -1005,6 +1039,7 @@ def project_details_view(request, project_id):
         elif "action" in request.POST:
             if request.POST["action"] == "save":
                 try:
+                    from decimal import Decimal
                     files = request.FILES.getlist('documents[]')
                     for file in files:
                         if file.size > 20 * 1024 * 1024:
