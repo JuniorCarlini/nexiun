@@ -112,6 +112,7 @@ class Project(models.Model):
     consortium_value = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="Valor do Consórcio")
     first_installment_date = models.DateField(blank=True, null=True, verbose_name="Data Primeira Parcela")
     last_installment_date = models.DateField(blank=True, null=True, verbose_name="Data Última Parcela")
+    received_value = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="Valor Recebido")
     project_finalized = models.BooleanField(default=False, verbose_name="Projeto Finalizado")
     is_active = models.BooleanField(default=True, verbose_name="Ativo")
     created_at = models.DateTimeField(auto_now_add=True)

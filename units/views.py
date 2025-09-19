@@ -294,6 +294,7 @@ def units_edit_view(request, unit_id):
             messages.error(request, 'Por favor, preencha todos os campos.')
             return render(request, 'units/edit_unit.html', {
                 'unit': unit,
+                'enterprise': request.user.enterprise,
                 'name': name,
                 'location': location,
                 'royalties_percentage': royalties_percentage,
@@ -312,6 +313,7 @@ def units_edit_view(request, unit_id):
             messages.error(request, 'Por favor, insira valores válidos para as porcentagens.')
             return render(request, 'units/edit_unit.html', {
                 'unit': unit,
+                'enterprise': request.user.enterprise,
                 'name': name,
                 'location': location,
                 'royalties_percentage': request.POST.get('royalties_percentage', '0'),
@@ -336,6 +338,7 @@ def units_edit_view(request, unit_id):
             messages.error(request, 'Erro ao atualizar unidade. Por favor, tente novamente.')
             return render(request, 'units/edit_unit.html', {
                 'unit': unit,
+                'enterprise': request.user.enterprise,
                 'name': name,
                 'location': location,
                 'royalties_percentage': royalties_percentage,
@@ -347,6 +350,7 @@ def units_edit_view(request, unit_id):
     # GET request - mostrar formulário
     return render(request, 'units/edit_unit.html', {
         'unit': unit,
+        'enterprise': request.user.enterprise,
         'name': unit.name,
         'location': unit.location,
         'royalties_percentage': unit.royalties_percentage,

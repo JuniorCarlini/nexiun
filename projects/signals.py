@@ -16,7 +16,7 @@ def format_value(value, field_name):
     if value is None:
         return 'Não definido'
     
-    if isinstance(value, date) or field_name == 'next_phase_deadline':
+    if isinstance(value, date) or field_name in ['next_phase_deadline', 'first_installment_date', 'last_installment_date', 'approval_date', 'start_date', 'end_date']:
         if isinstance(value, str):
             try:
                 if '-' in value:
@@ -40,7 +40,7 @@ def format_value(value, field_name):
         return str(value)
     
     if isinstance(value, float) or isinstance(value, int):
-        if any(field_name.endswith(suffix) for suffix in ['_value', 'value', 'fees', 'percentage_astec']):
+        if any(field_name.endswith(suffix) for suffix in ['_value', 'value', 'fees', 'percentage_astec']) or field_name in ['received_value', 'consortium_value']:
             return f"{value:,.2f}"
     
     return str(value)
@@ -113,6 +113,9 @@ def track_project_changes(sender, instance, **kwargs):
             'payment_grace': 'Carência',
             'approval_date': 'Data de Aprovação',
             'consortium_value': 'Valor do Consórcio',
+            'first_installment_date': 'Data Primeira Parcela',
+            'last_installment_date': 'Data Última Parcela',
+            'received_value': 'Valor Recebido',
             'project_finalized': 'Projeto Finalizado',
             'project_prospector': 'Prospector'
         }

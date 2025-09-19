@@ -891,5 +891,29 @@ document.addEventListener('trix-attachment-add', function(event) {
     // Mostrar aviso ao usuário
     alert('Não é possível adicionar arquivos nas observações. Use a seção "Documentos" abaixo.');
 });
+
+// Validação do campo next_phase_deadline - máximo 3 dias no futuro
+document.addEventListener('DOMContentLoaded', function() {
+    const nextPhaseDeadlineField = document.getElementById('next_phase_deadline');
+    
+    if (nextPhaseDeadlineField) {
+        // Calcular data máxima (hoje + 3 dias)
+        const today = new Date();
+        const maxDate = new Date();
+        maxDate.setDate(today.getDate() + 3);
+        
+        // Formatar data para o formato YYYY-MM-DD
+        const formatDate = (date) => {
+            return date.toISOString().split('T')[0];
+        };
+        
+        // Definir data mínima como hoje
+        nextPhaseDeadlineField.setAttribute('min', formatDate(today));
+        // Definir data máxima como hoje + 3 dias
+        nextPhaseDeadlineField.setAttribute('max', formatDate(maxDate));
+        
+        // Apenas definir os limites do campo, validação será feita na view
+    }
+});
 </script>
 {% endblock %}

@@ -1,6 +1,7 @@
-    {% extends "base/base.html" %}
+{% extends "base/base.html" %}
 
 {% load static %}
+
 {% load permission_tags %}
 
 {% block title %}Detalhes do Projeto{% endblock %}
@@ -8,6 +9,55 @@
 {% block extra_scripts %}
 <!-- Carregamento do Select2 JavaScript após jQuery -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Configuração específica para banco
+        $('#bank').select2({
+            allowClear: true,
+            width: '100%',
+            placeholder: 'Digite o nome do banco...',
+            minimumInputLength: 0,
+            language: {
+                noResults: function() {
+                    return "Nenhum banco encontrado";
+                },
+                searching: function() {
+                    return "Buscando bancos...";
+                },
+                inputTooShort: function() {
+                    return "Digite o nome do banco...";
+                }
+            }
+        });
+
+        // Configuração específica para linha de crédito
+        $('#credit_line').select2({
+            allowClear: true,
+            width: '100%',
+            placeholder: 'Digite o nome da linha de crédito...',
+            minimumInputLength: 0,
+            language: {
+                noResults: function() {
+                    return "Nenhuma linha de crédito encontrada";
+                },
+                searching: function() {
+                    return "Buscando linhas de crédito...";
+                },
+                inputTooShort: function() {
+                    return "Digite o nome da linha de crédito...";
+                }
+            }
+        });
+
+        // Inicialização dos tooltips do Bootstrap
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+</script>
+
 {% endblock %}
 
 {% block content %}
@@ -790,6 +840,7 @@
             </div>
         </div>
         
+
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label for="percentage_astec" class="form-label fw-bold d-flex align-items-center">
@@ -814,7 +865,28 @@
                 <input type="date" name="next_phase_deadline" id="next_phase_deadline" class="form-control" value="{{ project.next_phase_deadline|date:'Y-m-d'|default_if_none:'' }}" {% if is_completed %}disabled readonly{% endif %}>
             </div>
         </div>
-
+        <!-- Campo Valor Recebido - apenas para status Liberado ou Receita -->
+        {% if project.status == 'LB' or project.status == 'RC' %}
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="received_value" class="form-label fw-bold d-flex align-items-center">
+                    <i class="bi bi-question-circle-fill me-1 small" 
+                        style="font-size: 12px;"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Valor efetivamente recebido do projeto"
+                        data-bs-custom-class="custom-tooltip">
+                    </i>Valor Recebido:</label>
+                <div class="input-group">
+                    <span class="input-group-text">R$</span>
+                    <input type="text" name="received_value" id="received_value" class="form-control" 
+                        value="{% if project.received_value %}{{ project.received_value|floatformat:2|stringformat:'s'|cut:'.'|default:''}}{% endif %}" 
+                        {% if is_completed %}disabled{% endif %}>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
         <!-- Observações -->
         <div class="row mb-3">
             <div class="col-12">
@@ -911,6 +983,48 @@
                     </button>
                 </div>
                 {% if project.status == 'RC' and user|has_perm:"users.complete_project" %}
+                <!-- Alerta com cálculos de Royalties e Marketing -->
+                {% if project.received_value and royalties_value is not None %}
+                <div class="col-12 mt-4">
+                    <div class="alert alert-info border-info">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6 class="alert-heading mb-3">
+                                    <strong>Cálculos Financeiros - Projeto em Receita</strong>
+                                </h6>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Valor Recebido do Projeto:</strong>
+                                    <span>R$ {{ project.received_value|floatformat:2 }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Valor a Receber do Projeto:</strong>
+                                    <span>R$ {{ total_to_receive|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Marketing ({{ project.unit.marketing_percentage }}%):</strong>
+                                    <span>R$ {{ marketing_value|floatformat:2 }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Royalties ({{ project.unit.royalties_percentage }}%):</strong>
+                                    <span>R$ {{ royalties_value|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <hr class="my-2">
+                        <small class="text-muted d-flex align-items-center text-center justify-content-center mt-3">
+                            <i class="fas fa-info-circle me-1 "></i>
+                            <span>Cálculos baseados nas porcentagens configuradas para a unidade <strong>{{ project.unit.name }}</strong></span>
+                            <i class="fas fa-info-circle ms-1 "></i>
+                        </small>
+                    </div>
+                </div>
+                {% endif %}
                 <div class="col-12">
                     <button type="button"
                             style="background-color: #28a745; border: none;"
@@ -1051,7 +1165,7 @@
 
                         <i class="fas fa-exclamation-triangle fs-4 me-2"></i>
                         <div>
-                            <strong>Atenção!</strong> <br> Certifique-se de que o <strong>comprovante de pagamento</strong> foi anexado antes de mover para Receita.
+                            <strong>Atenção!</strong> <br> Certifique-se de que o <strong>comprovante de pagamento</strong> foi anexado e o <strong>valor recebido</strong> foi informado antes de mover para Receita.
                         </div>
                         <i class="fas fa-exclamation-triangle fs-4 me-2"></i>
 
@@ -1147,61 +1261,57 @@
         }
     });
     
-    // Formata o valor inicial se existir
+    // Formatar campo Valor Recebido se existir
+    const receivedValueInput = document.getElementById('received_value');
+    if (receivedValueInput) {
+        receivedValueInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value) {
+                e.target.value = formatCurrency(value);
+            }
+        });
+    }
+    
+    // Formata os valores iniciais se existirem
     window.addEventListener('load', function() {
         const input = document.getElementById('value');
         if (input.value) {
             const rawValue = input.value.replace(/\D/g, '');
             input.value = formatCurrency(rawValue);
         }
+        
+        // Formatar valor recebido inicial
+        const receivedInput = document.getElementById('received_value');
+        if (receivedInput && receivedInput.value) {
+            const rawReceivedValue = receivedInput.value.replace(/\D/g, '');
+            receivedInput.value = formatCurrency(rawReceivedValue);
+        }
     });
 </script>
 
 <script>
-    $(document).ready(function() {
-        // Configuração específica para banco
-        $('#bank').select2({
-            allowClear: true,
-            width: '100%',
-            placeholder: 'Digite o nome do banco...',
-            minimumInputLength: 0,
-            language: {
-                noResults: function() {
-                    return "Nenhum banco encontrado";
-                },
-                searching: function() {
-                    return "Buscando bancos...";
-                },
-                inputTooShort: function() {
-                    return "Digite o nome do banco...";
-                }
-            }
-        });
-
-        // Configuração específica para linha de crédito
-        $('#credit_line').select2({
-            allowClear: true,
-            width: '100%',
-            placeholder: 'Digite o nome da linha de crédito...',
-            minimumInputLength: 0,
-            language: {
-                noResults: function() {
-                    return "Nenhuma linha de crédito encontrada";
-                },
-                searching: function() {
-                    return "Buscando linhas de crédito...";
-                },
-                inputTooShort: function() {
-                    return "Digite o nome da linha de crédito...";
-                }
-            }
-        });
-
-        // Inicialização dos tooltips do Bootstrap
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        });
+    // Validação do campo next_phase_deadline - máximo 3 dias no futuro
+    document.addEventListener('DOMContentLoaded', function() {
+        const nextPhaseDeadlineField = document.getElementById('next_phase_deadline');
+        
+        if (nextPhaseDeadlineField) {
+            // Calcular data máxima (hoje + 3 dias)
+            const today = new Date();
+            const maxDate = new Date();
+            maxDate.setDate(today.getDate() + 3);
+            
+            // Formatar data para o formato YYYY-MM-DD
+            const formatDate = (date) => {
+                return date.toISOString().split('T')[0];
+            };
+            
+            // Definir data mínima como hoje
+            nextPhaseDeadlineField.setAttribute('min', formatDate(today));
+            // Definir data máxima como hoje + 3 dias
+            nextPhaseDeadlineField.setAttribute('max', formatDate(maxDate));
+            
+            // Apenas definir os limites do campo, validação será feita na view
+        }
     });
 </script>
 

@@ -43,7 +43,7 @@ def create_project_view(request):
                 payment_grace=request.POST.get('payment_grace'),
                 percentage_astec=request.POST.get('percentage_astec'),
                 description=request.POST.get('description'),
-                next_phase_deadline=request.POST.get('next_phase_deadline') if request.POST.get('next_phase_deadline') else None,
+                next_phase_deadline=None,  # Será definido após validação
                 approval_date=request.POST.get('approval_date') if request.POST.get('approval_date') else None,
                 first_installment_date=request.POST.get('first_installment_date') if request.POST.get('first_installment_date') else None,
                 last_installment_date=request.POST.get('last_installment_date') if request.POST.get('last_installment_date') else None,
@@ -68,6 +68,27 @@ def create_project_view(request):
 
             if value:
                 project.value = Decimal(value)
+            
+            # Validar e definir next_phase_deadline
+            next_phase_deadline = request.POST.get('next_phase_deadline')
+            if next_phase_deadline:
+                from datetime import date, timedelta
+                try:
+                    deadline_date = date.fromisoformat(next_phase_deadline)
+                    today = date.today()
+                    max_allowed_date = today + timedelta(days=3)
+                    
+                    if deadline_date < today:
+                        messages.error(request, "A data do prazo não pode ser anterior a hoje.")
+                        return redirect('create_project')
+                    elif deadline_date > max_allowed_date:
+                        messages.error(request, "A data do prazo não pode ser superior a 3 dias a partir de hoje.")
+                        return redirect('create_project')
+                    
+                    project.next_phase_deadline = deadline_date
+                except ValueError:
+                    messages.error(request, "Formato de data inválido para o prazo.")
+                    return redirect('create_project')
             
             # Associar projeto à unidade da sessão atual
             selected_unit_id = request.POST.get('unit_id')
@@ -1024,7 +1045,27 @@ def project_details_view(request, project_id):
                     
                     # Tratar campos de data - converter string vazia para None
                     next_phase_deadline = request.POST.get('next_phase_deadline')
-                    project.next_phase_deadline = next_phase_deadline if next_phase_deadline else None
+                    if next_phase_deadline:
+                        # Validar se a data não é mais de 3 dias no futuro
+                        from datetime import date, timedelta
+                        try:
+                            deadline_date = date.fromisoformat(next_phase_deadline)
+                            today = date.today()
+                            max_allowed_date = today + timedelta(days=3)
+                            
+                            if deadline_date < today:
+                                messages.error(request, "A data do prazo não pode ser anterior a hoje.")
+                                return redirect('project_details', project_id=project_id)
+                            elif deadline_date > max_allowed_date:
+                                messages.error(request, "A data do prazo não pode ser superior a 3 dias a partir de hoje.")
+                                return redirect('project_details', project_id=project_id)
+                            
+                            project.next_phase_deadline = deadline_date
+                        except ValueError:
+                            messages.error(request, "Formato de data inválido para o prazo.")
+                            return redirect('project_details', project_id=project_id)
+                    else:
+                        project.next_phase_deadline = None
                     
                     approval_date = request.POST.get('approval_date')
                     project.approval_date = approval_date if approval_date else None
@@ -1040,6 +1081,12 @@ def project_details_view(request, project_id):
                         
                     if consortium_value:
                         project.consortium_value = Decimal(consortium_value)
+                    
+                    # Processar valor recebido (apenas para projetos em Liberado ou Receita)
+                    received_value = request.POST.get('received_value', '')
+                    if received_value:
+                        received_value = received_value.replace('.', '').replace(',', '.')
+                        project.received_value = Decimal(received_value)
 
                     project.save()
                     
@@ -1081,6 +1128,17 @@ def project_details_view(request, project_id):
     project_documents = ProjectDocument.objects.filter(project=project)
     project_history = ProjectHistory.objects.filter(project=project).order_by('-timestamp')
 
+    # Calcular valores de royalties e marketing se o projeto tem valor recebido
+    royalties_value = None
+    marketing_value = None
+    total_to_receive = None
+    
+    if project.received_value and project.unit:
+        from decimal import Decimal
+        royalties_value = (project.received_value * project.unit.royalties_percentage) / Decimal('100')
+        marketing_value = (project.received_value * project.unit.marketing_percentage) / Decimal('100')
+        total_to_receive = royalties_value + marketing_value  # Soma dos royalties e marketing
+
     return render(request, 'projects/project_details.html', {
         'project': project,
         'is_completed': project.project_finalized,
@@ -1094,4 +1152,7 @@ def project_details_view(request, project_id):
         'activity_choices': ACTIVITY_CHOICES,
         'project_documents': project_documents,
         'project_history': project_history,
+        'royalties_value': royalties_value,
+        'marketing_value': marketing_value,
+        'total_to_receive': total_to_receive,
     })
