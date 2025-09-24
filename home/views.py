@@ -12,17 +12,16 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, F, Q, Value, DecimalField, Avg
 from django.db.models.functions import Coalesce, TruncMonth, ExtractMonth, ExtractYear
 
-# Importar funções de filtro do módulo reports
-from reports.utils import (
-    get_user_accessible_units,
-    get_user_accessible_projects,
-    get_user_accessible_clients,
-    filter_queryset_by_user_units
+# Importar funções de filtro do core.mixins (mesmo sistema usado em users)
+from core.mixins import (
+    get_selected_unit_from_request, 
+    is_all_units_selected_from_request,
+    get_accessible_units_from_request
 )
 
 @login_required
 def home(request):
-    """View principal - Dashboard CEO/Diretor com filtros por permissões"""
+    """View principal - Dashboard CEO/Diretor com filtros por sessões (mesmo sistema de users)"""
     user = request.user
     enterprise = user.enterprise
     
@@ -33,47 +32,119 @@ def home(request):
         is_birthday = (user.date_of_birth.month == today.month and 
                       user.date_of_birth.day == today.day)
     
-    # ============ MÉTRICAS PRINCIPAIS COM FILTROS DE PERMISSÃO ============
+    # ============ SISTEMA DE FILTROS POR SESSÃO (IGUAL AO USERS) ============
     
-    # Obter projetos base da empresa
+    # Verificar se está selecionado "Todas as unidades"
+    is_all_units_selected = is_all_units_selected_from_request(request)
+    selected_unit = get_selected_unit_from_request(request)
+    accessible_units = get_accessible_units_from_request(request)
+    
+    # ============ FILTRAR DADOS BASEADO NA SESSÃO ============
+    
+    # Projetos base da empresa
     base_projects = Project.objects.filter(
         enterprise=enterprise,
         is_active=True
     )
     
-    # Filtrar projetos baseado nas permissões do usuário
-    accessible_projects = get_user_accessible_projects(user, base_projects)
+    # Aplicar filtros baseado na seleção da sessão
+    if is_all_units_selected:
+        # "Todas as unidades" selecionado
+        if user.has_perm('users.view_all_units'):
+            # Pode ver todos os projetos da empresa
+            filtered_projects = base_projects
+        else:
+            # Usuário normal - filtrar pelas suas unidades vinculadas
+            user_units = user.units.all()
+            if user_units.exists():
+                filtered_projects = base_projects.filter(unit__in=user_units)
+            else:
+                filtered_projects = base_projects.none()
+    else:
+        # Unidade específica selecionada ou padrão
+        if selected_unit:
+            # Filtrar pela unidade específica selecionada
+            if user.has_perm('users.view_all_units'):
+                # Pode ver todos os projetos da unidade
+                filtered_projects = base_projects.filter(unit=selected_unit)
+            elif user.units.filter(id=selected_unit.id).exists():
+                # Pode ver projetos da unidade se tiver acesso a ela
+                filtered_projects = base_projects.filter(unit=selected_unit)
+            else:
+                # Não tem acesso à unidade selecionada
+                filtered_projects = base_projects.none()
+        else:
+            # Nenhuma unidade selecionada - mostrar baseado nas permissões
+            if user.has_perm('users.view_all_units'):
+                # Pode ver todos os projetos da empresa
+                filtered_projects = base_projects
+            else:
+                user_units = user.units.all()
+                if user_units.exists():
+                    filtered_projects = base_projects.filter(unit__in=user_units)
+                else:
+                    filtered_projects = base_projects.none()
+    
+    # ============ MÉTRICAS PRINCIPAIS COM FILTROS DE SESSÃO ============
     
     # 1. Faturamento Total (soma dos valores dos projetos aprovados/liberados)
-    faturamento_total = accessible_projects.filter(
+    faturamento_total = filtered_projects.filter(
         status__in=['AP', 'AF', 'FM', 'LB', 'RC']  # Projetos que geram faturamento
     ).aggregate(total=Coalesce(Sum('value'), Decimal('0')))['total']
     
     # 2. Total de Projetos em Andamento (todos os status ativos exceto finalizados)
-    projetos_andamento = accessible_projects.filter(
+    projetos_andamento = filtered_projects.filter(
         status__in=['AC', 'PE', 'AN', 'AP', 'AF', 'FM', 'LB']  # Não inclui 'RC' (finalizado)
     ).count()
     
     # 3. Total de Unidades Ativas (baseado nas permissões do usuário)
-    accessible_units = get_user_accessible_units(user)
     total_unidades = accessible_units.count()
     
-    # 4. Total de Clientes Ativos (baseado nas permissões do usuário)
-    base_clients = Client.objects.filter(
-        enterprise=enterprise,
-        status='ATIVO',
-        is_active=True
-    )
-    accessible_clients = get_user_accessible_clients(user, base_clients)
-    clientes_ativos = accessible_clients.count()
+    # 4. Total de Clientes Ativos (baseado nas unidades filtradas)
+    if is_all_units_selected:
+        if user.has_perm('users.view_all_units'):
+            # Pode ver todos os clientes da empresa
+            filtered_clients = Client.objects.filter(enterprise=enterprise, status='ATIVO', is_active=True)
+        else:
+            # Filtrar pelos clientes das unidades do usuário
+            user_units = user.units.all()
+            filtered_clients = Client.objects.filter(
+                enterprise=enterprise, 
+                status='ATIVO', 
+                is_active=True,
+                units__in=user_units
+            ).distinct()
+    else:
+        if selected_unit:
+            # Filtrar pelos clientes da unidade selecionada
+            filtered_clients = Client.objects.filter(
+                enterprise=enterprise, 
+                status='ATIVO', 
+                is_active=True,
+                units=selected_unit
+            )
+        else:
+            # Padrão baseado nas permissões
+            if user.has_perm('users.view_all_units'):
+                filtered_clients = Client.objects.filter(enterprise=enterprise, status='ATIVO', is_active=True)
+            else:
+                user_units = user.units.all()
+                filtered_clients = Client.objects.filter(
+                    enterprise=enterprise, 
+                    status='ATIVO', 
+                    is_active=True,
+                    units__in=user_units
+                ).distinct()
+    
+    clientes_ativos = filtered_clients.count()
     
     # ============ DADOS PARA GRÁFICO DE BARRAS - UNIDADES (COM FILTROS) ============
     
-    # Obter dados mensais dos últimos 6 meses por unidade (apenas unidades acessíveis)
+    # Obter dados mensais dos últimos 6 meses por unidade (apenas unidades filtradas)
     six_months_ago = today - timedelta(days=180)
     
     # Projetos dos últimos 6 meses agrupados por unidade e mês (filtrados)
-    unidades_data = accessible_projects.filter(
+    unidades_data = filtered_projects.filter(
         created_at__date__gte=six_months_ago
     ).annotate(
         year=ExtractYear('created_at'),
@@ -121,8 +192,8 @@ def home(request):
     
     # ============ DADOS PARA GRÁFICO DONUT - LINHAS DE CRÉDITO (COM FILTROS) ============
     
-    # Contar projetos por linha de crédito (top 5) - apenas projetos acessíveis
-    credito_data = accessible_projects.values('credit_line__name').annotate(
+    # Contar projetos por linha de crédito (top 5) - apenas projetos filtrados
+    credito_data = filtered_projects.values('credit_line__name').annotate(
         project_count=Count('id')
     ).order_by('-project_count')[:5]  # Limitar a 5 para melhor visualização
     
@@ -137,8 +208,8 @@ def home(request):
     
     # ============ DADOS PARA GRÁFICO DONUT - BANCOS (COM FILTROS) ============
     
-    # Contar projetos por banco (top 5) - apenas projetos acessíveis
-    bancos_data = accessible_projects.values('bank__name').annotate(
+    # Contar projetos por banco (top 5) - apenas projetos filtrados
+    bancos_data = filtered_projects.values('bank__name').annotate(
         project_count=Count('id')
     ).order_by('-project_count')[:5]  # Limitar a 5 para melhor visualização
     
@@ -153,19 +224,24 @@ def home(request):
     
     # ============ MENSAGENS (COM FILTROS) ============
     
-    # Obter mensagens internas recentes (filtradas por unidades acessíveis)
+    # Obter mensagens internas recentes (filtradas por unidades da sessão)
     messages_queryset = InternalMessage.objects.filter(enterprise=enterprise)
     
-    # Se o usuário tem acesso limitado a unidades específicas
-    user_units = user.units.all()
-    user_role_codes = list(user.roles.filter(is_active=True).values_list('code', flat=True))
-    restricted_roles = ['socio_unidade', 'franqueado', 'gerente', 'projetista', 'captador']
-    
-    # Se o usuário tem cargo restrito, filtrar mensagens
-    if any(role in restricted_roles for role in user_role_codes) and user_units.exists():
-        messages_queryset = messages_queryset.filter(
-            Q(scope='unit', unit__in=user_units) | Q(scope='enterprise')
-        )
+    # Aplicar filtros de mensagens baseado na seleção da sessão
+    if is_all_units_selected:
+        if not user.has_perm('users.view_all_units'):
+            # Usuário normal - filtrar por mensagens das suas unidades ou corporativas
+            user_units = user.units.all()
+            if user_units.exists():
+                messages_queryset = messages_queryset.filter(
+                    Q(scope='unit', unit__in=user_units) | Q(scope='enterprise')
+                )
+    else:
+        if selected_unit and not user.has_perm('users.view_all_units'):
+            # Filtrar por mensagens da unidade selecionada ou corporativas
+            messages_queryset = messages_queryset.filter(
+                Q(scope='unit', unit=selected_unit) | Q(scope='enterprise')
+            )
     
     mensagens = messages_queryset.order_by('-date')[:5]
     
@@ -175,13 +251,13 @@ def home(request):
         # Dados do usuário
         'is_birthday': is_birthday,
         
-        # Métricas principais (filtradas)
+        # Métricas principais (filtradas por sessão)
         'faturamento_total': faturamento_total,
         'projetos_andamento': projetos_andamento,
         'total_unidades': total_unidades,
         'clientes_ativos': clientes_ativos,
         
-        # Dados para gráfico de barras (unidades acessíveis)
+        # Dados para gráfico de barras (unidades filtradas)
         'unidades_series': json.dumps(unidades_series),
         'meses_labels': json.dumps(months_labels),
         
@@ -199,9 +275,10 @@ def home(request):
         # Dados da empresa
         'enterprise': enterprise,
         
-        # Informação adicional para debug
-        'user_accessible_units': accessible_units.count(),
-        'user_role_codes': user_role_codes,
+        # Informações da sessão para debug
+        'is_all_units_selected': is_all_units_selected,
+        'selected_unit': selected_unit,
+        'accessible_units_count': accessible_units.count(),
     }
     
     return render(request, 'home/home.html', context)

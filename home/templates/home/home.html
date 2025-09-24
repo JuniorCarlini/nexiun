@@ -15,7 +15,11 @@
     <!-- Header -->
     <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
         <div class="col-auto">
-            <h2 class="text-color-primary m-0">Dashboard</h2>
+            {% if is_all_units_selected or selected_unit is None %}
+                <h2 class="text-color-primary m-0">Dashboard <span class="fw-light">-> Todas as Unidades</span></h2>
+            {% else %}
+                <h2 class="text-color-primary m-0">Dashboard <span class="fw-light">-> {{ selected_unit.name }}</span></h2>
+            {% endif %}
         </div>
     </div>
     
@@ -111,15 +115,15 @@
                 <div class="container-style chart-container">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6 class="mb-3 text-center">
-                               <i class="fas fa-chart-pie me-2"></i>Projetos por Linha de Crédito
-                            </h6>
+                            <h5 class="mb-3 text-center">
+                                <i class="fas fa-chart-pie me-2"></i>Projetos por Linha de Crédito
+                            </h5>
                             <div id="creditoChart"></div>
                         </div>
                         <div class="col-md-6">
-                            <h6 class="mb-3 text-center">
+                            <h5 class="mb-3 text-center">
                                <i class="fas fa-university me-2"></i>Projetos por Banco
-                            </h6>
+                            </h5>
                             <div id="bancosChart"></div>
                         </div>
                     </div>
