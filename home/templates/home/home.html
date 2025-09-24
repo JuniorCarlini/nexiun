@@ -141,7 +141,7 @@
                 {% if mensagens %}
                 <div class="messages-scroll">
                     {% for mensagem in mensagens %}
-                    <div class="message-item d-flex align-items-start">
+                    <div class="message-item d-flex align-items-center">
                         <div class="message-icon-badge">
                             {% if mensagem.level == 'danger' %}
                                 <i class="fas fa-exclamation-triangle" style="color: #dc3545;"></i>
@@ -153,7 +153,7 @@
                         </div>
                         <div class="message-info flex-grow-1">
                             <h6 class="mb-1 fw-semibold text-color-primary">{{ mensagem.title|truncatechars:25 }}</h6>
-                            <small class="text-muted">{{ mensagem.content|truncatechars:60 }}</small>
+                            <small class="text-muted">{{ mensagem.content }}</small>
                         </div>
                         <div class="message-actions">
                             {% if user|has_perm:'enterprises.view_internalmessage' %}

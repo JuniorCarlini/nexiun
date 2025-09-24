@@ -87,10 +87,10 @@ def home(request):
     
     # ============ MÉTRICAS PRINCIPAIS COM FILTROS DE SESSÃO ============
     
-    # 1. Faturamento Total (soma dos valores dos projetos aprovados/liberados)
-    faturamento_total = filtered_projects.filter(
-        status__in=['AP', 'AF', 'FM', 'LB', 'RC']  # Projetos que geram faturamento
-    ).aggregate(total=Coalesce(Sum('value'), Decimal('0')))['total']
+    # 1. Faturamento Total (soma dos valores de TODOS os projetos)
+    faturamento_total = filtered_projects.aggregate(
+        total=Coalesce(Sum('value'), Decimal('0'))
+    )['total']
     
     # 2. Total de Projetos em Andamento (todos os status ativos exceto finalizados)
     projetos_andamento = filtered_projects.filter(
@@ -144,6 +144,7 @@ def home(request):
     six_months_ago = today - timedelta(days=180)
     
     # Projetos dos últimos 6 meses agrupados por unidade e mês (filtrados)
+    # IMPORTANTE: Usar TODOS os projetos (mesmo critério do card superior)
     unidades_data = filtered_projects.filter(
         created_at__date__gte=six_months_ago
     ).annotate(
