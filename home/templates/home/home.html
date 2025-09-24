@@ -98,10 +98,11 @@
             <!-- Primeiro gráfico - Performance das Unidades -->
             <div class="mb-4">
                 <div class="container-style chart-container">
+                    
                     <h5 class="mb-3">
-                       <i class="fas fa-chart-bar me-2"></i>Performance das Unidades (Últimos 6 meses)
-                    </h5>
-                    <div id="unidadesChart"></div>
+                        <i class="fas fa-chart-bar me-2"></i>Performance das Unidades
+                     </h5>
+                     <div id="unidadesChart"></div>
                 </div>
             </div>
 
@@ -207,59 +208,8 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script src="https://cdn.jsdelivr.net/npm/party-js@latest/bundle/party.min.js"></script>
 <script>
-// Função para gerar variações de cores
-function generateColorVariations(primaryColor, secondaryColor) {
-    // Função para converter hex para RGB
-    function hexToRgb(hex) {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? {
-            r: parseInt(result[1], 16),
-            g: parseInt(result[2], 16),
-            b: parseInt(result[3], 16)
-        } : null;
-    }
-    
-    // Função para converter RGB para hex
-    function rgbToHex(r, g, b) {
-        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-    }
-    
-    // Função para clarear cor
-    function lighten(color, percent) {
-        const rgb = hexToRgb(color);
-        const amount = Math.round(2.55 * percent);
-        return rgbToHex(
-            Math.min(255, rgb.r + amount),
-            Math.min(255, rgb.g + amount),
-            Math.min(255, rgb.b + amount)
-        );
-    }
-    
-    // Função para escurecer cor
-    function darken(color, percent) {
-        const rgb = hexToRgb(color);
-        const amount = Math.round(2.55 * percent);
-        return rgbToHex(
-            Math.max(0, rgb.r - amount),
-            Math.max(0, rgb.g - amount),
-            Math.max(0, rgb.b - amount)
-        );
-    }
-    
-    return [
-        primaryColor,                    // Cor primária original
-        secondaryColor,                  // Cor secundária original
-        lighten(primaryColor, 20),       // Primária mais clara
-        darken(primaryColor, 20),        // Primária mais escura
-        lighten(secondaryColor, 20),     // Secundária mais clara
-        darken(secondaryColor, 20),      // Secundária mais escura
-        lighten(primaryColor, 40),       // Primária muito clara
-        darken(primaryColor, 40)         // Primária muito escura
-    ];
-}
-
-// Gerar paleta de cores baseada nas cores da empresa
-const enterpriseColors = generateColorVariations('{{ enterprise.primary_color }}', '{{ enterprise.secondary_color }}');
+// Cores da empresa - apenas primária e secundária
+const enterpriseColors = ['{{ enterprise.primary_color }}', '{{ enterprise.secondary_color }}'];
 
 // Gráfico de barras - Performance das Unidades
 var unidadesOptions = {
@@ -316,8 +266,7 @@ var unidadesOptions = {
         }
     },
     legend: {
-        position: 'top',
-        horizontalAlign: 'left'
+        show: false
     },
     colors: enterpriseColors
 };
@@ -330,7 +279,7 @@ var creditoOptions = {
     series: {{ credito_values|safe }},
     chart: {
         type: 'donut',
-        height: 280,
+        height: 350,
         animations: {
             enabled: true
         }
@@ -382,7 +331,7 @@ var bancosOptions = {
     series: {{ bancos_values|safe }},
     chart: {
         type: 'donut',
-        height: 280,
+        height: 350,
         animations: {
             enabled: true
         }
@@ -423,7 +372,7 @@ var bancosOptions = {
     legend: {
         show: false
     },
-    colors: enterpriseColors.slice().reverse() // Usar cores invertidas para diferenciação
+    colors: enterpriseColors
 };
 
 var bancosChart = new ApexCharts(document.querySelector("#bancosChart"), bancosOptions);
@@ -536,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .chart-container #creditoChart,
 .chart-container #bancosChart {
-    min-height: 280px;
+    min-height: 350px;
 }
 
 /* Estilo para os títulos dos gráficos donut */

@@ -327,7 +327,7 @@ def get_user_accessible_units(user):
     user_role_codes = list(user.roles.filter(is_active=True).values_list('code', flat=True))
     
     # Cargos com acesso restrito às suas próprias unidades
-    restricted_roles = ['socio_unidade', 'franqueado', 'gerente']
+    restricted_roles = ['socio_unidade', 'franqueado', 'gerente', 'projetista', 'captador']
     
     # Cargos com acesso total
     unrestricted_roles = ['ceo', 'diretor', 'coordenador', 'financeiro']
