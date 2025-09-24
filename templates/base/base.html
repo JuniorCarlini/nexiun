@@ -171,6 +171,25 @@
             line-height: 1;
         }
 
+        .menu-toggle-btn-mobile {
+            border-radius: 6px !important;
+            transition: all 0.15s ease !important;
+            background-color: #f5f5f5 !important;
+            border: none !important;
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+        }
+
+        .menu-toggle-btn-mobile:hover {
+            background-color: #ededed;
+            transform: translateY(-1px);
+        }
+
+        .menu-toggle-btn-mobile:active {
+            transform: translateY(0px);
+            background-color: #ededed;
+        }
+
         .badge-style-group-user {
             color: {{ enterprise.primary_color }};
             background-color: {{ enterprise.secondary_color }};
@@ -598,15 +617,17 @@
                     </a>
                     
                     {% if has_multiple_units %}
-                        {% if is_all_units_selected %}
-                            <p class="text_icons_color m-0 p-0 m-1 fw-bold">| Todas as unidades</p>
-                        {% elif selected_unit %}
-                            <p class="text_icons_color m-0 p-0 m-1 fw-bold">| {{ selected_unit.name }}</p>
-                        {% endif %}
-                        <div class="col-auto d-flex align-items-center">
-                            <button type="button" class="btn m-0 menu-toggle-btn" data-bs-toggle="modal" data-bs-target="#unitSelectorModal" title="Trocar Unidade">
-                                <i class="fa-solid fa-repeat" style="font-size: 1.5rem; color: white; padding: 0;"></i>
-                            </button>
+                        <div class="d-none d-md-flex align-items-center">
+                            {% if is_all_units_selected %}
+                                <p class="text_icons_color m-0 p-0 m-1 fw-bold">| Todas as unidades</p>
+                            {% elif selected_unit %}
+                                <p class="text_icons_color m-0 p-0 m-1 fw-bold">| {{ selected_unit.name }}</p>
+                            {% endif %}
+                            <div class="col-auto d-flex align-items-center">
+                                <button type="button" class="btn m-0 menu-toggle-btn" data-bs-toggle="modal" data-bs-target="#unitSelectorModal" title="Trocar Unidade">
+                                    <i class="fa-solid fa-repeat" style="font-size: 1.5rem; color: white; padding: 0;"></i>
+                                </button>
+                            </div>
                         </div>
                     {% endif %}
                 </div>
@@ -628,6 +649,31 @@
                 <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
             </div>
             <div class="offcanvas-body p-0">
+                
+                <!-- Seletor de Unidades (apenas em mobile) -->
+                {% if has_multiple_units %}
+
+                <div class="d-md-none m-0 pe-3 mb-3">
+                    <hr class="separator-top">
+                    <div class="d-flex align-items-center justify-content-between ms-3 me-2">
+                        <div>
+                            <p class="fw-bold menu-color m-0 p-0 ms-2">UNIDADE ->
+                                <span class="fw-bold" style="color: {{ enterprise.primary_color }};">
+                                    {% if is_all_units_selected %}
+                                        Todas as unidades
+                                    {% elif selected_unit %}
+                                        {{ selected_unit.name }}
+                                    {% endif %}
+                                </span>
+                            </p>
+                        </div>
+                        <button type="button" class="btn m-0 menu-toggle-btn-mobile" data-bs-toggle="modal" data-bs-target="#unitSelectorModal" data-bs-dismiss="offcanvas" title="Trocar Unidade">
+                            <i class="fa-solid fa-repeat" style="font-size: 1.2rem; color: {{ enterprise.primary_color }}; padding: 0;"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+                
                 <ul class="navbar-nav justify-content-start flex-grow-1 m-0 pe-3">
                     <div>
                         <hr class="separator-top">

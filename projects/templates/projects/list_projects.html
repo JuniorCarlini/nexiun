@@ -4,6 +4,8 @@
 
 {% load custom_filters %}
 
+{% load humanize %}
+
 {% block title %}Seus Projetos{% endblock %}
 
 {% block content %}
@@ -11,8 +13,8 @@
 <style>
     .status-box {
         width: 190px;
-        padding: 25px;
-        height: 100px;
+        padding: 20px;
+        height: 120px;
         display: flex;
         margin-top: 10px;
         align-items: center;
@@ -26,8 +28,8 @@
     }
 
     .status-box:hover {
-        transform: scale(0.95);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
     }
 
     .status-container {
@@ -116,7 +118,10 @@
             <a href="?status=AC"
                 class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'AC' %}active-status-ac{% endif %}">
                 <i class="bi bi-people text-primary fs-3"></i>
-                <p class="mt-2 mb-0 text-secondary">Em Acolhimento</p>
+                <p class="mb-0 text-secondary">Em Acolhimento</p>
+                <small class="text-muted">
+                   <span class="fw-bold" style="color: {{ enterprise.primary_color }};">R$ {{ status_values.AC|default:0|floatformat:2|intcomma }}</span>
+                </small>
                 <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
                     {{ status_counts.AC|default:0 }}
                 </span>
@@ -124,7 +129,10 @@
             <a href="?status=PE"
                 class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'PE' %}active-status-pe{% endif %}">
                 <i class="bi bi-exclamation-circle text-danger fs-3"></i>
-                <p class="mt-2 mb-0 text-secondary">Com Pendência</p>
+                <p class="mb-0 text-secondary">Com Pendência</p>
+                <small class="text-muted">
+                   <span class="fw-bold" style="color: {{ enterprise.primary_color }};">R$ {{ status_values.PE|default:0|floatformat:2|intcomma }}</span>
+                </small>
                 <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
                     {{ status_counts.PE|default:0 }}
                 </span>
@@ -132,7 +140,10 @@
             <a href="?status=AN"
                 class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'AN' %}active-status-an{% endif %}">
                 <i class="bi bi-search text-info fs-3"></i>
-                <p class="mt-2 mb-0 text-secondary">Em Análise</p>
+                <p class="mb-0 text-secondary">Em Análise</p>
+                <small class="text-muted">
+                   <span class="fw-bold" style="color: {{ enterprise.primary_color }};">R$ {{ status_values.AN|default:0|floatformat:2|intcomma }}</span>
+                </small>
                 <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
                     {{ status_counts.AN|default:0 }}
                 </span>
@@ -140,7 +151,10 @@
             <a href="?status=AP"
                 class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'AP' %}active-status-ap{% endif %}">
                 <i class="bi bi-check-circle text-success fs-3"></i>
-                <p class="mt-2 mb-0 text-secondary">Aprovado</p>
+                <p class="mb-0 text-secondary">Aprovado</p>
+                <small class="text-muted">
+                   <span class="fw-bold" style="color: {{ enterprise.primary_color }};">R$ {{ status_values.AP|default:0|floatformat:2|intcomma }}</span>
+                </small>
                 <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
                     {{ status_counts.AP|default:0 }}
                 </span>
@@ -148,7 +162,10 @@
             <a href="?status=AF"
                 class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'AF' %}active-status-af{% endif %}">
                 <i class="bi bi-clock text-warning fs-3"></i>
-                <p class="mt-2 mb-0 text-secondary">Em Formalização</p>
+                <p class="mb-0 text-secondary">Em Formalização</p>
+                <small class="text-muted">
+                   <span class="fw-bold" style="color: {{ enterprise.primary_color }};">R$ {{ status_values.AF|default:0|floatformat:2|intcomma }}</span>
+                </small>
                 <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
                     {{ status_counts.AF|default:0 }}
                 </span>
@@ -156,7 +173,10 @@
             <a href="?status=FM"
                 class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'FM' %}active-status-fm{% endif %}">
                 <i class="bi bi-file-earmark-text text-dark fs-3"></i>
-                <p class="mt-2 mb-0 text-secondary">Formalizado</p>
+                <p class="mb-0 text-secondary">Formalizado</p>
+                <small class="text-muted">
+                   <span class="fw-bold" style="color: {{ enterprise.primary_color }};">R$ {{ status_values.FM|default:0|floatformat:2|intcomma }}</span>
+                </small>
                 <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
                     {{ status_counts.FM|default:0 }}
                 </span>
@@ -164,7 +184,10 @@
             <a href="?status=LB"
                 class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'LB' %}active-status-lb{% endif %}">
                 <i class="bi bi-box-arrow-in-up-right text-success fs-3"></i>
-                <p class="mt-2 mb-0 text-secondary">Liberado</p>
+                <p class="mb-0 text-secondary">Liberado</p>
+                <small class="text-muted">
+                   <span class="fw-bold" style="color: {{ enterprise.primary_color }};">R$ {{ status_values.LB|default:0|floatformat:2|intcomma }}</span>
+                </small>
                 <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
                     {{ status_counts.LB|default:0 }}
                 </span>
@@ -172,7 +195,10 @@
             <a href="?status=RC"
                 class="status-box text-center p-3 flex-shrink-0 text-decoration-none position-relative {% if request.GET.status == 'RC' %}active-status-rc{% endif %}">
                 <i class="bi bi-bar-chart text-danger fs-3"></i>
-                <p class="mt-2 mb-0 text-secondary">Receita</p>
+                <p class="mb-0 text-secondary">Receita</p>
+                <small class="text-muted">
+                   <span class="fw-bold" style="color: {{ enterprise.primary_color }};">R$ {{ status_values.RC|default:0|floatformat:2|intcomma }}</span>
+                </small>
                 <span class="position-absolute badge rounded-pill" style="top: -5px; right: -10px; font-size: 0.65rem; background-color: {{ enterprise.primary_color }};">
                     {{ status_counts.RC|default:0 }}
                 </span>

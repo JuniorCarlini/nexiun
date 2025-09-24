@@ -113,18 +113,22 @@
             <!-- Segundo gráfico - Gráficos Donut lado a lado -->
             <div class="mb-4">
                 <div class="container-style chart-container">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5 class="mb-3 text-center">
-                                <i class="fas fa-chart-pie me-2"></i>Projetos por Linha de Crédito
-                            </h5>
-                            <div id="creditoChart"></div>
+                    <div class="row g-3">
+                        <div class="col-lg-6 col-12">
+                            <div class="donut-chart-wrapper">
+                                <h5 class="mb-3 text-center">
+                                    <i class="fas fa-chart-pie me-2"></i>Projetos por Linha de Crédito
+                                </h5>
+                                <div id="creditoChart"></div>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <h5 class="mb-3 text-center">
-                               <i class="fas fa-university me-2"></i>Projetos por Banco
-                            </h5>
-                            <div id="bancosChart"></div>
+                        <div class="col-lg-6 col-12">
+                            <div class="donut-chart-wrapper">
+                                <h5 class="mb-3 text-center">
+                                   <i class="fas fa-university me-2"></i>Projetos por Banco
+                                </h5>
+                                <div id="bancosChart"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -298,7 +302,7 @@ var creditoOptions = {
     series: {{ credito_values|safe }},
     chart: {
         type: 'donut',
-        height: 350,
+        height: window.innerWidth < 768 ? 280 : 350,
         animations: {
             enabled: true
         }
@@ -365,7 +369,7 @@ var bancosOptions = {
     series: {{ bancos_values|safe }},
     chart: {
         type: 'donut',
-        height: 350,
+        height: window.innerWidth < 768 ? 280 : 350,
         animations: {
             enabled: true
         }
@@ -426,6 +430,25 @@ var bancosOptions = {
 
 var bancosChart = new ApexCharts(document.querySelector("#bancosChart"), bancosOptions);
 bancosChart.render();
+
+// Listener para redimensionar gráficos quando a tela mudar de tamanho
+window.addEventListener('resize', function() {
+    const isMobile = window.innerWidth < 768;
+    const newHeight = isMobile ? 280 : 350;
+    
+    // Atualizar altura dos gráficos donut
+    creditoChart.updateOptions({
+        chart: {
+            height: newHeight
+        }
+    });
+    
+    bancosChart.updateOptions({
+        chart: {
+            height: newHeight
+        }
+    });
+});
 
 // Função para mostrar modal da mensagem
 function showMessageModal(id, title, content, date) {
@@ -535,6 +558,14 @@ document.addEventListener('DOMContentLoaded', function() {
 .chart-container #creditoChart,
 .chart-container #bancosChart {
     min-height: 350px;
+    width: 100%;
+}
+
+.donut-chart-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 400px;
 }
 
 /* Estilo para os títulos dos gráficos donut */
@@ -619,6 +650,7 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 0.7rem;
     line-height: 1.2;
     display: block;
+    text-align: justify;
 }
 
 .message-actions {
@@ -661,6 +693,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     .col-md-6, .col-md-8, .col-md-4 {
         margin-bottom: 1rem;
+    }
+    
+    /* Ajustes para gráficos donut em mobile */
+    .chart-container {
+        height: auto !important;
+        padding: 15px;
+    }
+    
+    .donut-chart-wrapper {
+        min-height: 300px;
+        margin-bottom: 20px;
+    }
+    
+    .chart-container #creditoChart,
+    .chart-container #bancosChart {
+        min-height: 280px;
+        height: 280px;
+    }
+    
+    /* Ajustar altura dos gráficos para mobile */
+    .chart-container #unidadesChart {
+        min-height: 300px;
     }
 }
 
