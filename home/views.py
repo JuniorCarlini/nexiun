@@ -87,7 +87,7 @@ def home(request):
     
     # ============ MÉTRICAS PRINCIPAIS COM FILTROS DE SESSÃO ============
     
-    # 1. Faturamento Total (soma dos valores de TODOS os projetos)
+    # 1. Total em Projetos (soma dos valores de TODOS os projetos)
     faturamento_total = filtered_projects.aggregate(
         total=Coalesce(Sum('value'), Decimal('0'))
     )['total']
