@@ -6,7 +6,7 @@
 
 {% load humanize %}
 
-{% block title %}Inicio{% endblock %}
+{% block title %}Dashboard{% endblock %}
 
 {% block content %}
 
@@ -15,9 +15,10 @@
     <!-- Header -->
     <div class="row align-items-center ms-2 me-3 mb-3 mt-3 justify-content-between">
         <div class="col-auto">
-            <h2 class="text-color-primary m-0">Inicio</h2>
+            <h2 class="text-color-primary m-0">Dashboard</h2>
         </div>
     </div>
+    
     <!-- Alerta de Aniversário -->
     {% if is_birthday %}
     <div class="row">
@@ -42,51 +43,49 @@
     </div>
     {% endif %}
 
-    <!-- Métricas principais -->
+    <!-- Métricas principais CEO/Diretor -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="badge-style d-flex align-items-center">
                 <div class="metric-icon-badge">
-                    <i class="fas fa-wallet" style="color: {{ enterprise.primary_color }};"></i>
+                    <i class="fas fa-chart-line" style="color: {{ enterprise.primary_color }};"></i>
                 </div>
                 <div class="metric-content text-end flex-grow-1">
-                    <h5 class="text-color-primary mb-1">Saldo Total</h5>
-                    <h2 class="mb-0" style="color: {{ enterprise.primary_color }};">R$ {{ saldo_atual|floatformat:2|intcomma }}</h2>
+                    <h5 class="text-color-primary mb-1">Faturamento Total</h5>
+                    <h2 class="mb-0" style="color: {{ enterprise.primary_color }};">R$ {{ faturamento_total|floatformat:2|intcomma }}</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="badge-style d-flex align-items-center">
                 <div class="metric-icon-badge">
-                    <i class="fas fa-scale-unbalanced-flip" style="color: {{ enterprise.primary_color }};"></i>
+                    <i class="fas fa-project-diagram" style="color: {{ enterprise.primary_color }};"></i>
                 </div>  
                 <div class="metric-content text-end flex-grow-1">
-                    <h5 class="text-color-primary mb-1">Situação Mensal</h5>
-                    <h2 class="mb-0 {% if situacao_mensal >= 0 %}text-success{% else %}text-danger{% endif %}">
-                        {% if situacao_mensal >= 0 %}+{% endif %}R$ {{ situacao_mensal|floatformat:2|intcomma }}
-                    </h2>
+                    <h5 class="text-color-primary mb-1">Projetos em Andamento</h5>
+                    <h2 class="mb-0" style="color: {{ enterprise.primary_color }};">{{ projetos_andamento }}</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="badge-style d-flex align-items-center">
                 <div class="metric-icon-badge">
-                    <i class="fas fa-arrow-trend-up" style="color: {{ enterprise.primary_color }};"></i> 
+                    <i class="fas fa-building" style="color: {{ enterprise.primary_color }};"></i> 
                 </div>
                 <div class="metric-content text-end flex-grow-1">
-                    <h5 class="text-color-primary mb-1">Entradas</h5>
-                    <h2 class="mb-0 text-success">R$ {{ current_month_entradas|floatformat:2|intcomma }}</h2>
+                    <h5 class="text-color-primary mb-1">Unidades Ativas</h5>
+                    <h2 class="mb-0" style="color: {{ enterprise.primary_color }};">{{ total_unidades }}</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="badge-style d-flex align-items-center">
-                <div class="metric-icon-badge   ">
-                    <i class="fas fa-arrow-trend-down" style="color: {{ enterprise.primary_color }};"></i>
+                <div class="metric-icon-badge">
+                    <i class="fas fa-users" style="color: {{ enterprise.primary_color }};"></i>
                 </div>
                 <div class="metric-content text-end flex-grow-1">
-                    <h5 class="text-color-primary mb-1">Saídas</h5>
-                    <h2 class="mb-0 text-danger">R$ {{ current_month_saidas|floatformat:2|intcomma }}</h2>
+                    <h5 class="text-color-primary mb-1">Clientes Ativos</h5>
+                    <h2 class="mb-0" style="color: {{ enterprise.primary_color }};">{{ clientes_ativos }}</h2>
                 </div>
             </div>
         </div>
@@ -96,23 +95,23 @@
     <div class="row mb-4">
         <!-- Coluna esquerda - Gráficos empilhados -->
         <div class="col-md-8">
-            <!-- Primeiro gráfico - Entradas vs Saídas -->
+            <!-- Primeiro gráfico - Performance das Unidades -->
             <div class="mb-4">
                 <div class="container-style chart-container">
                     <h5 class="mb-3">
-                       Entradas x Saídas
+                       <i class="fas fa-chart-bar me-2"></i>Performance das Unidades (Últimos 6 meses)
                     </h5>
-                    <div id="lineChart"></div>
+                    <div id="unidadesChart"></div>
                 </div>
             </div>
 
-            <!-- Segundo gráfico - Entradas vs Saídas -->
+            <!-- Segundo gráfico - Distribuição por Linha de Crédito -->
             <div class="mb-4">
                 <div class="container-style chart-container">
                     <h5 class="mb-3">
-                       Entradas x Saídas (Anual)
+                       <i class="fas fa-chart-pie me-2"></i>Projetos por Linha de Crédito
                     </h5>
-                    <div id="lineChart2"></div>
+                    <div id="creditoChart"></div>
                 </div>
             </div>
         </div>
@@ -121,7 +120,7 @@
         <div class="col-md-4">
             <div class="container-style messages-container">
                 <div class="mb-3">
-                    <h5 class="mb-0">Mensagens</h5>
+                    <h5 class="mb-0"><i class="fas fa-envelope me-2"></i>Mensagens</h5>
                 </div>
                 
                 {% if mensagens %}
@@ -140,12 +139,6 @@
                         <div class="message-info flex-grow-1">
                             <h6 class="mb-1 fw-semibold text-color-primary">{{ mensagem.title|truncatechars:25 }}</h6>
                             <small class="text-muted">{{ mensagem.content|truncatechars:60 }}</small>
-                            <div class="mt-1">
-                                <small class="text-muted">{{ mensagem.date|date:"d/m/Y H:i" }}</small>
-                                {% if mensagem.scope == 'unidade' and mensagem.unit %}
-                                    <span class="badge badge-sm" style="background-color: {{ enterprise.primary_color }}; color: white; font-size: 0.6rem;">{{ mensagem.unit.name }}</span>
-                                {% endif %}
-                            </div>
                         </div>
                         <div class="message-actions">
                             {% if user|has_perm:'enterprises.view_internalmessage' %}
@@ -204,17 +197,65 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script src="https://cdn.jsdelivr.net/npm/party-js@latest/bundle/party.min.js"></script>
 <script>
-// Gráfico de linha - Entradas vs Saídas
-var lineOptions = {
-    series: [{
-        name: 'Entradas',
-        data: {{ entradas_chart|safe }}
-    }, {
-        name: 'Saídas',
-        data: {{ saidas_chart|safe }}
-    }],
+// Função para gerar variações de cores
+function generateColorVariations(primaryColor, secondaryColor) {
+    // Função para converter hex para RGB
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    }
+    
+    // Função para converter RGB para hex
+    function rgbToHex(r, g, b) {
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+    
+    // Função para clarear cor
+    function lighten(color, percent) {
+        const rgb = hexToRgb(color);
+        const amount = Math.round(2.55 * percent);
+        return rgbToHex(
+            Math.min(255, rgb.r + amount),
+            Math.min(255, rgb.g + amount),
+            Math.min(255, rgb.b + amount)
+        );
+    }
+    
+    // Função para escurecer cor
+    function darken(color, percent) {
+        const rgb = hexToRgb(color);
+        const amount = Math.round(2.55 * percent);
+        return rgbToHex(
+            Math.max(0, rgb.r - amount),
+            Math.max(0, rgb.g - amount),
+            Math.max(0, rgb.b - amount)
+        );
+    }
+    
+    return [
+        primaryColor,                    // Cor primária original
+        secondaryColor,                  // Cor secundária original
+        lighten(primaryColor, 20),       // Primária mais clara
+        darken(primaryColor, 20),        // Primária mais escura
+        lighten(secondaryColor, 20),     // Secundária mais clara
+        darken(secondaryColor, 20),      // Secundária mais escura
+        lighten(primaryColor, 40),       // Primária muito clara
+        darken(primaryColor, 40)         // Primária muito escura
+    ];
+}
+
+// Gerar paleta de cores baseada nas cores da empresa
+const enterpriseColors = generateColorVariations('{{ enterprise.primary_color }}', '{{ enterprise.secondary_color }}');
+
+// Gráfico de barras - Performance das Unidades
+var unidadesOptions = {
+    series: {{ unidades_series|safe }},
     chart: {
-        type: 'line',
+        type: 'bar',
         height: 350,
         toolbar: {
             show: false
@@ -223,12 +264,20 @@ var lineOptions = {
             enabled: true
         }
     },
+    plotOptions: {
+        bar: {
+            horizontal: false,
+            columnWidth: '55%',
+            endingShape: 'rounded'
+        },
+    },
     dataLabels: {
         enabled: false
     },
     stroke: {
-        curve: 'smooth',
-        width: 3
+        show: true,
+        width: 2,
+        colors: ['transparent']
     },
     xaxis: {
         categories: {{ meses_labels|safe }},
@@ -238,23 +287,16 @@ var lineOptions = {
     },
     yaxis: {
         title: {
-            text: 'Valor (R$)'
+            text: 'Valor dos Projetos (R$)'
         },
         labels: {
             formatter: function (val) {
-                return "R$ " + val.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                return "R$ " + val.toLocaleString('pt-BR', {minimumFractionDigits: 0});
             }
         }
     },
-    colors: ['#28a745', '#dc3545'],
     fill: {
-        type: 'gradient',
-        gradient: {
-            shadeIntensity: 1,
-            opacityFrom: 0.3,
-            opacityTo: 0.9,
-            stops: [0, 90, 100]
-        }
+        opacity: 1
     },
     tooltip: {
         y: {
@@ -264,16 +306,67 @@ var lineOptions = {
         }
     },
     legend: {
-        position: 'top'
-    }
+        position: 'top',
+        horizontalAlign: 'left'
+    },
+    colors: enterpriseColors
 };
 
-var lineChart = new ApexCharts(document.querySelector("#lineChart"), lineOptions);
-lineChart.render();
+var unidadesChart = new ApexCharts(document.querySelector("#unidadesChart"), unidadesOptions);
+unidadesChart.render();
 
-// Segundo gráfico (cópia do primeiro para demonstração)
-var lineChart2 = new ApexCharts(document.querySelector("#lineChart2"), lineOptions);
-lineChart2.render();
+// Gráfico donut - Projetos por Linha de Crédito
+var creditoOptions = {
+    series: {{ credito_values|safe }},
+    chart: {
+        type: 'donut',
+        height: 350,
+        animations: {
+            enabled: true
+        }
+    },
+    labels: {{ credito_labels|safe }},
+    plotOptions: {
+        pie: {
+            donut: {
+                size: '60%',
+                labels: {
+                    show: true,
+                    total: {
+                        show: true,
+                        label: 'Total de Projetos',
+                        formatter: function (w) {
+                            return w.globals.seriesTotals.reduce((a, b) => {
+                                return a + b
+                            }, 0)
+                        }
+                    }
+                }
+            }
+        }
+    },
+    dataLabels: {
+        enabled: true,
+        formatter: function (val, opts) {
+            return opts.w.config.series[opts.seriesIndex]
+        }
+    },
+    tooltip: {
+        y: {
+            formatter: function (val) {
+                return val + " projetos"
+            }
+        }
+    },
+    legend: {
+        position: 'bottom',
+        horizontalAlign: 'center'
+    },
+    colors: enterpriseColors
+};
+
+var creditoChart = new ApexCharts(document.querySelector("#creditoChart"), creditoOptions);
+creditoChart.render();
 
 // Função para mostrar modal da mensagem
 function showMessageModal(id, title, content, date) {
@@ -375,8 +468,8 @@ document.addEventListener('DOMContentLoaded', function() {
     height: 450px; /* Altura fixa para garantir scroll */
 }
 
-.chart-container #lineChart,
-.chart-container #lineChart2 {
+.chart-container #unidadesChart,
+.chart-container #creditoChart {
     flex: 1;
     min-height: 350px;
 }
@@ -470,149 +563,6 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 0.7rem;
 }
 
-/* Estilos para contas bancárias em grid */
-.bank-accounts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 15px;
-    padding: 10px 0;
-}
-
-/* Estilos para contas bancárias */
-.bank-accounts-scroll {
-    flex: 1;
-    overflow-y: auto;
-    padding-right: 8px;
-    margin-bottom: auto;
-    min-height: 200px;
-    max-height: 310px;
-}
-
-.bank-accounts-scroll::-webkit-scrollbar {
-    width: 6px;
-}
-
-.bank-accounts-scroll::-webkit-scrollbar-track {
-    background: #f1f3f4;
-    border-radius: 3px;
-}
-
-.bank-accounts-scroll::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
-}
-
-.bank-accounts-scroll::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-}
-
-.bank-account-item {
-    padding: 10px;
-    border-bottom: 1px solid #f1f3f4;
-    border-radius: 10px;
-}
-
-.bank-account-item:hover {
-    background-color: #f1f3f4;
-    transition: background-color 0.2s ease;
-}
-
-/* Badge do ícone do banco */
-.bank-icon-badge {
-    width: 45px;
-    height: 45px;
-    border-radius: 12px;
-    background-color: #F7F8FB;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 12px;
-    flex-shrink: 0;
-}
-
-.bank-icon-badge i {
-    font-size: 18px;
-}
-
-.bank-info {
-    min-width: 0;
-    margin-right: 12px;
-}
-
-.bank-info h6 {
-    font-size: 0.9rem;
-    line-height: 1.3;
-}
-
-.bank-info small {
-    font-size: 0.75rem;
-    line-height: 1.2;
-    display: block;
-}
-
-.bank-value {
-    flex-shrink: 0;
-    min-width: 80px;
-}
-
-.bank-value .fw-bold {
-    font-size: 0.9rem;
-    white-space: nowrap;
-}
-
-/* Responsividade */
-@media (max-width: 767.98px) {
-    .charts-row {
-        display: block;
-    }
-    
-    .charts-row .col-md-8,
-    .charts-row .col-md-4 {
-        display: block;
-    }
-    
-    .chart-container,
-    .bank-accounts-container,
-    .messages-container {
-        height: auto;
-        min-height: auto;
-    }
-    
-    .chart-container #lineChart,
-    .chart-container #lineChart2 {
-        min-height: 300px;
-    }
-    
-    .messages-container {
-        height: 400px; /* Altura menor no mobile */
-        margin-top: 20px;
-    }
-    
-    .messages-scroll {
-        min-height: 150px;
-        max-height: 300px;
-    }
-    
-    .bank-accounts-container {
-        height: 350px; /* Altura menor no mobile */
-    }
-    
-    .bank-accounts-scroll {
-        min-height: 150px;
-        max-height: 250px;
-    }
-    
-    .bank-accounts-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-    
-    .message-actions {
-        flex-direction: row;
-        gap: 2px;
-    }
-}
-
 .metric-content {
     min-width: 0;
 }
@@ -646,25 +596,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* Estilos para o alerta de aniversário */
 .birthday-alert {
-    background: #e91e63;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
     border-radius: 20px;
-    box-shadow: 0 8px 25px rgba(255, 154, 158, 0.2);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
     padding: 20px 25px;
     margin-bottom: 20px;
-    border-left: 5px solid #e91e63;
+    border-left: 5px solid #667eea;
 }
 
 .birthday-alert-icon {
     font-size: 3rem;
-    color: #e91e63;
+    color: #fff;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
     animation: bounce 2s infinite;
     flex-shrink: 0;
 }
 
 .birthday-alert-title {
-    color: #880e4f;
+    color: #fff;
     font-weight: 700;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
     font-size: 1.5rem;
@@ -672,17 +622,11 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .birthday-alert-message {
-    color: #ad1457;
+    color: #fff;
     font-size: 1rem;
     line-height: 1.5;
     margin-bottom: 0;
-}
-
-.birthday-alert-decoration {
-    font-size: 2rem;
-    color: #f48fb1;
-    animation: pulse 2s infinite;
-    flex-shrink: 0;
+    opacity: 0.9;
 }
 
 @keyframes bounce {
@@ -694,18 +638,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     60% {
         transform: translateY(-4px);
-    }
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.1);
-    }
-    100% {
-        transform: scale(1);
     }
 }
 
@@ -727,10 +659,15 @@ document.addEventListener('DOMContentLoaded', function() {
     .birthday-alert-message {
         font-size: 0.9rem;
     }
-    
-    .birthday-alert-decoration {
-        font-size: 1.8rem;
-    }
 }
+
+/* Estilo adicional para containers dos gráficos */
+.container-style {
+    background-color: #ffffff;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
 </style>
 {% endblock %} 

@@ -4,9 +4,9 @@ from users.models import User
 from django.utils import timezone
 from django.contrib import messages
 from datetime import timedelta, date
-from projects.models import Project, Bank
+from projects.models import Project, Bank, CreditLine
 from django.shortcuts import render, redirect
-from enterprises.models import InternalMessage
+from enterprises.models import InternalMessage, Client
 from units.models import Unit, BankAccount, Transaction
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, F, Q, Value, DecimalField, Avg
@@ -14,103 +14,151 @@ from django.db.models.functions import Coalesce, TruncMonth, ExtractMonth, Extra
 
 @login_required
 def home(request):
-    """View principal"""
+    """View principal - Dashboard CEO/Diretor"""
     user = request.user
+    enterprise = user.enterprise
     
-    # Filtrar contas bancárias baseado nas unidades do usuário
-    contas_bancarias = BankAccount.objects.filter(unit__enterprise=user.enterprise)
-    user_units = user.units.all()
-    if user_units.exists() and user.has_perm('users.view_unit_dashboard') and not user.has_perm('users.view_company_dashboard'):
-        contas_bancarias = contas_bancarias.filter(unit__in=user_units)
-    
-    # Calcular saldo total atual
-    saldo_atual = sum(conta.get_current_balance() for conta in contas_bancarias)
-    
-    # Obter transações do mês atual
+    # Verificar se é aniversário do usuário
     today = timezone.now().date()
-    start_of_month = today.replace(day=1)
+    is_birthday = False
+    if user.date_of_birth:
+        is_birthday = (user.date_of_birth.month == today.month and 
+                      user.date_of_birth.day == today.day)
     
-    transactions_filter = {'date__gte': start_of_month, 'date__lte': today}
-    if user_units.exists() and user.has_perm('users.view_unit_dashboard') and not user.has_perm('users.view_company_dashboard'):
-        transactions_filter['bank_account__unit__in'] = user_units
-    else:
-        transactions_filter['bank_account__unit__enterprise'] = user.enterprise
+    # ============ MÉTRICAS PRINCIPAIS CEO/DIRETOR ============
     
-    current_month_transactions = Transaction.objects.filter(**transactions_filter)
+    # 1. Faturamento Total (soma dos valores dos projetos aprovados/liberados)
+    faturamento_total = Project.objects.filter(
+        enterprise=enterprise,
+        status__in=['AP', 'AF', 'FM', 'LB', 'RC'],  # Projetos que geram faturamento
+        is_active=True
+    ).aggregate(total=Coalesce(Sum('value'), Decimal('0')))['total']
     
-    # Calcular entradas e saídas do mês atual
-    current_month_entradas = current_month_transactions.filter(category='entrada').aggregate(
-        total=Coalesce(Sum('amount'), Decimal('0')))['total']
-    current_month_saidas = current_month_transactions.filter(category='saida').aggregate(
-        total=Coalesce(Sum('amount'), Decimal('0')))['total']
+    # 2. Total de Projetos em Andamento (todos os status ativos exceto finalizados)
+    projetos_andamento = Project.objects.filter(
+        enterprise=enterprise,
+        status__in=['AC', 'PE', 'AN', 'AP', 'AF', 'FM', 'LB'],  # Não inclui 'RC' (finalizado)
+        is_active=True
+    ).count()
     
-    # Saldo líquido do mês
-    current_month_liquido = current_month_entradas - current_month_saidas
+    # 3. Total de Unidades Ativas
+    total_unidades = Unit.objects.filter(
+        enterprise=enterprise,
+        is_active=True
+    ).count()
     
-    # Dados para gráfico de fluxo de caixa dos últimos 6 meses
+    # 4. Total de Clientes Ativos
+    clientes_ativos = Client.objects.filter(
+        enterprise=enterprise,
+        status='ATIVO',
+        is_active=True
+    ).count()
+    
+    # ============ DADOS PARA GRÁFICO DE BARRAS - UNIDADES ============
+    
+    # Obter dados mensais dos últimos 6 meses por unidade
     six_months_ago = today - timedelta(days=180)
     
-    # Transações dos últimos 6 meses
-    transactions_6m_filter = {'date__gte': six_months_ago, 'date__lte': today}
-    if user_units.exists() and user.has_perm('users.view_unit_dashboard') and not user.has_perm('users.view_company_dashboard'):
-        transactions_6m_filter['bank_account__unit__in'] = user_units
-    else:
-        transactions_6m_filter['bank_account__unit__enterprise'] = user.enterprise
+    # Projetos dos últimos 6 meses agrupados por unidade e mês
+    unidades_data = Project.objects.filter(
+        enterprise=enterprise,
+        created_at__date__gte=six_months_ago,
+        is_active=True
+    ).annotate(
+        year=ExtractYear('created_at'),
+        month=ExtractMonth('created_at')
+    ).values('unit__name', 'year', 'month').annotate(
+        total_value=Sum('value'),
+        project_count=Count('id')
+    ).order_by('unit__name', 'year', 'month')
     
-    transactions_6m = Transaction.objects.filter(**transactions_6m_filter)
+    # Organizar dados para o gráfico de barras
+    unidades_chart_data = {}
+    months_set = set()
     
-    # Agrupar por mês
-    monthly_data = transactions_6m.annotate(
-        year=ExtractYear('date'),
-        month=ExtractMonth('date')
-    ).values('year', 'month', 'category').annotate(
-        total=Sum('amount')
-    ).order_by('year', 'month')
-    
-    # Organizar dados para o gráfico
-    chart_data = {}
-    for item in monthly_data:
+    for item in unidades_data:
+        unit_name = item['unit__name']
         month_key = f"{item['year']}-{item['month']:02d}"
-        if month_key not in chart_data:
-            chart_data[month_key] = {'entradas': 0, 'saidas': 0}
+        months_set.add(month_key)
         
-        if item['category'] == 'entrada':
-            chart_data[month_key]['entradas'] = float(item['total'])
-        else:
-            chart_data[month_key]['saidas'] = float(item['total'])
+        if unit_name not in unidades_chart_data:
+            unidades_chart_data[unit_name] = {}
+        
+        unidades_chart_data[unit_name][month_key] = float(item['total_value'] or 0)
     
-    # Converter para listas ordenadas para o JavaScript
-    months = sorted(chart_data.keys())
-    entradas_data = [chart_data[month]['entradas'] for month in months]
-    saidas_data = [chart_data[month]['saidas'] for month in months]
+    # Preparar dados para ApexCharts
+    months_list = sorted(list(months_set))
+    unidades_series = []
+    
+    for unit_name, monthly_data in unidades_chart_data.items():
+        series_data = []
+        for month in months_list:
+            series_data.append(monthly_data.get(month, 0))
+        
+        unidades_series.append({
+            'name': unit_name,
+            'data': series_data
+        })
     
     # Formataar meses para exibição
     months_labels = []
-    for month in months:
+    for month in months_list:
         year, month_num = month.split('-')
         month_names = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
                       'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
         months_labels.append(f"{month_names[int(month_num)-1]} {year}")
     
-    # Obter mensagens internas recentes
-    messages_queryset = InternalMessage.objects.filter(enterprise=user.enterprise)
-    if user_units.exists() and user.has_perm('users.view_unit_dashboard') and not user.has_perm('users.view_company_dashboard'):
-        # Se usuário só pode ver dados das unidades, filtra por mensagens das unidades ou corporativas
-        messages_queryset = messages_queryset.filter(
-            Q(scope='unit', unit__in=user_units) | Q(scope='enterprise')
-        )
+    # ============ DADOS PARA GRÁFICO DONUT - LINHAS DE CRÉDITO ============
     
-    recent_messages = messages_queryset.order_by('-date')[:5]
+    # Contar projetos por linha de crédito
+    credito_data = Project.objects.filter(
+        enterprise=enterprise,
+        is_active=True
+    ).values('credit_line__name').annotate(
+        project_count=Count('id')
+    ).order_by('-project_count')
+    
+    # Preparar dados para o gráfico donut
+    credito_labels = []
+    credito_values = []
+    
+    for item in credito_data:
+        if item['credit_line__name']:  # Verificar se não é None
+            credito_labels.append(item['credit_line__name'])
+            credito_values.append(item['project_count'])
+    
+    # ============ MENSAGENS (MANTER IGUAL) ============
+    
+    # Obter mensagens internas recentes
+    mensagens = InternalMessage.objects.filter(
+        enterprise=enterprise
+    ).order_by('-date')[:5]
+    
+    # ============ CONTEXT PARA O TEMPLATE ============
     
     context = {
-        'saldo_atual': saldo_atual,
-        'current_month_entradas': current_month_entradas,
-        'current_month_saidas': current_month_saidas,
-        'current_month_liquido': current_month_liquido,
-        'recent_messages': recent_messages,
-        'months_labels': json.dumps(months_labels),
-        'entradas_data': json.dumps(entradas_data),
-        'saidas_data': json.dumps(saidas_data),
+        # Dados do usuário
+        'is_birthday': is_birthday,
+        
+        # Métricas principais
+        'faturamento_total': faturamento_total,
+        'projetos_andamento': projetos_andamento,
+        'total_unidades': total_unidades,
+        'clientes_ativos': clientes_ativos,
+        
+        # Dados para gráfico de barras (unidades)
+        'unidades_series': json.dumps(unidades_series),
+        'meses_labels': json.dumps(months_labels),
+        
+        # Dados para gráfico donut (linhas de crédito)
+        'credito_labels': json.dumps(credito_labels),
+        'credito_values': json.dumps(credito_values),
+        
+        # Mensagens
+        'mensagens': mensagens,
+        
+        # Dados da empresa
+        'enterprise': enterprise,
     }
     
     return render(request, 'home/home.html', context)
