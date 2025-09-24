@@ -105,13 +105,23 @@
                 </div>
             </div>
 
-            <!-- Segundo gráfico - Distribuição por Linha de Crédito -->
+            <!-- Segundo gráfico - Gráficos Donut lado a lado -->
             <div class="mb-4">
                 <div class="container-style chart-container">
-                    <h5 class="mb-3">
-                       <i class="fas fa-chart-pie me-2"></i>Projetos por Linha de Crédito
-                    </h5>
-                    <div id="creditoChart"></div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mb-3 text-center">
+                               <i class="fas fa-chart-pie me-2"></i>Projetos por Linha de Crédito
+                            </h6>
+                            <div id="creditoChart"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-3 text-center">
+                               <i class="fas fa-university me-2"></i>Projetos por Banco
+                            </h6>
+                            <div id="bancosChart"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -320,7 +330,7 @@ var creditoOptions = {
     series: {{ credito_values|safe }},
     chart: {
         type: 'donut',
-        height: 350,
+        height: 280,
         animations: {
             enabled: true
         }
@@ -329,12 +339,15 @@ var creditoOptions = {
     plotOptions: {
         pie: {
             donut: {
-                size: '60%',
+                size: '70%',
                 labels: {
                     show: true,
                     total: {
                         show: true,
-                        label: 'Total de Projetos',
+                        label: 'Total',
+                        fontSize: '16px',
+                        fontWeight: 600,
+                        color: '{{ enterprise.primary_color }}',
                         formatter: function (w) {
                             return w.globals.seriesTotals.reduce((a, b) => {
                                 return a + b
@@ -346,10 +359,7 @@ var creditoOptions = {
         }
     },
     dataLabels: {
-        enabled: true,
-        formatter: function (val, opts) {
-            return opts.w.config.series[opts.seriesIndex]
-        }
+        enabled: false
     },
     tooltip: {
         y: {
@@ -359,14 +369,65 @@ var creditoOptions = {
         }
     },
     legend: {
-        position: 'bottom',
-        horizontalAlign: 'center'
+        show: false
     },
     colors: enterpriseColors
 };
 
 var creditoChart = new ApexCharts(document.querySelector("#creditoChart"), creditoOptions);
 creditoChart.render();
+
+// Gráfico donut - Projetos por Banco
+var bancosOptions = {
+    series: {{ bancos_values|safe }},
+    chart: {
+        type: 'donut',
+        height: 280,
+        animations: {
+            enabled: true
+        }
+    },
+    labels: {{ bancos_labels|safe }},
+    plotOptions: {
+        pie: {
+            donut: {
+                size: '70%',
+                labels: {
+                    show: true,
+                    total: {
+                        show: true,
+                        label: 'Total',
+                        fontSize: '16px',
+                        fontWeight: 600,
+                        color: '{{ enterprise.primary_color }}',
+                        formatter: function (w) {
+                            return w.globals.seriesTotals.reduce((a, b) => {
+                                return a + b
+                            }, 0)
+                        }
+                    }
+                }
+            }
+        }
+    },
+    dataLabels: {
+        enabled: false
+    },
+    tooltip: {
+        y: {
+            formatter: function (val) {
+                return val + " projetos"
+            }
+        }
+    },
+    legend: {
+        show: false
+    },
+    colors: enterpriseColors.slice().reverse() // Usar cores invertidas para diferenciação
+};
+
+var bancosChart = new ApexCharts(document.querySelector("#bancosChart"), bancosOptions);
+bancosChart.render();
 
 // Função para mostrar modal da mensagem
 function showMessageModal(id, title, content, date) {
@@ -468,10 +529,21 @@ document.addEventListener('DOMContentLoaded', function() {
     height: 450px; /* Altura fixa para garantir scroll */
 }
 
-.chart-container #unidadesChart,
-.chart-container #creditoChart {
+.chart-container #unidadesChart {
     flex: 1;
     min-height: 350px;
+}
+
+.chart-container #creditoChart,
+.chart-container #bancosChart {
+    min-height: 280px;
+}
+
+/* Estilo para os títulos dos gráficos donut */
+.chart-container h6 {
+    color: #16365f;
+    font-weight: 600;
+    margin-bottom: 15px;
 }
 
 /* Estilos para mensagens */
@@ -576,7 +648,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .metric-content h2 {
-    font-size: 1.6rem;
+    font-size: 1.3rem;
     line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;

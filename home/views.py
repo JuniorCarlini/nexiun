@@ -110,13 +110,13 @@ def home(request):
     
     # ============ DADOS PARA GRÁFICO DONUT - LINHAS DE CRÉDITO ============
     
-    # Contar projetos por linha de crédito
+    # Contar projetos por linha de crédito (top 5)
     credito_data = Project.objects.filter(
         enterprise=enterprise,
         is_active=True
     ).values('credit_line__name').annotate(
         project_count=Count('id')
-    ).order_by('-project_count')
+    ).order_by('-project_count')[:5]  # Limitar a 5 para melhor visualização
     
     # Preparar dados para o gráfico donut
     credito_labels = []
@@ -126,6 +126,25 @@ def home(request):
         if item['credit_line__name']:  # Verificar se não é None
             credito_labels.append(item['credit_line__name'])
             credito_values.append(item['project_count'])
+    
+    # ============ DADOS PARA GRÁFICO DONUT - BANCOS ============
+    
+    # Contar projetos por banco (top 5)
+    bancos_data = Project.objects.filter(
+        enterprise=enterprise,
+        is_active=True
+    ).values('bank__name').annotate(
+        project_count=Count('id')
+    ).order_by('-project_count')[:5]  # Limitar a 5 para melhor visualização
+    
+    # Preparar dados para o gráfico donut de bancos
+    bancos_labels = []
+    bancos_values = []
+    
+    for item in bancos_data:
+        if item['bank__name']:  # Verificar se não é None
+            bancos_labels.append(item['bank__name'])
+            bancos_values.append(item['project_count'])
     
     # ============ MENSAGENS (MANTER IGUAL) ============
     
@@ -153,6 +172,10 @@ def home(request):
         # Dados para gráfico donut (linhas de crédito)
         'credito_labels': json.dumps(credito_labels),
         'credito_values': json.dumps(credito_values),
+        
+        # Dados para gráfico donut (bancos)
+        'bancos_labels': json.dumps(bancos_labels),
+        'bancos_values': json.dumps(bancos_values),
         
         # Mensagens
         'mensagens': mensagens,
