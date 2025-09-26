@@ -507,6 +507,166 @@
         transform: none !important;
     }
 
+    /* Estilos para validação de campos */
+    #validationErrors {
+        display: none !important;
+    }
+    
+    #validationErrors.show-errors {
+        display: flex !important;
+    }
+    
+    /* Garantir que ambos os alertas tenham o mesmo espaçamento */
+    .modal-body .alert {
+        margin-bottom: 1rem;
+    }
+    
+    .modal-body .alert:last-of-type {
+        margin-bottom: 1rem;
+    }
+    
+    #validationErrors ul {
+        list-style-type: none;
+        padding-left: 0;
+        text-align: center;
+        margin: 0;
+        margin-top: 0.5rem;
+    }
+    
+    #validationErrors li {
+        padding: 2px 0;
+        font-size: 0.875rem;
+        display: block;
+        line-height: 1.4;
+    }
+    
+    #validationErrors li::before {
+        content: "• ";
+        color: #dc3545;
+        font-weight: bold;
+    }
+    
+    /* Garantir que o small tenha o mesmo comportamento em ambos */
+    .modal-body .alert small {
+        display: block;
+        margin-top: 0.25rem;
+    }
+
+    /* Estilos para Linha do Tempo das Observações */
+    .observation-timeline {
+        width: 100%;
+    }
+    
+    .timeline-header {
+        color: #495057;
+        font-size: 0.9rem;
+    }
+    
+    .observation-content {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: #495057;
+        position: relative;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        word-wrap: break-word;
+        word-break: break-word;
+        white-space: normal;
+    }
+    
+    .observation-content::before {
+        content: '';
+        position: absolute;
+        top: 15px;
+        left: -8px;
+        width: 0;
+        height: 0;
+        border-top: 8px solid transparent;
+        border-bottom: 8px solid transparent;
+        border-right: 8px solid #f8f9fa;
+        z-index: 2;
+    }
+    
+    .observation-content::after {
+        content: '';
+        position: absolute;
+        top: 15px;
+        left: -9px;
+        width: 0;
+        height: 0;
+        border-top: 8px solid transparent;
+        border-bottom: 8px solid transparent;
+        border-right: 8px solid #dee2e6;
+        z-index: 1;
+    }
+    
+    /* Estilos para conteúdo HTML das observações */
+    .observation-content div {
+        margin-bottom: 0.5rem;
+        word-wrap: break-word;
+        word-break: break-word;
+    }
+    
+    .observation-content div:last-child {
+        margin-bottom: 0;
+    }
+    
+    .observation-content strong {
+        font-weight: 600;
+    }
+    
+    .observation-content em {
+        font-style: italic;
+    }
+    
+    .observation-content ul, .observation-content ol {
+        margin: 0.5rem 0;
+        padding-left: 1.5rem;
+    }
+    
+    .observation-content p {
+        margin-bottom: 0.5rem;
+        word-wrap: break-word;
+        word-break: break-word;
+    }
+    
+    .observation-content p:last-child {
+        margin-bottom: 0;
+    }
+    
+    /* Garantir que links longos também quebrem */
+    .observation-content a {
+        word-break: break-all;
+    }
+    
+    /* Garantir que tabelas se ajustem */
+    .observation-content table {
+        width: 100%;
+        table-layout: fixed;
+    }
+    
+    .observation-content td, .observation-content th {
+        word-wrap: break-word;
+        word-break: break-word;
+    }
+    
+    /* Tema escuro */
+    [data-theme="dark"] .observation-content {
+        background-color: #404040;
+        border-color: #525252;
+        color: #e4e4e7;
+    }
+    
+    [data-theme="dark"] .observation-content::before {
+        border-right-color: #404040;
+    }
+    
+    [data-theme="dark"] .observation-content::after {
+        border-right-color: #525252;
+    }
+
 </style>
 
 <div class="container">
@@ -890,9 +1050,13 @@
         <!-- Observações -->
         <div class="row mb-3">
             <div class="col-12">
-                <label for="observacoes" class="form-label fw-bold">Observações:</label>
-                <input id="observacoes" type="hidden" name="description" value="{{ project.description }}">
-                <trix-editor input="observacoes" {% if is_completed %}contentEditable="false"{% endif %}></trix-editor>
+                <label for="observacoes" class="form-label fw-bold">Nova Observação:</label>
+                <small class="text-muted d-block mb-2">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Digite sua observação abaixo. Após salvar, ela será adicionada ao histórico e o campo ficará limpo para a próxima anotação.
+                </small>
+                <input id="observacoes" type="hidden" name="description" value="">
+                <trix-editor input="observacoes" {% if is_completed %}contentEditable="false"{% endif %} placeholder="Digite aqui sua nova observação sobre o projeto..."></trix-editor>
             </div>
         </div>
 
@@ -1040,6 +1204,66 @@
     </form>
 </div>
 
+<!-- Seção de Linha do Tempo -->
+<div class="container-style mt-4">
+    <div class="row mb-3">
+        <div class="col-12">
+            <label class="form-label fw-bold">Linha do Tempo:</label>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="table-container">
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th class="col-description">Data/Hora</th>
+                            <th class="col-category">Histórico de Observações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for history in project_history %}
+                            {% for field, change in history.changes.items %}
+                                {% if field == 'description' and change.para and change.para|striptags|length > 0 and change.de != change.para %}
+                                    <tr>
+                                        <td>
+                                            <div class="transaction-text">
+                                                <i class="fas fa-clock me-1" style="color: {{ enterprise.primary_color }};"></i>
+                                                {{ history.timestamp|date:"d/m/Y H:i" }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="observation-timeline">
+                                                <div class="timeline-header mb-2">
+                                                    <i class="fas fa-comment-dots me-1"></i>
+                                                    <strong>{{ change.usuario }}</strong> adicionou uma observação
+                                                </div>
+                                                <div class="timeline-content">
+                                                    <div class="observation-content current p-3">
+                                                        {{ change.para|safe }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="2" class="text-center" style="padding: 60px 0;">
+                                <div><i class="bi bi-chat-dots text-muted fs-1"></i></div>
+                                <p class="mt-1">Nenhuma observação foi adicionada ainda.</p>
+                                <small class="text-muted">As observações aparecerão aqui conforme forem sendo adicionadas.</small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Seção de Histórico -->
 <div class="container-style mt-4">
     <div class="row mb-3">
@@ -1060,7 +1284,8 @@
                     <tbody>
                         {% for history in project_history %}
                             {% for field, change in history.changes.items %}
-                                {% if 'document_' in field or 'next_phase_deadline' not in field and change.de != change.para or 'next_phase_deadline' in field and change.de|slice:":10" != change.para|slice:":10" %}
+                                {% if field != 'description' %}
+                                    {% if field == 'document_added' or field == 'document_deleted' or field != 'next_phase_deadline' and change.de != change.para or field == 'next_phase_deadline' and change.de|slice:":10" != change.para|slice:":10" %}
                                     <tr>
                                         <td>
                                             <div class="transaction-text">
@@ -1087,6 +1312,7 @@
                                             </span>
                                         </td>
                                     </tr>
+                                    {% endif %}
                                 {% endif %}
                             {% endfor %}
                         {% empty %}
@@ -1161,16 +1387,35 @@
             </div>
             <div class="modal-body">
                 {% if project.status == "LB" %}
-                    <div class="alert alert-warning border-warning d-flex align-items-center justify-content-center text-center mb-3" role="alert">
+                    <div class="alert alert-warning border-warning d-flex align-items-center justify-content-center text-center mb-3 " role="alert">
 
                         <i class="fas fa-exclamation-triangle fs-4 me-2"></i>
                         <div>
-                            <strong>Atenção!</strong> <br> Certifique-se de que o <strong>comprovante de pagamento</strong> foi anexado e o <strong>valor recebido</strong> foi informado antes de mover para Receita.
+                            <strong>Atenção!</strong> <br>
+                            <small class="mt-2">Certifique-se de que o <strong>comprovante de pagamento</strong> foi anexado e o <strong>valor recebido</strong> foi informado antes de mover para Receita.</small>
                         </div>
                         <i class="fas fa-exclamation-triangle fs-4 me-2"></i>
 
                     </div>
-                    Deseja realmente avançar para a próxima fase do projeto?
+                    <!-- Lista de validações -->
+                    <div id="validationErrors" class="alert alert-danger border-danger d-flex align-items-center justify-content-center text-center mb-3" role="alert">
+                        <i class="fas fa-exclamation-triangle fs-4 me-2"></i>
+                        <div>
+                            <strong>Dados obrigatórios não preenchidos!</strong> <br>
+                            <small class="mt-2">
+                                <ul id="errorList" class="mb-0"></ul>
+                            </small>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fs-4 me-2"></i>
+                    </div>
+                    <div id="confirmationMessage" style="display: block;">
+                        Deseja realmente avançar para a próxima fase do projeto?
+                    </div>
+                {% else %}
+                    <!-- Mensagem para outras fases -->
+                    <div id="confirmationMessage" style="display: block;">
+                        Deseja realmente avançar para a próxima fase do projeto?
+                    </div>
                 {% endif %}
             </div>
             <div class="modal-footer">
@@ -1211,7 +1456,212 @@
     }
     
     function nextPhase() {
+        // Sempre limpar o estado primeiro
+        hideValidationErrors();
+        
+        // Verificar se é transição de Liberado para Receita
+        const projectStatus = '{{ project.status }}';
+        if (projectStatus === 'LB') {
+            // Validar campos obrigatórios
+            const validationResult = validateFieldsForReceita();
+
+            
+            if (!validationResult.isValid && validationResult.errors.length > 0) {
+                showValidationErrors(validationResult.errors);
+            }
+        }
+        
         new bootstrap.Modal(document.getElementById('nextPhaseModal')).show();
+    }
+    
+    function validateFieldsForReceita() {
+        const errors = [];
+        
+
+        
+        // 1. VALOR DO PROJETO (obrigatório)
+        const value = document.getElementById('value');
+
+        if (!value || !value.value.trim() || getNumericValue(value.value) <= 0) {
+            errors.push('Valor do Projeto deve ser informado e maior que zero');
+        }
+        
+        // 2. BANCO (obrigatório)
+        const bank = document.getElementById('bank');
+        if (!bank || !bank.value) {
+            errors.push('Banco deve ser selecionado');
+        }
+        
+        // 3. LINHA DE CRÉDITO (obrigatório)
+        const creditLine = document.getElementById('credit_line');
+        if (!creditLine || !creditLine.value) {
+            errors.push('Linha de Crédito deve ser selecionada');
+        }
+        
+        // 4. ATIVIDADE (obrigatório)
+        const activity = document.getElementById('activity');
+        if (!activity || !activity.value) {
+            errors.push('Atividade deve ser selecionada');
+        }
+        
+        // 5. TAMANHO DO PROJETO (obrigatório)
+        const size = document.getElementById('size');
+        if (!size || !size.value) {
+            errors.push('Tamanho do Projeto deve ser selecionado');
+        }
+        
+        // 6. TAMANHO DA TERRA (obrigatório)
+        const landSize = document.getElementById('land_size');
+        if (!landSize || !landSize.value.trim() || parseFloat(landSize.value) <= 0) {
+            errors.push('Tamanho da Terra deve ser informado e maior que zero');
+        }
+        
+        // 7. PRAZO PARA PAGAMENTO (obrigatório)
+        const projectDeadline = document.getElementById('project_deadline');
+        if (!projectDeadline || !projectDeadline.value.trim() || parseInt(projectDeadline.value) <= 0) {
+            errors.push('Prazo para Pagamento deve ser informado e maior que zero');
+        }
+        
+        // 8. PARCELAS (obrigatório)
+        const installments = document.getElementById('installments');
+        if (!installments || !installments.value.trim() || parseInt(installments.value) <= 0) {
+            errors.push('Número de Parcelas deve ser informado e maior que zero');
+        }
+        
+        // 9. JUROS (obrigatório)
+        const fees = document.getElementById('fees');
+        if (!fees || !fees.value.trim() || parseFloat(fees.value) < 0) {
+            errors.push('Taxa de Juros deve ser informada');
+        }
+        
+        // 10. CARÊNCIA (obrigatório)
+        const paymentGrace = document.getElementById('payment_grace');
+        if (!paymentGrace || !paymentGrace.value.trim() || parseInt(paymentGrace.value) < 0) {
+            errors.push('Período de Carência deve ser informado');
+        }
+        
+        // 11. DATA DE APROVAÇÃO (obrigatório)
+        const approvalDate = document.getElementById('approval_date');
+        if (!approvalDate || !approvalDate.value.trim()) {
+            errors.push('Data de Aprovação deve ser informada');
+        }
+        
+        // 12. DATA PRIMEIRA PARCELA (obrigatório)
+        const firstInstallmentDate = document.getElementById('first_installment_date');
+        if (!firstInstallmentDate || !firstInstallmentDate.value.trim()) {
+            errors.push('Data Primeira Parcela deve ser informada');
+        }
+        
+        // 13. DATA ÚLTIMA PARCELA (obrigatório)
+        const lastInstallmentDate = document.getElementById('last_installment_date');
+        if (!lastInstallmentDate || !lastInstallmentDate.value.trim()) {
+            errors.push('Data Última Parcela deve ser informada');
+        }
+        
+        // 14. PORCENTAGEM ASTEC (obrigatório)
+        const percentageAstec = document.getElementById('percentage_astec');
+        if (!percentageAstec || !percentageAstec.value.trim() || parseFloat(percentageAstec.value) < 0) {
+            errors.push('Porcentagem ASTEC deve ser informada');
+        }
+        
+        // 15. PRAZO ESTIMADO PARA PRÓXIMA FASE (obrigatório)
+        const nextPhaseDeadline = document.getElementById('next_phase_deadline');
+        if (!nextPhaseDeadline || !nextPhaseDeadline.value.trim()) {
+            errors.push('Prazo Estimado Para Próxima Fase deve ser informado');
+        }
+        
+        // 16. VALOR RECEBIDO (obrigatório para Liberado → Receita)
+        const receivedValue = document.getElementById('received_value');
+
+        if (!receivedValue || !receivedValue.value.trim() || getNumericValue(receivedValue.value) <= 0) {
+            errors.push('Valor Recebido deve ser informado e maior que zero');
+        }
+        
+        // 17. DOCUMENTOS (obrigatório - pelo menos um comprovante)
+        const currentDocuments = document.querySelectorAll('.file-item');
+        if (currentDocuments.length === 0) {
+            errors.push('Pelo menos um documento (comprovante de pagamento) deve ser anexado');
+        }
+        
+        // VALIDAÇÕES LÓGICAS ADICIONAIS
+        
+        // Verificar se a data da última parcela é posterior à primeira parcela
+        if (firstInstallmentDate && firstInstallmentDate.value && 
+            lastInstallmentDate && lastInstallmentDate.value) {
+            const firstDate = new Date(firstInstallmentDate.value);
+            const lastDate = new Date(lastInstallmentDate.value);
+            
+            if (lastDate <= firstDate) {
+                errors.push('Data Última Parcela deve ser posterior à Data Primeira Parcela');
+            }
+        }
+        
+        // Verificar se data de aprovação não é futura
+        if (approvalDate && approvalDate.value) {
+            const approval = new Date(approvalDate.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (approval > today) {
+                errors.push('Data de Aprovação não pode ser futura');
+            }
+        }
+        
+
+        
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    }
+    
+    function showValidationErrors(errors) {
+        const errorDiv = document.getElementById('validationErrors');
+        const errorList = document.getElementById('errorList');
+        const confirmMessage = document.getElementById('confirmationMessage');
+        const confirmButton = document.querySelector('#nextPhaseModal .btn-primary');
+        
+
+        
+        if (errorDiv && errorList && confirmMessage && confirmButton && errors.length > 0) {
+            // Limpar lista anterior
+            errorList.innerHTML = '';
+            
+            // Adicionar erros à lista
+            errors.forEach((error, index) => {
+                const li = document.createElement('li');
+                li.textContent = error;
+                errorList.appendChild(li);
+            });
+            
+            // Mostrar erros e esconder confirmação
+            errorDiv.classList.add('show-errors');
+            confirmMessage.style.display = 'none';
+            confirmButton.disabled = true;
+            confirmButton.style.opacity = '0.6';
+            
+        }
+    }
+    
+    function hideValidationErrors() {
+        const errorDiv = document.getElementById('validationErrors');
+        const confirmMessage = document.getElementById('confirmationMessage');
+        const confirmButton = document.querySelector('#nextPhaseModal .btn-primary');
+        
+
+        
+        if (errorDiv) {
+            errorDiv.classList.remove('show-errors');
+        }
+        if (confirmMessage) {
+            confirmMessage.style.display = 'block';
+        }
+        if (confirmButton) {
+            confirmButton.disabled = false;
+            confirmButton.style.opacity = '1';
+        }
+        
+
     }
         
     function confirmPreviousPhase() {
@@ -1226,6 +1676,15 @@
     }
 
     function confirmNextPhase() {
+        // Verificar novamente antes de enviar
+        const projectStatus = '{{ project.status }}';
+        if (projectStatus === 'LB') {
+            const validationResult = validateFieldsForReceita();
+            if (!validationResult.isValid) {
+                return; // Não enviar se ainda há erros
+            }
+        }
+        
         const form = document.createElement('form');
         form.method = 'POST';
         form.innerHTML = `
@@ -1239,8 +1698,18 @@
 
 <script>
     function formatCurrency(input) {
-        // Remove tudo que não for número e vírgula
+        // Se input está vazio, retorna vazio
+        if (!input || input.trim() === '') {
+            return '';
+        }
+        
+        // Remove tudo que não for número
         let value = input.replace(/\D/g, '');
+        
+        // Se não há números, retorna vazio
+        if (!value || value === '0') {
+            return '';
+        }
         
         // Converte para float (2 casas decimais)
         value = (parseFloat(value) / 100).toFixed(2);
@@ -1254,39 +1723,53 @@
         return value;
     }
     
-    document.getElementById('value').addEventListener('input', function(e) {
-        let value = e.target.value.replace(/\D/g, '');
-        if (value) {
-            e.target.value = formatCurrency(value);
-        }
-    });
-    
-    // Formatar campo Valor Recebido se existir
-    const receivedValueInput = document.getElementById('received_value');
-    if (receivedValueInput) {
-        receivedValueInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value) {
-                e.target.value = formatCurrency(value);
+    function applyCurrencyMask(element) {
+        if (!element) return;
+        
+        element.addEventListener('input', function(e) {
+            let cursorPosition = e.target.selectionStart;
+            let oldValue = e.target.value;
+            let newValue = formatCurrency(e.target.value);
+            
+            e.target.value = newValue;
+            
+            // Ajustar posição do cursor
+            if (newValue.length !== oldValue.length) {
+                let newPosition = cursorPosition + (newValue.length - oldValue.length);
+                if (newPosition < 0) newPosition = 0;
+                if (newPosition > newValue.length) newPosition = newValue.length;
+                e.target.setSelectionRange(newPosition, newPosition);
             }
         });
+        
+        // Formatar valor inicial se existir
+        if (element.value && element.value.trim() !== '') {
+            element.value = formatCurrency(element.value);
+        }
     }
     
-    // Formata os valores iniciais se existirem
-    window.addEventListener('load', function() {
-        const input = document.getElementById('value');
-        if (input.value) {
-            const rawValue = input.value.replace(/\D/g, '');
-            input.value = formatCurrency(rawValue);
-        }
+    // Aplicar máscara aos campos de moeda quando a página carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        // Campo Valor do Projeto
+        const valueInput = document.getElementById('value');
+        applyCurrencyMask(valueInput);
         
-        // Formatar valor recebido inicial
-        const receivedInput = document.getElementById('received_value');
-        if (receivedInput && receivedInput.value) {
-            const rawReceivedValue = receivedInput.value.replace(/\D/g, '');
-            receivedInput.value = formatCurrency(rawReceivedValue);
-        }
+        // Campo Valor Recebido (se existir)
+        const receivedValueInput = document.getElementById('received_value');
+        applyCurrencyMask(receivedValueInput);
+        
+        // Campo Valor do Consórcio (se existir)
+        const consortiumValueInput = document.getElementById('consortium_value');
+        applyCurrencyMask(consortiumValueInput);
     });
+    
+    // Função para obter valor numérico de campo formatado
+    function getNumericValue(formattedValue) {
+        if (!formattedValue || formattedValue.trim() === '') {
+            return 0;
+        }
+        return parseFloat(formattedValue.replace(/\./g, '').replace(',', '.')) || 0;
+    }
 </script>
 
 <script>
@@ -1349,6 +1832,37 @@
         
         // Mostrar aviso ao usuário
         alert('Não é possível adicionar arquivos nas observações. Use a seção "Adicionar Novos Documentos" abaixo.');
+    });
+    
+    // Função para verificar se o conteúdo da observação está realmente vazio
+    function isObservationEmpty(content) {
+        if (!content) return true;
+        
+        // Remove tags HTML e espaços em branco
+        const textOnly = content.replace(/<[^>]*>/g, '').trim();
+        
+        // Verifica se sobrou algum texto real
+        return textOnly.length === 0;
+    }
+    
+    // Interceptar o envio do formulário para limpar observações vazias
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form[method="post"]');
+        const observationInput = document.getElementById('observacoes');
+        
+        if (form && observationInput) {
+            form.addEventListener('submit', function(event) {
+                const content = observationInput.value;
+                
+                // Se a observação está vazia ou contém apenas HTML vazio, limpar o campo
+                if (isObservationEmpty(content)) {
+                    observationInput.value = '';
+                    console.log('Observação vazia removida antes do envio');
+                } else {
+                    console.log('Observação com conteúdo será salva:', content);
+                }
+            });
+        }
     });
 </script>
 
