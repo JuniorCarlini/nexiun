@@ -74,11 +74,11 @@
     .upload-item {
         display: flex;
         align-items: center;
-        padding: 12px;
+        padding: 10px;
         background-color: #fff;
         border: 1px solid #dee2e6;
         border-radius: 6px;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         transition: all 0.3s ease;
     }
 
@@ -97,54 +97,17 @@
         background-color: #fff5f5;
     }
 
-    .upload-icon {
-        font-size: 35px;
-        margin-right: 15px;
-        min-width: 35px;
-    }
-
-    .upload-info {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .upload-filename {
-        font-weight: 600;
-        color: #333;
-        margin-bottom: 4px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .upload-details {
-        font-size: 0.85rem;
-        color: #6c757d;
-        margin-bottom: 6px;
-    }
-
-    .progress {
-        height: 8px;
-        border-radius: 4px;
+    .upload-item .progress {
+        height: 6px;
+        border-radius: 3px;
         background-color: #e9ecef;
         overflow: hidden;
     }
 
-    .progress-bar {
+    .upload-item .progress-bar {
         height: 100%;
         background: linear-gradient(90deg, #0d6efd, #0a58ca);
         transition: width 0.3s ease;
-        border-radius: 4px;
-    }
-
-    .upload-status {
-        display: flex;
-        align-items: center;
-        margin-left: 15px;
-    }
-
-    .status-icon {
-        font-size: 24px;
     }
 
     .status-icon.loading {
@@ -154,21 +117,6 @@
     @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
-    }
-
-    .remove-file-btn {
-        background: none;
-        border: none;
-        color: #dc3545;
-        cursor: pointer;
-        padding: 5px 10px;
-        margin-left: 10px;
-        font-size: 20px;
-        transition: color 0.2s;
-    }
-
-    .remove-file-btn:hover {
-        color: #a71d2a;
     }
 
     .upload-summary {
@@ -973,28 +921,50 @@
             uploadItem.className = 'upload-item';
             uploadItem.id = `upload-item-${this.index}`;
             uploadItem.innerHTML = `
-                <div class="upload-icon">
-                    <i class="fas ${iconClass}" style="color: #16365f;"></i>
-                </div>
-                <div class="upload-info">
-                    <div class="upload-filename">${this.file.name}</div>
-                    <div class="upload-details">
-                        <span class="file-size">${fileSize} KB</span>
-                        <span class="status-text ms-2">Aguardando...</span>
+                <div class="w-100">
+                    <div class="d-flex align-items-center">
+                        <div class="d-flex align-items-center ms-3 flex-grow-1">
+                            <i class="fas ${iconClass} me-2" style="color: #16365f; font-size: 45px;"></i>
+                            <div class="file-info ms-1">
+                                <div class="file-name fw-bold">${this.file.name}</div>
+                                <small class="text-muted">• Tamanho: ${fileSize} KB</small><br>
+                                <small class="text-muted status-text">• Aguardando upload...</small>
+                            </div>
+                        </div>
+                        <div class="file-actions d-flex me-3">
+                            <div class="upload-status me-2">
+                                <i class="fas fa-clock status-icon" style="color: #6c757d; font-size: 25px;"
+                                   data-bs-toggle="tooltip"
+                                   data-bs-placement="top"
+                                   title="Aguardando upload"
+                                   data-bs-custom-class="custom-tooltip"></i>
+                            </div>
+                            <button type="button" class="btn btn-link text-danger p-0 remove-file-btn" 
+                                    onclick="removeFile(${this.index})" title="Remover">
+                                <i class="fa-solid fa-trash" style="font-size: 25px;"
+                                   data-bs-toggle="tooltip"
+                                   data-bs-placement="top"
+                                   title="Remover arquivo"
+                                   data-bs-custom-class="custom-tooltip"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="progress" style="display: none;">
+                    <div class="progress mt-1 mx-3" style="display: none;">
                         <div class="progress-bar" role="progressbar" style="width: 0%"></div>
                     </div>
                 </div>
-                <div class="upload-status">
-                    <i class="fas fa-clock status-icon" style="color: #6c757d;"></i>
-                </div>
-                <button type="button" class="remove-file-btn" onclick="removeFile(${this.index})">
-                    <i class="fas fa-times"></i>
-                </button>
             `;
 
             this.element = uploadItem;
+            
+            // Inicializar tooltips após criar o elemento
+            setTimeout(() => {
+                const tooltips = uploadItem.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltips.forEach(tooltip => {
+                    new bootstrap.Tooltip(tooltip);
+                });
+            }, 100);
+            
             return uploadItem;
         }
 
@@ -1007,6 +977,12 @@
             const progressBar = this.element.querySelector('.progress');
             const progressBarFill = this.element.querySelector('.progress-bar');
 
+            // Destruir tooltip antigo antes de mudar
+            const tooltipInstance = bootstrap.Tooltip.getInstance(statusIcon);
+            if (tooltipInstance) {
+                tooltipInstance.dispose();
+            }
+
             // Remove classes anteriores
             this.element.classList.remove('uploading', 'success', 'error');
             statusIcon.classList.remove('fa-clock', 'fa-spinner', 'fa-check-circle', 'fa-exclamation-circle', 'loading');
@@ -1016,7 +992,8 @@
                     this.element.classList.add('uploading');
                     statusIcon.classList.add('fa-spinner', 'loading');
                     statusIcon.style.color = '#0d6efd';
-                    statusText.textContent = `Enviando... ${progress}%`;
+                    statusIcon.setAttribute('title', 'Enviando arquivo...');
+                    statusText.innerHTML = `• Enviando... <strong>${progress}%</strong>`;
                     progressBar.style.display = 'block';
                     progressBarFill.style.width = `${progress}%`;
                     break;
@@ -1025,7 +1002,9 @@
                     this.element.classList.add('success');
                     statusIcon.classList.add('fa-check-circle');
                     statusIcon.style.color = '#28a745';
-                    statusText.textContent = 'Upload concluído!';
+                    statusIcon.style.fontSize = '25px';
+                    statusIcon.setAttribute('title', 'Upload concluído com sucesso');
+                    statusText.innerHTML = '• <strong style="color: #28a745;">Upload concluído!</strong>';
                     progressBar.style.display = 'block';
                     progressBarFill.style.width = '100%';
                     progressBarFill.style.background = '#28a745';
@@ -1038,10 +1017,15 @@
                     this.element.classList.add('error');
                     statusIcon.classList.add('fa-exclamation-circle');
                     statusIcon.style.color = '#dc3545';
-                    statusText.textContent = message || 'Erro no upload';
+                    statusIcon.style.fontSize = '25px';
+                    statusIcon.setAttribute('title', message || 'Erro no upload');
+                    statusText.innerHTML = `• <strong style="color: #dc3545;">${message || 'Erro no upload'}</strong>`;
                     progressBar.style.display = 'none';
                     break;
             }
+
+            // Recriar tooltip com o novo conteúdo
+            new bootstrap.Tooltip(statusIcon);
         }
     }
 
@@ -1132,8 +1116,8 @@
         }
     });
 
-    // Upload com progresso
-    async function uploadFilesWithProgress() {
+    // Upload com progresso REAL usando XMLHttpRequest
+    function uploadFilesWithProgress() {
         const form = document.querySelector('form');
         const formData = new FormData(form);
         
@@ -1152,59 +1136,80 @@
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Salvando...';
 
-        try {
-            // Simular progresso para cada arquivo
-            validFiles.forEach((fileManager, index) => {
-                fileManager.updateStatus('uploading', 0);
-                simulateProgress(fileManager);
-            });
+        // Marcar todos como iniciando upload
+        validFiles.forEach((fileManager) => {
+            fileManager.updateStatus('uploading', 0);
+        });
 
-            // Fazer upload real
-            const response = await fetch(window.location.href, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            });
+        // Usar XMLHttpRequest para monitorar progresso REAL
+        const xhr = new XMLHttpRequest();
 
-            if (response.ok) {
-                // Marcar todos como sucesso
+        // Monitorar progresso de upload (REAL)
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                
+                // Atualizar todos os arquivos com o progresso real
+                validFiles.forEach((fileManager) => {
+                    fileManager.updateStatus('uploading', percentComplete);
+                });
+            }
+        });
+
+        // Quando o upload for concluído
+        xhr.addEventListener('load', function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                // Sucesso - marcar todos como concluídos
                 validFiles.forEach((fileManager) => {
                     fileManager.updateStatus('success', 100);
                 });
 
-                // Aguardar um pouco e recarregar
+                // Aguardar um pouco para o usuário ver o sucesso e recarregar
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500);
             } else {
-                throw new Error('Erro no upload');
+                // Erro no servidor
+                validFiles.forEach((fileManager) => {
+                    fileManager.updateStatus('error', 0, 'Erro ao processar no servidor');
+                });
+                
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+                alert('Erro ao processar os arquivos no servidor. Por favor, tente novamente.');
             }
+        });
 
-        } catch (error) {
-            console.error('Erro:', error);
+        // Tratar erros de rede
+        xhr.addEventListener('error', function() {
             validFiles.forEach((fileManager) => {
-                fileManager.updateStatus('error', 0, 'Erro ao enviar arquivo');
+                fileManager.updateStatus('error', 0, 'Erro de conexão');
             });
             
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalBtnText;
-            alert('Erro ao fazer upload dos arquivos. Por favor, tente novamente.');
-        }
-    }
+            alert('Erro de conexão. Verifique sua internet e tente novamente.');
+        });
 
-    // Simular progresso (já que não temos acesso ao progresso real via Fetch)
-    function simulateProgress(fileManager) {
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += Math.random() * 30;
-            if (progress > 90) {
-                progress = 90;
-                clearInterval(interval);
-            }
-            fileManager.updateStatus('uploading', Math.floor(progress));
-        }, 300);
+        // Tratar cancelamento
+        xhr.addEventListener('abort', function() {
+            validFiles.forEach((fileManager) => {
+                fileManager.updateStatus('error', 0, 'Upload cancelado');
+            });
+            
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        });
+
+        // Enviar requisição
+        xhr.open('POST', window.location.href, true);
+        
+        // Adicionar header CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        xhr.setRequestHeader('X-CSRFToken', csrfToken);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        
+        xhr.send(formData);
     }
 
     // Modal de exclusão
