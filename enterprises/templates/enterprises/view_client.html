@@ -70,6 +70,115 @@
         color: #16365f;
     }
 
+    /* Estilos para status de upload */
+    .upload-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .upload-item.uploading {
+        border-color: #0d6efd;
+        background-color: #f8f9ff;
+    }
+
+    .upload-item.success {
+        border-color: #28a745;
+        background-color: #f0f9f3;
+    }
+
+    .upload-item.error {
+        border-color: #dc3545;
+        background-color: #fff5f5;
+    }
+
+    .upload-icon {
+        font-size: 35px;
+        margin-right: 15px;
+        min-width: 35px;
+    }
+
+    .upload-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .upload-filename {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .upload-details {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-bottom: 6px;
+    }
+
+    .progress {
+        height: 8px;
+        border-radius: 4px;
+        background-color: #e9ecef;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #0d6efd, #0a58ca);
+        transition: width 0.3s ease;
+        border-radius: 4px;
+    }
+
+    .upload-status {
+        display: flex;
+        align-items: center;
+        margin-left: 15px;
+    }
+
+    .status-icon {
+        font-size: 24px;
+    }
+
+    .status-icon.loading {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .remove-file-btn {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
+        padding: 5px 10px;
+        margin-left: 10px;
+        font-size: 20px;
+        transition: color 0.2s;
+    }
+
+    .remove-file-btn:hover {
+        color: #a71d2a;
+    }
+
+    .upload-summary {
+        padding: 10px 15px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        margin-top: 10px;
+        font-size: 0.9rem;
+    }
+
     /* Desabilitar botões de anexo do Trix Editor */
     trix-toolbar [data-trix-button-group="file-tools"] {
         display: none !important;
@@ -836,28 +945,266 @@
     </div>
 </div>
 
-<!-- Mantém o mesmo JavaScript do template original -->
+<!-- Sistema de Upload com Progresso -->
 <script>
-    // Drag and Drop
+    // Variáveis globais
     const dragDropZone = document.getElementById('dragDropZone');
     const fileInput = document.getElementById('fileInput');
     const fileList = document.getElementById('fileList');
+    let selectedFiles = [];
+    let uploadQueue = [];
 
+    // Classe para gerenciar upload de arquivos
+    class FileUploadManager {
+        constructor(file, index) {
+            this.file = file;
+            this.index = index;
+            this.status = 'pending'; // pending, uploading, success, error
+            this.progress = 0;
+            this.element = null;
+        }
+
+        createUploadItem() {
+            const fileType = this.file.type;
+            const iconClass = fileType === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image';
+            const fileSize = (this.file.size / 1024).toFixed(2);
+
+            const uploadItem = document.createElement('div');
+            uploadItem.className = 'upload-item';
+            uploadItem.id = `upload-item-${this.index}`;
+            uploadItem.innerHTML = `
+                <div class="upload-icon">
+                    <i class="fas ${iconClass}" style="color: #16365f;"></i>
+                </div>
+                <div class="upload-info">
+                    <div class="upload-filename">${this.file.name}</div>
+                    <div class="upload-details">
+                        <span class="file-size">${fileSize} KB</span>
+                        <span class="status-text ms-2">Aguardando...</span>
+                    </div>
+                    <div class="progress" style="display: none;">
+                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="upload-status">
+                    <i class="fas fa-clock status-icon" style="color: #6c757d;"></i>
+                </div>
+                <button type="button" class="remove-file-btn" onclick="removeFile(${this.index})">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            this.element = uploadItem;
+            return uploadItem;
+        }
+
+        updateStatus(status, progress = 0, message = '') {
+            this.status = status;
+            this.progress = progress;
+
+            const statusText = this.element.querySelector('.status-text');
+            const statusIcon = this.element.querySelector('.status-icon');
+            const progressBar = this.element.querySelector('.progress');
+            const progressBarFill = this.element.querySelector('.progress-bar');
+
+            // Remove classes anteriores
+            this.element.classList.remove('uploading', 'success', 'error');
+            statusIcon.classList.remove('fa-clock', 'fa-spinner', 'fa-check-circle', 'fa-exclamation-circle', 'loading');
+
+            switch(status) {
+                case 'uploading':
+                    this.element.classList.add('uploading');
+                    statusIcon.classList.add('fa-spinner', 'loading');
+                    statusIcon.style.color = '#0d6efd';
+                    statusText.textContent = `Enviando... ${progress}%`;
+                    progressBar.style.display = 'block';
+                    progressBarFill.style.width = `${progress}%`;
+                    break;
+
+                case 'success':
+                    this.element.classList.add('success');
+                    statusIcon.classList.add('fa-check-circle');
+                    statusIcon.style.color = '#28a745';
+                    statusText.textContent = 'Upload concluído!';
+                    progressBar.style.display = 'block';
+                    progressBarFill.style.width = '100%';
+                    progressBarFill.style.background = '#28a745';
+                    // Remove botão de excluir
+                    const removeBtn = this.element.querySelector('.remove-file-btn');
+                    if (removeBtn) removeBtn.style.display = 'none';
+                    break;
+
+                case 'error':
+                    this.element.classList.add('error');
+                    statusIcon.classList.add('fa-exclamation-circle');
+                    statusIcon.style.color = '#dc3545';
+                    statusText.textContent = message || 'Erro no upload';
+                    progressBar.style.display = 'none';
+                    break;
+            }
+        }
+    }
+
+    // Manipulação de seleção de arquivos
     function handleFileSelect(event) {
         const files = event.target?.files || event.dataTransfer?.files;
-        fileList.innerHTML = '';
+        
+        if (!files || files.length === 0) return;
 
-        if (files && files.length > 0) {
-            Array.from(files).forEach(file => {
-                const listItem = document.createElement('div');
-                listItem.className = 'file-item mt-2';
-                listItem.innerHTML = `
-                    <i class="fas ${file.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'} me-2"></i>
-                    ${file.name} (${(file.size / 1024).toFixed(2)} KB)
-                `;
-                fileList.appendChild(listItem);
-            });
+        // Limpar lista anterior se for nova seleção
+        if (event.target?.files) {
+            selectedFiles = [];
+            uploadQueue = [];
+            fileList.innerHTML = '';
         }
+
+        // Validar e adicionar arquivos
+        Array.from(files).forEach((file, index) => {
+            // Validações
+            const maxSize = 20 * 1024 * 1024; // 20MB
+            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+
+            if (file.size > maxSize) {
+                alert(`O arquivo "${file.name}" excede o tamanho máximo de 20MB.`);
+                return;
+            }
+
+            if (!allowedTypes.includes(file.type)) {
+                alert(`O arquivo "${file.name}" não é um tipo permitido (PDF, JPG, PNG).`);
+                return;
+            }
+
+            selectedFiles.push(file);
+            const fileManager = new FileUploadManager(file, selectedFiles.length - 1);
+            uploadQueue.push(fileManager);
+            fileList.appendChild(fileManager.createUploadItem());
+        });
+
+        // Mostrar resumo
+        updateUploadSummary();
+    }
+
+    // Remover arquivo da fila
+    function removeFile(index) {
+        const fileManager = uploadQueue[index];
+        if (fileManager && fileManager.status !== 'uploading') {
+            fileManager.element.remove();
+            uploadQueue[index] = null;
+            selectedFiles[index] = null;
+            updateUploadSummary();
+        }
+    }
+
+    // Atualizar resumo de upload
+    function updateUploadSummary() {
+        const validFiles = uploadQueue.filter(f => f !== null);
+        
+        let summaryDiv = document.getElementById('upload-summary');
+        if (!summaryDiv && validFiles.length > 0) {
+            summaryDiv = document.createElement('div');
+            summaryDiv.id = 'upload-summary';
+            summaryDiv.className = 'upload-summary';
+            fileList.appendChild(summaryDiv);
+        }
+
+        if (summaryDiv) {
+            if (validFiles.length === 0) {
+                summaryDiv.remove();
+            } else {
+                const totalSize = validFiles.reduce((sum, fm) => sum + fm.file.size, 0);
+                const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+                summaryDiv.innerHTML = `
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>${validFiles.length}</strong> arquivo(s) selecionado(s) - 
+                    <strong>${totalSizeMB} MB</strong> no total
+                `;
+            }
+        }
+    }
+
+    // Interceptar submit do formulário para fazer upload com progresso
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const validFiles = uploadQueue.filter(f => f !== null && f.status !== 'success');
+        
+        if (validFiles.length > 0) {
+            e.preventDefault();
+            uploadFilesWithProgress();
+        }
+    });
+
+    // Upload com progresso
+    async function uploadFilesWithProgress() {
+        const form = document.querySelector('form');
+        const formData = new FormData(form);
+        
+        // Remover arquivos do formData original
+        formData.delete('documents[]');
+        
+        // Adicionar apenas arquivos válidos
+        const validFiles = uploadQueue.filter(f => f !== null && f.status !== 'success');
+        validFiles.forEach((fileManager) => {
+            formData.append('documents[]', fileManager.file);
+        });
+
+        // Desabilitar botão de submit
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Salvando...';
+
+        try {
+            // Simular progresso para cada arquivo
+            validFiles.forEach((fileManager, index) => {
+                fileManager.updateStatus('uploading', 0);
+                simulateProgress(fileManager);
+            });
+
+            // Fazer upload real
+            const response = await fetch(window.location.href, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (response.ok) {
+                // Marcar todos como sucesso
+                validFiles.forEach((fileManager) => {
+                    fileManager.updateStatus('success', 100);
+                });
+
+                // Aguardar um pouco e recarregar
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                throw new Error('Erro no upload');
+            }
+
+        } catch (error) {
+            console.error('Erro:', error);
+            validFiles.forEach((fileManager) => {
+                fileManager.updateStatus('error', 0, 'Erro ao enviar arquivo');
+            });
+            
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+            alert('Erro ao fazer upload dos arquivos. Por favor, tente novamente.');
+        }
+    }
+
+    // Simular progresso (já que não temos acesso ao progresso real via Fetch)
+    function simulateProgress(fileManager) {
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 30;
+            if (progress > 90) {
+                progress = 90;
+                clearInterval(interval);
+            }
+            fileManager.updateStatus('uploading', Math.floor(progress));
+        }, 300);
     }
 
     // Modal de exclusão
@@ -868,7 +1215,7 @@
         modal.show();
     }
 
-    // Event Listeners
+    // Event Listeners para Drag and Drop
     dragDropZone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', handleFileSelect);
 
